@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZEIT Advise · AdCP Discovery</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --yellow: #FFFF00;
+  --black: #000000;
+  --white: #FFFFFF;
+  --green: #00C853;
+  --orange: #FF6D00;
+  --gray: #B0B0B0;
+  --red: #D50000;
+  --gray-bg: #F4F4F4;
+}
+
+html, body {
+  font-family: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif;
+  font-size: 16px;
+  color: var(--black);
+  background: var(--white);
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+.container { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
+
+/* HEADER */
+header { background: var(--yellow); border-bottom: 1px solid var(--black); }
+.header-inner {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 20px 40px; max-width: 1200px; margin: 0 auto;
+}
+.logo { font-size: 24px; letter-spacing: -0.01em; }
+.logo .advise { font-style: italic; font-weight: 700; }
+.header-meta { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+
+/* SERVER STATUS */
+.server-status {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 4px 10px; border: 1px solid currentColor;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.server-status.ok { color: var(--green); }
+.server-status.err { color: var(--red); }
+.server-status.loading { color: var(--gray); }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+/* HERO */
+.hero { background: var(--yellow); padding: 60px 40px 70px; border-bottom: 1px solid var(--black); }
+.hero-inner { max-width: 1200px; margin: 0 auto; }
+.hero h1 { font-size: 88px; line-height: 0.95; letter-spacing: -0.02em; margin-bottom: 24px; font-weight: 500; }
+.hero .subline { font-size: 16px; text-transform: uppercase; letter-spacing: 0.08em; max-width: 800px; }
+
+/* SEARCH */
+.search-section { padding: 40px 0 0; }
+.search-bar { display: flex; border: 1px solid var(--black); }
+.search-bar input {
+  flex: 1; padding: 18px 20px; border: none; font-family: inherit; font-size: 18px;
+  background: var(--white); outline: none;
+}
+.search-bar input:focus { background: var(--yellow); }
+.search-bar input::placeholder { color: #888; font-style: italic; }
+.search-bar button {
+  background: var(--black); color: var(--white); border: none; padding: 18px 32px;
+  font-family: inherit; font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em;
+  cursor: pointer; font-weight: 700; transition: background 0.08s linear;
+  white-space: nowrap;
+}
+.search-bar button:hover:not(:disabled) { background: #333; }
+.search-bar button:disabled { background: var(--gray); cursor: not-allowed; }
+
+/* FILTERS */
+.filter-section { padding: 32px 0; border-bottom: 1px solid var(--black); }
+.filter-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 0; border: 1px solid var(--black);
+}
+.filter-group { padding: 20px; border-right: 1px solid var(--black); }
+.filter-group:last-child { border-right: none; }
+.filter-group:nth-child(n+4) { border-top: 1px solid var(--black); }
+.filter-group-label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+  font-weight: 700; margin-bottom: 14px; display: block;
+}
+.checkbox-list { display: flex; flex-direction: column; gap: 8px; }
+.checkbox-item { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; }
+.checkbox-item input[type="checkbox"] {
+  width: 14px; height: 14px; border: 1px solid var(--black); appearance: none; cursor: pointer;
+  background: var(--white); flex-shrink: 0; position: relative;
+}
+.checkbox-item input[type="checkbox"]:checked { background: var(--black); }
+.checkbox-item input[type="checkbox"]:checked::after {
+  content: "✓"; position: absolute; color: var(--white); font-size: 10px;
+  line-height: 14px; left: 1px; top: 0;
+}
+.checkbox-item.disabled { opacity: 0.4; cursor: not-allowed; }
+.checkbox-item.disabled input { cursor: not-allowed; }
+.chip-note { font-size: 11px; color: #888; margin-top: 4px; font-style: italic; }
+
+/* Budget slider */
+.budget-row { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+.budget-row input[type="range"] {
+  flex: 1; height: 2px; appearance: none; background: var(--black); cursor: pointer;
+}
+.budget-row input[type="range"]::-webkit-slider-thumb {
+  appearance: none; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--black); cursor: pointer;
+}
+.budget-value { font-size: 14px; font-weight: 700; min-width: 70px; text-align: right; white-space: nowrap; }
+
+/* Format checkboxes */
+.format-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.format-chip {
+  border: 1px solid var(--black); padding: 5px 10px; font-size: 13px;
+  cursor: pointer; background: var(--white); user-select: none;
+  transition: background 0.08s, color 0.08s;
+}
+.format-chip:hover { background: var(--yellow); }
+.format-chip.active { background: var(--black); color: var(--white); }
+
+/* Filter actions */
+.filter-actions { display: flex; align-items: center; gap: 16px; padding: 20px 0 0; }
+.btn-primary {
+  background: var(--black); color: var(--white); border: 1px solid var(--black);
+  padding: 14px 32px; font-family: inherit; font-size: 14px; text-transform: uppercase;
+  letter-spacing: 0.08em; cursor: pointer; font-weight: 700; transition: background 0.08s;
+}
+.btn-primary:hover { background: #333; }
+.btn-ghost {
+  background: var(--white); color: var(--black); border: 1px solid var(--black);
+  padding: 14px 24px; font-family: inherit; font-size: 14px; text-transform: uppercase;
+  letter-spacing: 0.08em; cursor: pointer; transition: background 0.08s;
+}
+.btn-ghost:hover { background: var(--yellow); }
+
+/* RESULTS */
+.results-section { padding: 40px 0 80px; }
+.results-header {
+  display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 24px;
+}
+.results-count { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+.results-count strong { font-size: 22px; letter-spacing: -0.01em; font-weight: 500; text-transform: none; }
+.results-sort { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+.results-sort select {
+  border: 1px solid var(--black); padding: 6px 10px; font-family: inherit;
+  font-size: 12px; background: var(--white); cursor: pointer;
+}
+.result-list { display: flex; flex-direction: column; border-top: 1px solid var(--black); }
+.result-card {
+  border-bottom: 1px solid var(--black); background: var(--white);
+  cursor: pointer; transition: background 0.08s linear; position: relative; overflow: hidden;
+}
+.result-card:hover { background: var(--yellow); }
+.result-card-bar { height: 3px; width: 100%; }
+.result-card-bar.match-high { background: var(--green); }
+.result-card-bar.match-mid { background: var(--orange); }
+.result-card-bar.match-low { background: var(--gray); }
+.result-card-inner {
+  display: grid; grid-template-columns: 1fr auto auto auto;
+  align-items: center; padding: 20px 24px; gap: 24px;
+}
+.rc-main { min-width: 0; }
+.rc-name { font-size: 22px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.1; margin-bottom: 4px; }
+.rc-sub { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: #555; }
+.rc-format { font-size: 13px; margin-top: 8px; color: #333; }
+.rc-reach { text-align: right; font-size: 13px; color: #444; white-space: nowrap; }
+.rc-reach strong { display: block; font-size: 16px; color: var(--black); }
+.rc-price { text-align: right; white-space: nowrap; }
+.rc-price-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #888; margin-bottom: 2px; }
+.rc-price-value { font-size: 28px; font-weight: 500; letter-spacing: -0.02em; line-height: 1; }
+.rc-badge { text-align: right; white-space: nowrap; }
+.match-badge {
+  display: inline-block; padding: 5px 10px; font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.08em; font-weight: 700; border: 1px solid currentColor;
+}
+.match-badge.match-high { color: var(--green); border-color: var(--green); }
+.match-badge.match-mid { color: var(--orange); border-color: var(--orange); }
+.match-badge.match-low { color: var(--gray); border-color: var(--gray); }
+.match-score { font-size: 11px; color: #888; margin-top: 4px; }
+
+.results-empty {
+  padding: 60px 0; text-align: center;
+  font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; color: #888;
+}
+.results-loading {
+  padding: 60px 0; text-align: center;
+  font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; color: #888;
+}
+.results-error {
+  padding: 40px 0; text-align: center;
+  font-size: 14px; color: var(--red);
+}
+
+/* MODAL */
+.modal {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,0.5);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 40px 20px; overflow-y: auto;
+}
+.modal.hidden { display: none; }
+.modal-content {
+  background: var(--white); border: 1px solid var(--black);
+  width: 100%; max-width: 900px; position: relative;
+}
+.modal-close {
+  position: absolute; top: 20px; right: 20px;
+  background: none; border: 1px solid var(--black); padding: 6px 12px;
+  font-family: inherit; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em;
+  cursor: pointer; transition: background 0.08s;
+}
+.modal-close:hover { background: var(--yellow); }
+.modal-header { padding: 32px 40px 24px; border-bottom: 1px solid var(--black); }
+.modal-badge { margin-bottom: 16px; }
+.modal-name { font-size: 40px; font-weight: 500; letter-spacing: -0.02em; line-height: 1; margin-bottom: 8px; }
+.modal-sub { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: #555; }
+.modal-section { padding: 24px 40px; border-bottom: 1px solid var(--black); }
+.modal-section:last-child { border-bottom: none; }
+.modal-section-title {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+  font-weight: 700; margin-bottom: 16px; color: #555;
+}
+.kv-table { width: 100%; border-collapse: collapse; }
+.kv-table tr { border-bottom: 1px solid #eee; }
+.kv-table tr:last-child { border-bottom: none; }
+.kv-table td { padding: 8px 0; vertical-align: top; }
+.kv-table td.k { font-size: 12px; text-transform: uppercase; letter-spacing: 0.07em; color: #888; width: 200px; }
+.kv-table td.v { font-size: 15px; }
+.formats-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.formats-table th {
+  text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 8px 12px; border-bottom: 1px solid var(--black); background: var(--gray-bg);
+}
+.formats-table td { padding: 10px 12px; border-bottom: 1px solid #eee; vertical-align: middle; }
+.formats-table tr:last-child td { border-bottom: none; }
+.formats-table tr:hover td { background: var(--yellow); }
+.formats-table .price-gross { font-weight: 700; }
+.formats-table .price-bp { color: var(--gray); font-style: italic; font-size: 12px; }
+.issues-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.issues-table th {
+  text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 8px 12px; border-bottom: 1px solid var(--black); background: var(--gray-bg);
+}
+.issues-table td { padding: 10px 12px; border-bottom: 1px solid #eee; }
+.issues-table tr:last-child td { border-bottom: none; }
+.modal-actions {
+  display: flex; gap: 16px; align-items: center;
+  padding: 24px 40px; border-top: 1px solid var(--black); background: var(--gray-bg);
+}
+.modal-link {
+  display: inline-block; border: 1px solid var(--black); padding: 12px 20px;
+  font-size: 13px; text-decoration: none; color: var(--black);
+  text-transform: uppercase; letter-spacing: 0.07em; transition: background 0.08s;
+}
+.modal-link:hover { background: var(--yellow); }
+
+/* FOOTER */
+footer { border-top: 1px solid var(--black); padding: 28px 0; }
+footer .footer-inner {
+  max-width: 1200px; margin: 0 auto; padding: 0 40px;
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; line-height: 1.6;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .container { padding: 0 20px; }
+  .header-inner { padding: 16px 20px; flex-direction: column; align-items: flex-start; gap: 8px; }
+  .hero { padding: 40px 20px 50px; }
+  .hero h1 { font-size: 48px; }
+  .filter-grid { grid-template-columns: 1fr; }
+  .filter-group { border-right: none; border-top: 1px solid var(--black); }
+  .filter-group:first-child { border-top: none; }
+  .result-card-inner { grid-template-columns: 1fr; gap: 12px; }
+  .rc-price, .rc-reach, .rc-badge { text-align: left; }
+  .modal-content { width: 100%; }
+  .modal-header, .modal-section, .modal-actions { padding-left: 20px; padding-right: 20px; }
+  .modal-name { font-size: 28px; }
+  footer .footer-inner { padding: 0 20px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">ZEIT<span class="advise"> Advise</span></div>
+    <div style="display:flex;align-items:center;gap:16px">
+      <span id="server-status" class="server-status loading">
+        <span class="status-dot"></span>
+        <span id="status-text">Verbinde...</span>
+      </span>
+      <div class="header-meta">AdCP Discovery · Phase 1 · Stand April 2026</div>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-inner">
+    <h1>ZEIT-Werbeumfelder.<br>Direkt finden.</h1>
+    <div class="subline" id="hero-subline">Sales-Tool für Print · Newsletter · Podcast · Echtdaten Stand Januar 2026</div>
+  </div>
+</section>
+
+<main>
+  <div class="container">
+
+    <section class="search-section">
+      <div class="search-bar">
+        <input type="text" id="query-input"
+          placeholder='Was suchen Sie? z.B. "Reise 30.000 EUR Print" oder "B2B Geschäftsführer DACH"'
+          autocomplete="off">
+        <button id="search-btn" type="button">Suchen</button>
+      </div>
+    </section>
+
+    <section class="filter-section">
+      <div class="filter-grid">
+
+        <div class="filter-group">
+          <span class="filter-group-label">Kanal</span>
+          <div class="checkbox-list">
+            <label class="checkbox-item">
+              <input type="checkbox" id="f-print" checked> Print
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" id="f-newsletter"> Newsletter
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" id="f-podcast"> Podcast
+            </label>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <span class="filter-group-label">Budget (Brutto max.)</span>
+          <div class="budget-row">
+            <input type="range" id="f-budget" min="0" max="100000" step="5000" value="100000">
+            <span class="budget-value" id="budget-display">Alle</span>
+          </div>
+          <div class="chip-note">0 = kein Limit</div>
+        </div>
+
+        <div class="filter-group">
+          <span class="filter-group-label">Format</span>
+          <div class="format-chips" id="format-chips">
+            <span class="format-chip" data-fmt="Doppelseite">Doppelseite</span>
+            <span class="format-chip" data-fmt="1/1">1/1</span>
+            <span class="format-chip" data-fmt="U2">U2</span>
+            <span class="format-chip" data-fmt="U3">U3</span>
+            <span class="format-chip" data-fmt="U4">U4</span>
+            <span class="format-chip" data-fmt="1/2">1/2</span>
+            <span class="format-chip" data-fmt="1/3">1/3</span>
+            <span class="format-chip" data-fmt="1/4">1/4</span>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <span class="filter-group-label">Branche</span>
+          <div class="checkbox-list">
+            <label class="checkbox-item"><input type="checkbox" data-branche="reisen_tourismus"> Reise</label>
+            <label class="checkbox-item"><input type="checkbox" data-branche="kulturinstitutionen"> Kultur</label>
+            <label class="checkbox-item"><input type="checkbox" data-branche="kunstmarkt"> Kunstmarkt</label>
+            <label class="checkbox-item"><input type="checkbox" data-branche="buchverlage"> Buchverlag / NPO</label>
+            <label class="checkbox-item"><input type="checkbox" data-branche="b2b_dienstleister"> B2B / Consulting</label>
+            <label class="checkbox-item"><input type="checkbox" data-branche="finanzdienstleister"> Finanzdienstleister</label>
+            <label class="checkbox-item"><input type="checkbox" data-branche="hochschulen_universitaeten"> Hochschule / Bildung</label>
+            <label class="checkbox-item"><input type="checkbox" data-branche="premium_automobil"> Automobil</label>
+            <label class="checkbox-item"><input type="checkbox" data-branche="mode_fashion"> Mode</label>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <span class="filter-group-label">Zielgruppe</span>
+          <div class="checkbox-list">
+            <label class="checkbox-item"><input type="checkbox" data-audience="qualitaetsbewusste_konsumenten"> Premium / Qualitätsbewusst</label>
+            <label class="checkbox-item"><input type="checkbox" data-audience="fuehrungskraefte"> Führungskräfte</label>
+            <label class="checkbox-item"><input type="checkbox" data-audience="selbststaendige_und_unternehmer"> Unternehmer / Mittelstand</label>
+            <label class="checkbox-item"><input type="checkbox" data-audience="kulturinteressierte"> Kulturinteressierte</label>
+            <label class="checkbox-item"><input type="checkbox" data-audience="luxusaffin"> Luxus</label>
+            <label class="checkbox-item"><input type="checkbox" data-audience="kunstsammler"> Kunstsammler</label>
+            <label class="checkbox-item"><input type="checkbox" data-audience="student"> Studierende / Abiturienten</label>
+            <label class="checkbox-item"><input type="checkbox" data-audience="familien"> Familien</label>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <span class="filter-group-label">Thema / Kontext</span>
+          <div class="checkbox-list">
+            <label class="checkbox-item"><input type="checkbox" data-theme="kultur"> Kultur</label>
+            <label class="checkbox-item"><input type="checkbox" data-theme="kunst"> Kunst</label>
+            <label class="checkbox-item"><input type="checkbox" data-theme="wirtschaft"> Wirtschaft</label>
+            <label class="checkbox-item"><input type="checkbox" data-theme="digitalisierung"> Digitalisierung</label>
+            <label class="checkbox-item"><input type="checkbox" data-theme="reise"> Reise</label>
+            <label class="checkbox-item"><input type="checkbox" data-theme="bildung"> Bildung</label>
+            <label class="checkbox-item"><input type="checkbox" data-theme="nachhaltigkeit"> Nachhaltigkeit</label>
+            <label class="checkbox-item"><input type="checkbox" data-theme="geschichte"> Geschichte</label>
+          </div>
+        </div>
+
+      </div>
+      <div class="filter-actions">
+        <button class="btn-primary" id="filter-btn" type="button">Filter anwenden</button>
+        <button class="btn-ghost" id="reset-btn" type="button">Zurücksetzen</button>
+      </div>
+    </section>
+
+    <section class="results-section">
+      <div class="results-header">
+        <div class="results-count" id="results-count"></div>
+        <div class="results-sort">
+          Sortiert nach:&nbsp;
+          <select id="sort-select">
+            <option value="score">Match ▼</option>
+            <option value="price_asc">Preis ↑</option>
+            <option value="price_desc">Preis ↓</option>
+          </select>
+        </div>
+      </div>
+      <div class="result-list" id="result-list">
+        <div class="results-empty">Suche eingeben oder Filter anwenden, um Produkte zu finden.</div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!-- DETAIL MODAL -->
+<div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+  <div class="modal-content" id="modal-content">
+    <button class="modal-close" id="modal-close">✕ Schließen</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    ZEIT AdCP Interface Pilot · Holtzbrinck AI Exploration Program · San Francisco 2026
+    · Preise brutto inkl. 19% MwSt. · Datenstand Januar 2026
+    · Kontakt: <a href="mailto:advise@zeit.de" style="color:inherit">advise@zeit.de</a>
+  </div>
+</footer>
+
+<script>
+// ============================================================
+// KONFIGURATION
+// ============================================================
+
+const API_BASE = "http://localhost:8001";
+const VAT = 1.19;
+
+// ============================================================
+// HILFSFUNKTIONEN
+// ============================================================
+
+function gross(net) { return Math.round(net * VAT); }
+
+function eur(n) {
+  return new Intl.NumberFormat('de-DE', {
+    style: 'currency', currency: 'EUR',
+    minimumFractionDigits: 0, maximumFractionDigits: 0
+  }).format(n);
+}
+
+function num(n) { return new Intl.NumberFormat('de-DE').format(n); }
+
+function fmtDate(s) {
+  if (!s) return '—';
+  const d = new Date(s);
+  if (isNaN(d)) return s;
+  return d.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
+}
+
+function matchClass(score) {
+  if (score >= 100) return "match-high";
+  if (score >= 50) return "match-high";
+  if (score >= 20) return "match-mid";
+  return "match-low";
+}
+
+function matchLabel(score) {
+  if (score >= 100) return "Sehr starker Match";
+  if (score >= 50) return "Guter Match";
+  if (score >= 20) return "Möglicher Match";
+  return "Schwacher Match";
+}
+
+// ============================================================
+// SERVER-STATUS PRÜFEN
+// ============================================================
+
+let serverOk = false;
+let productsLoaded = 0;
+
+async function checkServer() {
+  const el = document.getElementById('server-status');
+  const txt = document.getElementById('status-text');
+  try {
+    const res = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(3000) });
+    const data = await res.json();
+    productsLoaded = data.products_loaded || 0;
+    serverOk = true;
+    el.className = 'server-status ok';
+    txt.textContent = `${productsLoaded} Produkte geladen`;
+    document.getElementById('hero-subline').textContent =
+      `Sales-Tool für Print · Newsletter · Podcast · ${productsLoaded} Produkte · Echtdaten Stand Januar 2026`;
+    document.getElementById('search-btn').disabled = false;
+  } catch (e) {
+    serverOk = false;
+    el.className = 'server-status err';
+    txt.textContent = 'Server nicht erreichbar';
+    document.getElementById('search-btn').disabled = true;
+    document.getElementById('result-list').innerHTML =
+      `<div class="results-error">⚠ Server nicht erreichbar.<br>Bitte starte: <code>python3 -m uvicorn mcp_server:app --port 8001</code></div>`;
+  }
+}
+
+// ============================================================
+// BRIEF BAUEN AUS FILTERN
+// ============================================================
+
+function buildBrief() {
+  const query = document.getElementById('query-input').value.trim();
+  const parts = [];
+
+  // Freitext
+  if (query) parts.push(query);
+
+  // Kanal
+  const channels = [];
+  if (document.getElementById('f-print').checked) channels.push("Print");
+  if (document.getElementById('f-newsletter').checked) channels.push("Newsletter");
+  if (document.getElementById('f-podcast').checked) channels.push("Podcast");
+  if (channels.length && channels.length < 3) parts.push(channels.join(" "));
+
+  // Branchen
+  const branches = [...document.querySelectorAll('[data-branche]:checked')].map(el => el.parentElement.textContent.trim());
+  if (branches.length) parts.push("Branche: " + branches.join(", "));
+
+  // Zielgruppen
+  const audiences = [...document.querySelectorAll('[data-audience]:checked')].map(el => el.parentElement.textContent.trim());
+  if (audiences.length) parts.push("Zielgruppe: " + audiences.join(", "));
+
+  // Themen
+  const themes = [...document.querySelectorAll('[data-theme]:checked')].map(el => el.parentElement.textContent.trim());
+  if (themes.length) parts.push("Thema: " + themes.join(", "));
+
+  // Formate
+  const formats = [...document.querySelectorAll('.format-chip.active')].map(el => el.dataset.fmt);
+  if (formats.length) parts.push("Format: " + formats.join(", "));
+
+  // Budget
+  const budget = parseInt(document.getElementById('f-budget').value) || 0;
+  if (budget > 0 && budget < 100000) parts.push(`Budget ${eur(budget)} brutto`);
+
+  return parts.join(". ") || "alle Produkte";
+}
+
+// ============================================================
+// SEARCH
+// ============================================================
+
+let currentResults = [];
+
+async function runSearch() {
+  if (!serverOk) { await checkServer(); if (!serverOk) return; }
+
+  const brief = buildBrief();
+  const sortVal = document.getElementById('sort-select').value;
+  const budgetMax = parseInt(document.getElementById('f-budget').value) || 0;
+  const formats = [...document.querySelectorAll('.format-chip.active')].map(el => el.dataset.fmt);
+
+  document.getElementById('result-list').innerHTML = '<div class="results-loading">Suche läuft …</div>';
+  document.getElementById('results-count').innerHTML = '';
+
+  try {
+    const res = await fetch(`${API_BASE}/mcp/get_products`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ brief, max_results: 30 })
+    });
+
+    if (!res.ok) throw new Error(`Server-Fehler: ${res.status}`);
+    const data = await res.json();
+
+    let results = data.result?.matches || data.matches || [];
+
+    // Sicherstellen dass wir ein Array haben
+    if (!Array.isArray(results)) results = [];
+
+    // Client-seitige Nachfilterung
+    if (budgetMax > 0 && budgetMax < 100000) {
+      results = results.filter(r => {
+        const price = r.best_format?.price_net_eur || r.pricing?.price_eur_net;
+        if (!price) return true;
+        return gross(price) <= budgetMax;
+      });
+    }
+
+    if (formats.length) {
+      results = results.filter(r => {
+        const p = r.product || {};
+        const adFormats = p.print_specifics?.ad_formats || [];
+        return formats.some(f => adFormats.some(af => {
+          const n = (af.format_name || '').toLowerCase();
+          const pl = (af.placement || '').toLowerCase();
+          const fk = f.toLowerCase();
+          if (fk === 'u2') return pl === 'u2' || n.includes('u2');
+          if (fk === 'u3') return pl === 'u3' || n.includes('u3');
+          if (fk === 'u4') return pl === 'u4' || n.includes('u4');
+          if (fk === '1/1') return n.startsWith('1/1') && !pl;
+          if (fk === '1/2') return n.includes('1/2');
+          if (fk === '1/3') return n.includes('1/3');
+          if (fk === '1/4') return n.includes('1/4');
+          if (fk === 'doppelseite') return n.includes('doppelseite') && !pl;
+          return false;
+        }));
+      });
+    }
+
+    // Sortierung
+    if (sortVal === 'price_asc') {
+      results.sort((a, b) => {
+        const pa = a.best_format?.price_net_eur || a.pricing?.price_eur_net || 0;
+        const pb = b.best_format?.price_net_eur || b.pricing?.price_eur_net || 0;
+        return pa - pb;
+      });
+    } else if (sortVal === 'price_desc') {
+      results.sort((a, b) => {
+        const pa = a.best_format?.price_net_eur || a.pricing?.price_eur_net || 0;
+        const pb = b.best_format?.price_net_eur || b.pricing?.price_eur_net || 0;
+        return pb - pa;
+      });
+    }
+    // score: Reihenfolge vom Server behalten
+
+    currentResults = results;
+    renderResults(results, document.getElementById('query-input').value.trim());
+
+  } catch (e) {
+    document.getElementById('result-list').innerHTML =
+      `<div class="results-error">Fehler: ${e.message}</div>`;
+    document.getElementById('results-count').innerHTML = '';
+  }
+}
+
+// ============================================================
+// ERGEBNISSE RENDERN
+// ============================================================
+
+function renderResults(results, query) {
+  const list = document.getElementById('result-list');
+  const countEl = document.getElementById('results-count');
+
+  if (!results.length) {
+    list.innerHTML = '<div class="results-empty">Keine Produkte gefunden. Filter anpassen.</div>';
+    countEl.innerHTML = '';
+    return;
+  }
+
+  countEl.innerHTML = `<strong>${results.length}</strong> Treffer${query ? ` für „${query}"` : ''}`;
+
+  list.innerHTML = results.map(r => {
+    const p = r.product || {};
+    const name = p.product_name || '—';
+    const type = p.product_type || '';
+    const score = r.score || 0;
+    const mc = matchClass(score);
+    const ml = matchLabel(score);
+
+    // Preis
+    const priceNet = r.best_format?.price_net_eur || r.pricing?.price_eur_net;
+    const priceGross = priceNet ? gross(priceNet) : null;
+    const formatName = r.best_format?.format || r.best_format?.format_name || '';
+
+    // Reichweite
+    const reach = p.reach || {};
+    const reachVal = reach.readers_total || reach.subscribers_total || reach.circulation_total;
+    const reachLabel = reach.readers_total ? 'Leser'
+      : reach.subscribers_total ? 'Abonnenten'
+      : reach.circulation_total ? 'Auflage' : '';
+    const reachSource = reach.source_readers || reach.source_subscribers || reach.source_circulation || '';
+
+    // Kanaltyp-Label
+    const typeLabels = {
+      magazin: 'Magazin', sonderheft: 'Sonderheft', submagazin: 'Sub-Magazin',
+      b2b_magazin: 'B2B-Magazin', wochenzeitung: 'Wochenzeitung', beilage: 'Beilage',
+      newsletter: 'Newsletter', podcast: 'Podcast', kindermagazin: 'Kindermagazin'
+    };
+    const typeLabel = typeLabels[type] || type;
+
+    return `<div class="result-card" data-idx="${results.indexOf(r)}" onclick="openModal(${results.indexOf(r)})">
+      <div class="result-card-bar ${mc}"></div>
+      <div class="result-card-inner">
+        <div class="rc-main">
+          <div class="rc-name">${name}</div>
+          <div class="rc-sub">${typeLabel}${p.issues_per_year ? ` · ${p.issues_per_year} Ausgaben/Jahr` : ''}</div>
+          ${formatName ? `<div class="rc-format">Empfehlung: ${formatName}</div>` : ''}
+        </div>
+        <div class="rc-reach">
+          ${reachVal ? `<strong>${num(reachVal)} ${reachLabel}</strong>${reachSource}` : '<strong>—</strong>'}
+        </div>
+        <div class="rc-price">
+          <div class="rc-price-label">Brutto</div>
+          <div class="rc-price-value">${priceGross ? eur(priceGross) : '—'}</div>
+        </div>
+        <div class="rc-badge">
+          <div class="match-badge ${mc}">${ml}</div>
+          <div class="match-score">Score: ${score}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+
+async function openModal(idx) {
+  const r = currentResults[idx];
+  if (!r) return;
+  const p = r.product || {};
+
+  const name = p.product_name || '—';
+  const type = p.product_type || '';
+  const typeLabels = {
+    magazin: 'Magazin', sonderheft: 'Sonderheft', submagazin: 'Sub-Magazin',
+    b2b_magazin: 'B2B-Magazin', wochenzeitung: 'Wochenzeitung', beilage: 'Beilage',
+    newsletter: 'Newsletter', podcast: 'Podcast', kindermagazin: 'Kindermagazin'
+  };
+  const typeLabel = typeLabels[type] || type;
+
+  const score = r.score || 0;
+  const mc = matchClass(score);
+  const ml = matchLabel(score);
+
+  const reach = p.reach || {};
+  const reachVal = reach.readers_total || reach.subscribers_total || reach.circulation_total;
+  const reachLabel = reach.readers_total ? 'Leser' : reach.subscribers_total ? 'Abonnenten' : 'Auflage';
+  const reachSource = reach.source_readers || reach.source_subscribers || reach.source_circulation || '';
+
+  const aud = p.audience || {};
+  const audPrimary = (aud.primary || []).join(' · ');
+  const editorial = p.editorial_focus || p.description_long || '—';
+  const brandClaim = p.brand_claim || '';
+
+  // Formate aus print_specifics
+  const ps = p.print_specifics || {};
+  const adFormats = ps.ad_formats || [];
+
+  const formatsRows = adFormats.filter(f => f.mvp_in_scope !== false).map(f => {
+    const net = f.price_net_eur || 0;
+    return `<tr>
+      <td>${f.format_name || '—'}${f.placement ? ` <span style="color:#888;font-size:12px">(${f.placement})</span>` : ''}</td>
+      <td class="price-gross">${eur(gross(net))}</td>
+      <td style="color:#666;font-size:13px">${eur(net)} netto</td>
+      <td class="price-bp" title="Wird ergänzt">—</td>
+      <td class="price-bp" title="Wird ergänzt">—</td>
+      <td class="price-bp" title="Wird ergänzt">—</td>
+      <td class="price-bp" title="Wird ergänzt">—</td>
+    </tr>`;
+  }).join('');
+
+  // Erscheinungstermine
+  const issues = ps.issues || p.issues || [];
+  const issuesRows = issues.filter(i => {
+    const pub = i.publication_date || i.date || '';
+    return pub.startsWith('2026');
+  }).map(i => {
+    const pub = i.publication_date || i.date || '';
+    const as = i.booking_deadline || i.anzeigenschluss || '';
+    const du = i.material_deadline || i.du_schluss || '';
+    const themes = (i.issue_themes || []).join(', ') || i.theme || '';
+    return `<tr>
+      <td>${fmtDate(pub)}${themes ? ` <span style="color:#888;font-size:12px">${themes}</span>` : ''}</td>
+      <td>${fmtDate(as)}</td>
+      <td>${fmtDate(du)}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-header">
+      <div class="modal-badge"><span class="match-badge ${mc}">${ml}</span> <span style="font-size:12px;color:#888;margin-left:8px">Score: ${score}</span></div>
+      <div class="modal-name">${name}</div>
+      <div class="modal-sub">${typeLabel}${p.issues_per_year ? ` · ${p.issues_per_year} Ausgaben/Jahr` : ''}</div>
+    </div>
+    <div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">Reichweite &amp; Zielgruppe</div>
+        <table class="kv-table">
+          ${reachVal ? `<tr><td class="k">Reichweite</td><td class="v">${num(reachVal)} ${reachLabel} (${reachSource})</td></tr>` : ''}
+          ${reach.circulation_total ? `<tr><td class="k">Auflage</td><td class="v">${num(reach.circulation_total)} Exemplare</td></tr>` : ''}
+          ${aud.context ? `<tr><td class="k">Kontext</td><td class="v">${aud.context === 'b2b' ? 'B2B' : 'B2C'}</td></tr>` : ''}
+          ${audPrimary ? `<tr><td class="k">Zielgruppe</td><td class="v">${audPrimary}</td></tr>` : ''}
+          <tr><td class="k">Editorial</td><td class="v">${editorial}</td></tr>
+          ${brandClaim ? `<tr><td class="k">Claim</td><td class="v"><em>${brandClaim}</em></td></tr>` : ''}
+        </table>
+      </div>
+
+      ${adFormats.length ? `<div class="modal-section">
+        <div class="modal-section-title">Formate und Preise · inkl. 19% MwSt.</div>
+        <div style="overflow-x:auto">
+          <table class="formats-table">
+            <thead>
+              <tr>
+                <th style="min-width:200px">Format</th>
+                <th>Brutto</th>
+                <th>Netto</th>
+                <th title="Wird ergänzt">BP 1</th>
+                <th title="Wird ergänzt">BP 2</th>
+                <th title="Wird ergänzt">BP 3</th>
+                <th title="Wird ergänzt">BP 4</th>
+              </tr>
+            </thead>
+            <tbody>${formatsRows}</tbody>
+          </table>
+        </div>
+        <div style="font-size:12px;color:#888;margin-top:8px;font-style:italic">
+          Branchenpreise (BP 1–4) werden sukzessive ergänzt.
+        </div>
+      </div>` : ''}
+
+      ${issues.length ? `<div class="modal-section">
+        <div class="modal-section-title">Erscheinungstermine 2026</div>
+        <div style="overflow-x:auto">
+          <table class="issues-table">
+            <thead><tr><th>ET</th><th>Anzeigenschluss</th><th>DU-Schluss</th></tr></thead>
+            <tbody>${issuesRows || '<tr><td colspan="3" style="color:#888;font-style:italic">Keine Termine für 2026 gefunden.</td></tr>'}</tbody>
+          </table>
+        </div>
+      </div>` : ''}
+
+      ${r.pricing_summary ? `<div class="modal-section">
+        <div class="modal-section-title">Preisdetails</div>
+        <div style="font-size:14px;white-space:pre-line">${r.pricing_summary}</div>
+      </div>` : ''}
+
+    </div>
+    <div class="modal-actions">
+      <a href="mailto:advise@zeit.de?subject=Anfrage:%20${encodeURIComponent(name)}" class="modal-link">✉ Beratung: advise@zeit.de</a>
+      ${p.ae_eligible ? '<span style="font-size:12px;color:#888;margin-left:auto">AE-fähig: Ja</span>' : ''}
+    </div>
+  `;
+
+  document.getElementById('modal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+// ============================================================
+// EVENT LISTENERS
+// ============================================================
+
+document.getElementById('search-btn').addEventListener('click', runSearch);
+document.getElementById('filter-btn').addEventListener('click', runSearch);
+
+document.getElementById('reset-btn').addEventListener('click', () => {
+  document.getElementById('query-input').value = '';
+  document.querySelectorAll('[data-branche],[data-audience],[data-theme]').forEach(el => el.checked = false);
+  document.getElementById('f-print').checked = true;
+  document.getElementById('f-newsletter').checked = false;
+  document.getElementById('f-podcast').checked = false;
+  document.querySelectorAll('.format-chip').forEach(el => el.classList.remove('active'));
+  document.getElementById('f-budget').value = 100000;
+  document.getElementById('budget-display').textContent = 'Alle';
+  document.getElementById('result-list').innerHTML = '<div class="results-empty">Suche eingeben oder Filter anwenden, um Produkte zu finden.</div>';
+  document.getElementById('results-count').innerHTML = '';
+  currentResults = [];
+});
+
+document.getElementById('query-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') runSearch();
+});
+
+document.getElementById('sort-select').addEventListener('change', () => {
+  if (currentResults.length) {
+    const sortVal = document.getElementById('sort-select').value;
+    let sorted = [...currentResults];
+    if (sortVal === 'price_asc') sorted.sort((a, b) => (a.best_format?.price_net_eur||0) - (b.best_format?.price_net_eur||0));
+    else if (sortVal === 'price_desc') sorted.sort((a, b) => (b.best_format?.price_net_eur||0) - (a.best_format?.price_net_eur||0));
+    currentResults = sorted;
+    renderResults(sorted, document.getElementById('query-input').value.trim());
+  }
+});
+
+document.getElementById('f-budget').addEventListener('input', function() {
+  const v = parseInt(this.value);
+  document.getElementById('budget-display').textContent =
+    (v === 0 || v >= 100000) ? 'Alle' : eur(v);
+});
+
+document.querySelectorAll('.format-chip').forEach(chip => {
+  chip.addEventListener('click', function() { this.classList.toggle('active'); });
+});
+
+document.getElementById('modal-close').addEventListener('click', closeModal);
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal')) closeModal();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ============================================================
+// INIT
+// ============================================================
+
+checkServer();
+</script>
+</body>
+</html>

@@ -337,7 +337,7 @@ MCP_TOOLS = [
 # MCP Routing
 # =====================================================
 
-@app.get("/")
+@app.get("/api")
 async def root():
     return {
         "name": "ZEIT AdCP MCP Server",

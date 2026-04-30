@@ -502,7 +502,7 @@ async function checkServer() {
   try {
     const res = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(3000) });
     const data = await res.json();
-    productsLoaded = data.products_loaded || 0;
+    productsLoaded = data.products_total || data.products_loaded || 0;
     serverOk = true;
     el.className = 'server-status ok';
     txt.textContent = `${productsLoaded} Produkte geladen`;

@@ -412,6 +412,130 @@ header {
 }
 .confirm-popup-btn:hover { background: var(--yellow); }
 
+/* INFO-ICON */
+.info-icon-wrap { position: relative; display: inline-flex; align-items: center; margin-left: 4px; vertical-align: middle; }
+.info-icon {
+  width: 16px; height: 16px; border-radius: 50%; border: 1px solid #999;
+  font-size: 10px; line-height: 15px; text-align: center; cursor: help;
+  display: inline-block; color: #999; flex-shrink: 0; user-select: none;
+}
+.info-icon-wrap:hover .info-tooltip { display: block; }
+.info-tooltip {
+  display: none; position: absolute; bottom: calc(100% + 6px); left: 50%;
+  transform: translateX(-50%); background: var(--white); border: 1px solid var(--black);
+  padding: 8px 10px; font-size: 12px; line-height: 1.4; min-width: 200px; max-width: 280px;
+  z-index: 500; white-space: normal; pointer-events: none;
+  font-style: normal; text-transform: none; letter-spacing: 0; font-weight: 400;
+}
+
+/* PODCAST-KONFIGURATOR */
+.podcast-konfig { display: flex; flex-direction: column; gap: 20px; }
+.konfig-row { display: flex; flex-direction: column; gap: 8px; }
+.konfig-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; color: #555; }
+.konfig-btn-group { display: flex; flex-wrap: wrap; gap: 6px; }
+.konfig-btn {
+  border: 1px solid var(--black); background: var(--white); padding: 8px 14px;
+  font-family: inherit; font-size: 13px; cursor: pointer; transition: background 0.08s;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.konfig-btn:hover:not(:disabled) { background: var(--yellow); }
+.konfig-btn.active { background: var(--black); color: var(--white); }
+.konfig-btn.active .info-icon { color: #aaa; border-color: #aaa; }
+.konfig-btn:disabled { opacity: 0.35; cursor: not-allowed; border-color: #ccc; background: #f5f5f5; }
+.konfig-btn.warn { border-color: var(--orange); }
+.midroll-warn-banner {
+  background: #fff3e0; border: 1px solid var(--orange);
+  padding: 8px 12px; font-size: 13px; line-height: 1.4;
+}
+.konfig-ai-wrap { display: flex; align-items: center; gap: 12px; }
+.konfig-ai-input {
+  border: 1px solid var(--black); padding: 10px 14px; font-family: inherit;
+  font-size: 16px; width: 180px; outline: none;
+}
+.konfig-ai-input:focus { background: var(--yellow); }
+.konfig-radio-group { display: flex; flex-wrap: wrap; gap: 12px; }
+.konfig-radio-item { display: flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
+.konfig-radio-item input[type="radio"] { cursor: pointer; width: 16px; height: 16px; }
+.konfig-result { background: var(--gray-bg); border: 1px solid var(--black); padding: 20px 24px; font-size: 14px; }
+.konfig-result-row { display: flex; justify-content: space-between; padding: 3px 0; }
+.konfig-result-row.discount { color: var(--green); }
+.konfig-result-row.total { font-weight: 700; font-size: 16px; border-top: 1px solid #ccc; margin-top: 8px; padding-top: 10px; }
+.konfig-result-hint { font-size: 11px; color: #888; margin-top: 6px; }
+.konfig-result-mbv { font-size: 13px; margin-top: 10px; padding: 6px 10px; }
+.konfig-result-mbv.ok { background: #e8f5e9; color: #2e7d32; }
+.konfig-result-mbv.fail { background: #fce4e4; color: var(--red); }
+.konfig-result-empty { color: #888; font-style: italic; font-size: 13px; }
+.btn-konfiguration-merken {
+  background: var(--black); color: var(--white); border: none; padding: 14px 28px;
+  font-family: inherit; font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em;
+  cursor: pointer; font-weight: 700;
+}
+.btn-konfiguration-merken:hover { background: #333; }
+
+/* FIXED-SLOT */
+.fs-ps-group { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.fs-ps-btn {
+  border: 1px solid var(--black); background: var(--white); padding: 6px 12px;
+  font-family: inherit; font-size: 12px; cursor: pointer;
+  text-transform: uppercase; letter-spacing: 0.07em;
+}
+.fs-ps-btn:hover { background: var(--yellow); }
+.fs-ps-btn.active { background: var(--black); color: var(--white); }
+.fs-slot-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.fs-slot-table th {
+  text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 8px 12px; border-bottom: 1px solid var(--black); background: var(--gray-bg);
+}
+.fs-slot-table td { padding: 12px; border-bottom: 1px solid #eee; vertical-align: middle; }
+.fs-slot-table tr:last-child td { border-bottom: none; }
+.fs-slot-name { font-weight: 700; font-size: 15px; }
+.fs-price-total { font-weight: 700; font-size: 15px; }
+.fs-folgen-input {
+  border: 1px solid #ccc; padding: 6px 8px; font-family: inherit;
+  font-size: 14px; width: 60px; text-align: center;
+}
+.fs-folgen-input:focus { outline: none; border-color: var(--black); background: var(--yellow); }
+.fs-laufzeit-val { font-weight: 700; font-size: 18px; }
+
+/* MERKEN-POPUP */
+.merken-popup-backdrop {
+  position: fixed; inset: 0; z-index: 400;
+  background: rgba(0,0,0,0.4);
+  display: flex; align-items: center; justify-content: center;
+}
+.merken-popup {
+  background: var(--white); border: 1px solid var(--black);
+  padding: 32px 36px; max-width: 480px; width: 90%;
+}
+.merken-popup-title { font-size: 22px; font-weight: 700; margin-bottom: 16px; }
+.merken-popup-summary {
+  font-size: 13px; line-height: 1.6; border: 1px solid #eee;
+  padding: 12px; margin-bottom: 20px; color: #444;
+}
+.merken-date-section-label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+  font-weight: 700; margin-bottom: 10px;
+}
+.merken-date-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; }
+.merken-date-group { display: flex; flex-direction: column; gap: 4px; }
+.merken-date-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+.merken-date-input { border: 1px solid var(--black); padding: 8px 10px; font-family: inherit; font-size: 14px; }
+.merken-checkbox-row { display: flex; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 12px; cursor: pointer; }
+.merken-error { color: var(--red); font-size: 13px; min-height: 18px; margin-bottom: 12px; }
+.merken-actions { display: flex; gap: 12px; }
+.merken-btn-ok {
+  background: var(--black); color: var(--white); border: none; padding: 12px 24px;
+  font-family: inherit; font-size: 13px; text-transform: uppercase; letter-spacing: 0.07em;
+  cursor: pointer; font-weight: 700;
+}
+.merken-btn-ok:disabled { background: #aaa; cursor: not-allowed; }
+.merken-btn-cancel {
+  background: var(--white); color: var(--black); border: 1px solid var(--black);
+  padding: 12px 20px; font-family: inherit; font-size: 13px;
+  text-transform: uppercase; letter-spacing: 0.07em; cursor: pointer;
+}
+.merken-btn-cancel:hover { background: var(--yellow); }
+
 /* FOOTER */
 footer { border-top: 1px solid var(--black); padding: 28px 0; }
 footer .footer-inner {
@@ -661,6 +785,96 @@ const LABELS = {
   confirm_no_date_titel: "Ohne festgelegtes Datum merken?",
   confirm_ja:            "Ja, ohne Datum",
   confirm_abbrechen:     "Abbrechen",
+  // Podcast-Modal
+  reichweite_engagement:     "Reichweite und Engagement",
+  downloads_pro_episode:     "Downloads pro Episode",
+  audio_impressions_typisch: "Audio Impressions typisch",
+  durchhoerrate:             "Durchhoerrate",
+  aufmerksamkeit:            "Aufmerksamkeit",
+  werbewahrnehmung:          "Werbewahrnehmung",
+  konfigurator:              "Konfigurator",
+  konfig_hinweis:            "Stellen Sie Ihre Audio-Kampagne zusammen",
+  spotformat:                "Spotformat",
+  platzierung:               "Platzierung",
+  buchungsbreite:            "Buchungsbreite",
+  audio_impressions:         "Audio Impressions",
+  preisstufe:                "Preisstufe",
+  listenpreis:               "Listenpreis (Grundpreis)",
+  branchenpreis_1:           "Branchenpreis I (35% Rabatt)",
+  branchenpreis_2:           "Branchenpreis II (55% Rabatt)",
+  branchenpreis_3:           "Branchenpreis III (60% Rabatt)",
+  tkp_kombination:           "TKP fuer gewaehlte Kombination",
+  mediapreis:                "Mediapreis",
+  mengenrabatt:              "Mengenrabatt PK II",
+  gesamtpreis:               "Gesamtpreis",
+  mbv_erfuellt:              "✓ Mindestbuchungsvolumen erfuellt",
+  mbv_nicht_erfuellt:        "⚠ Mindestbuchungsvolumen NICHT erfuellt",
+  konfiguration_merken:      "+ KONFIGURATION MERKEN",
+  festplatzierung:           "Festplatzierung",
+  festplatz_hinweis:         "Garantierte Audio-Werbung in einer spezifischen Episode",
+  folgen:                    "Folgen",
+  laufzeit_label:            "Laufzeit",
+  kampagne_merken:           "KAMPAGNE MERKEN",
+  wunsch_zeitraum:           "Wunsch-Zeitraum",
+  von:                       "Von",
+  bis:                       "Bis",
+  ohne_zeitraum:             "Ohne festen Zeitraum merken",
+  merken_btn:                "MERKEN",
+  abbrechen:                 "ABBRECHEN",
+  podcast_hinweis_footer:    "Mindestbuchungsvolumen: 3.500 EUR (Listenpreis), 2.275 EUR (BP I), 1.575 EUR (BP II), 1.400 EUR (BP III). AdBundle-Buchungen ohne garantierte Platzierung. Mengenrabatte nur bei PK II Brand-Buchungen.",
+};
+
+const MBV_BY_PREISSTUFE = {
+  listenpreis:     3500,
+  branchenpreis_1: 2275,
+  branchenpreis_2: 1575,
+  branchenpreis_3: 1400,
+};
+
+const SLOT_LABELS = {
+  preroll_or_midroll:   'Pre- oder MidRoll',
+  adbundle_plus:        'AdBundle Plus',
+  adbundle_or_postroll: 'PostRoll oder AdBundle',
+  midroll:              'MidRoll',
+  postroll:             'PostRoll',
+  postroll_only:        'PostRoll',
+};
+
+const SLOT_TOOLTIPS = {
+  preroll_or_midroll:   'Erste Werbung nach Opening (PreRoll) oder eingebettet im Content (MidRoll). Gleicher TKP.',
+  adbundle_plus:        'PreRoll und MidRoll im selben Podcast. Mehrfach-Beruehrung. Ausspielung nach Verfuegbarkeit.',
+  adbundle_or_postroll: 'Letzte Werbung nach Episode (PostRoll) oder PreRoll-MidRoll-PostRoll kombiniert (AdBundle). Gleicher TKP.',
+  midroll:              'Eingebettet im Content. Fuer laengere 60-Sekunden-Spots.',
+  postroll:             'Werbung am Episoden-Ende, mehr Raum fuer 60-Sekunden-Spots.',
+  postroll_only:        'Extended Content am Episoden-Ende, bis 4 Minuten Storytelling.',
+};
+
+const AD_TYPE_LABELS = {
+  audio_ad_20s:         'Audio Ad 20s',
+  native_audio_ad_30s:  'Native Audio Ad 30s',
+  native_audio_ad_60s:  'Native Audio Ad 60s',
+  native_audio_ad_240s: 'Native Audio Ad 240s',
+};
+
+const AD_TYPE_TOOLTIPS = {
+  audio_ad_20s:         'Standard 20-Sekunden-Spot, einfache Anlieferung mit nur 5 Werktagen Vorlauf',
+  native_audio_ad_30s:  'Native Audio Ad: Voice only, professionell eingesprochen, fuegt sich natuerlich in den Podcast',
+  native_audio_ad_60s:  'Native Audio Ad bis 60 Sekunden, fuer ausfuehrlichere Werbebotschaften',
+  native_audio_ad_240s: 'Native Extended Content: bis 4 Minuten Storytelling am Episodenende',
+};
+
+const PREISSTUFE_TO_CLUSTER = {
+  listenpreis:     'grundpreis',
+  branchenpreis_1: 'branchenpreis_I',
+  branchenpreis_2: 'branchenpreis_II',
+  branchenpreis_3: 'branchenpreis_III',
+};
+
+const PREISSTUFE_LABEL = {
+  listenpreis:     'Listenpreis',
+  branchenpreis_1: 'BP I',
+  branchenpreis_2: 'BP II',
+  branchenpreis_3: 'BP III',
 };
 
 // ============================================================
@@ -1032,6 +1246,8 @@ const _MAGAZIN_TYPES = new Set(['magazin','sonderheft','beilage','wochenzeitung'
 function openProductModal(item) {
   if (_MAGAZIN_TYPES.has(item.product_type)) {
     openMagazinModal(item.product_id, item.name, item.subtitle);
+  } else if (item.product_type === 'podcast') {
+    openPodcastModal(item.product_id, item.name, item.subtitle);
   } else {
     document.getElementById('modal-body').innerHTML = `
       <div class="modal-header">
@@ -1246,6 +1462,544 @@ function showConfirmPopup(onConfirm) {
   backdrop.addEventListener('click', e => { if (e.target === backdrop) close(); });
   backdrop.querySelector('#cp-abbrechen').addEventListener('click', close);
   backdrop.querySelector('#cp-ja').addEventListener('click', () => { close(); onConfirm(); });
+  document.addEventListener('keydown', escHandler);
+  document.body.appendChild(backdrop);
+}
+
+// ============================================================
+// PODCAST-MODAL
+// ============================================================
+
+function infoWrap(tooltip) {
+  return `<span class="info-icon-wrap"><span class="info-icon">i</span><span class="info-tooltip">${tooltip}</span></span>`;
+}
+
+function isMidrollSlot(slotKey) {
+  return slotKey === 'midroll' || slotKey === 'adbundle_plus' || slotKey === 'adbundle_or_postroll';
+}
+
+async function openPodcastModal(productId, name, subtitle) {
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-header">
+      <div class="modal-name">${name}</div>
+      <div class="modal-sub">${subtitle || 'Podcast'}</div>
+    </div>
+    <div class="modal-section"><p>${LABELS.laedt}</p></div>`;
+  document.getElementById('modal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  try {
+    const res = await fetch(`${API_BASE}/products/detail/${productId}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const d = await res.json();
+    document.getElementById('modal-body').innerHTML = buildPodcastModalHTML(d);
+    if ((d.pricing || {}).pricing_model === 'fixed_slot') {
+      initFixedSlotKonfigurator(d);
+    } else {
+      initPodcastKonfigurator(d);
+    }
+  } catch (e) {
+    document.getElementById('modal-body').innerHTML = `
+      <div class="modal-section">
+        <p style="color:var(--red);font-size:15px">${LABELS.fehler_laden}</p>
+      </div>`;
+  }
+}
+
+function buildPodcastModalHTML(d) {
+  const common  = d.common  || {};
+  const reach   = d.reach   || {};
+  const pricing = d.pricing || {};
+
+  const header = `
+    <div class="modal-header">
+      <div class="modal-name">${d.name || '—'}</div>
+      <div class="modal-sub">${d.subtitle || 'Podcast'}</div>
+    </div>`;
+
+  const editorial = common.editorial_focus ? `
+    <div class="modal-section">
+      <div class="modal-section-title">${LABELS.redaktioneller_fokus}</div>
+      <div style="font-size:15px;line-height:1.65">${common.editorial_focus}</div>
+    </div>` : '';
+
+  const themes = (common.themenwelten || []).length ? `
+    <div class="modal-section">
+      <div class="modal-section-title">${LABELS.themenwelten}</div>
+      <div class="tag-pills">${(common.themenwelten || []).map(t =>
+        `<span class="tag-pill">${t}</span>`).join('')}</div>
+    </div>` : '';
+
+  const eng = reach.engagement_metrics || {};
+  const engTiles = [
+    eng.completion_rate_pct     != null ? `<span class="tag-pill">${LABELS.durchhoerrate}: ${eng.completion_rate_pct}%</span>` : '',
+    eng.attentive_listening_pct != null ? `<span class="tag-pill">${LABELS.aufmerksamkeit}: ${eng.attentive_listening_pct}%</span>` : '',
+    eng.ad_recall_pct           != null ? `<span class="tag-pill">${LABELS.werbewahrnehmung}: ${eng.ad_recall_pct}%</span>` : '',
+  ].filter(Boolean).join('');
+  const reachRows = [
+    reach.downloads_per_episode     != null ? `<tr><td class="k">${LABELS.downloads_pro_episode}</td><td class="v">${num(reach.downloads_per_episode)}</td></tr>` : '',
+    reach.audio_impressions_typical != null ? `<tr><td class="k">${LABELS.audio_impressions_typisch}</td><td class="v">${num(reach.audio_impressions_typical)}</td></tr>` : '',
+    reach.source                            ? `<tr><td class="k">${LABELS.quelle}</td><td class="v" style="font-size:13px;color:#888">${reach.source}</td></tr>` : '',
+  ].filter(Boolean).join('');
+  const reachSection = `
+    <div class="modal-section">
+      <div class="modal-section-title">${LABELS.reichweite_engagement}</div>
+      ${reachRows ? `<table class="kv-table">${reachRows}</table>` : ''}
+      ${engTiles ? `<div class="tag-pills" style="margin-top:12px">${engTiles}</div>` : ''}
+    </div>`;
+
+  const mainSection = pricing.pricing_model === 'fixed_slot'
+    ? buildPodcastFixedSection(d)
+    : buildPodcastTKPSection(d);
+
+  const footer = `
+    <div class="modal-section" style="background:var(--gray-bg)">
+      <div style="font-size:12px;color:#888;line-height:1.6">${LABELS.podcast_hinweis_footer}</div>
+    </div>`;
+
+  return header + editorial + themes + reachSection + mainSection + footer;
+}
+
+function buildPodcastTKPSection(d) {
+  const pricing        = d.pricing || {};
+  const tkpTable       = pricing.tkp_table || [];
+  const midrollExcluded = !!pricing.midroll_excluded;
+
+  const adTypes = [...new Set(tkpTable.map(r => r.ad_type_length))];
+  const defaultAdType = adTypes.includes('native_audio_ad_30s') ? 'native_audio_ad_30s' : (adTypes[0] || '');
+
+  const adTypeButtons = adTypes.map(at =>
+    `<button class="konfig-btn${at === defaultAdType ? ' active' : ''}" data-adtype="${at}">
+      ${AD_TYPE_LABELS[at] || at}${infoWrap(AD_TYPE_TOOLTIPS[at] || '')}
+    </button>`
+  ).join('');
+
+  function makeSlotButtons(forAdType) {
+    const slots = [...new Set(tkpTable.filter(r => r.ad_type_length === forAdType).map(r => r.slot))];
+    return slots.map((sk, i) => {
+      const disabled = midrollExcluded && isMidrollSlot(sk);
+      const warnClass = !disabled && midrollExcluded && sk === 'preroll_or_midroll' ? ' warn' : '';
+      const baseTooltip = SLOT_TOOLTIPS[sk] || '';
+      const tooltip = disabled
+        ? baseTooltip + ' — NICHT buchbar: MidRoll bei diesem Podcast ausgeschlossen.'
+        : (midrollExcluded && sk === 'preroll_or_midroll'
+          ? baseTooltip + ' Achtung: MidRoll bei diesem Podcast nicht buchbar, nur PreRoll ausspielbar.'
+          : baseTooltip);
+      const isActive = !disabled && i === 0;
+      return `<button class="konfig-btn${isActive ? ' active' : ''}${warnClass}"${disabled ? ' disabled' : ''} data-slot="${sk}">
+        ${SLOT_LABELS[sk] || sk}${infoWrap(tooltip)}
+      </button>`;
+    }).join('');
+  }
+
+  const midrollWarn = midrollExcluded
+    ? `<div class="midroll-warn-banner" style="margin-bottom:4px">⚠ Bei diesem Podcast ist MidRoll nicht buchbar. AdBundle und AdBundle Plus daher eingeschraenkt.</div>`
+    : '';
+
+  return `
+    <div class="modal-section">
+      <div class="modal-section-title">${LABELS.konfigurator}</div>
+      <div style="font-size:13px;color:#888;margin-bottom:16px">${LABELS.konfig_hinweis}</div>
+      ${midrollWarn}
+      <div class="podcast-konfig" id="podcast-konfig">
+        <div class="konfig-row">
+          <div class="konfig-label">${LABELS.spotformat}</div>
+          <div class="konfig-btn-group" id="konfig-adtype">${adTypeButtons}</div>
+        </div>
+        <div class="konfig-row">
+          <div class="konfig-label">${LABELS.platzierung}</div>
+          <div class="konfig-btn-group" id="konfig-slot">${makeSlotButtons(defaultAdType)}</div>
+        </div>
+        <div class="konfig-row">
+          <div class="konfig-label">${LABELS.buchungsbreite}</div>
+          <div class="konfig-btn-group" id="konfig-buch">
+            <button class="konfig-btn active" data-buch="PK_I">
+              Diese Show oder Premium Targeting${infoWrap('Buchung fuer diesen Podcast oder mit Targeting-Optionen. Hoehere Reichweiten-Praezision (PK I).')}
+            </button>
+            <button class="konfig-btn" data-buch="PK_II">
+              Brand oder Channel${infoWrap('Buchung ueber alle ZEIT Podcasts (Brand) oder eine Themenrubrik. Maximale Reichweite zu guenstigerem TKP (PK II). Mengenrabatte verfuegbar.')}
+            </button>
+          </div>
+        </div>
+        <div class="konfig-row">
+          <div class="konfig-label">${LABELS.audio_impressions}</div>
+          <div class="konfig-ai-wrap">
+            <input class="konfig-ai-input" id="konfig-ai" type="text" value="1.000.000">
+          </div>
+        </div>
+        <div class="konfig-row">
+          <div class="konfig-label">${LABELS.preisstufe}</div>
+          <div class="konfig-radio-group">
+            ${['listenpreis','branchenpreis_1','branchenpreis_2','branchenpreis_3'].map(ps =>
+              `<label class="konfig-radio-item">
+                <input type="radio" name="konfig-ps" value="${ps}"${ps === 'listenpreis' ? ' checked' : ''}>
+                ${LABELS[ps]}
+              </label>`).join('')}
+          </div>
+        </div>
+        <div id="tkp-result" class="konfig-result">
+          <div class="konfig-result-empty">Bitte Spotformat und Platzierung waehlen.</div>
+        </div>
+        <button class="btn-konfiguration-merken" id="btn-konfig-merken">${LABELS.konfiguration_merken}</button>
+      </div>
+    </div>`;
+}
+
+function buildPodcastFixedSection(d) {
+  const pricing        = d.pricing || {};
+  const slots          = pricing.fixed_slots || [];
+  const laufzeit       = pricing.laufzeit || '';
+  const midrollExcluded = !!pricing.midroll_excluded;
+
+  const psBtns = ['listenpreis','branchenpreis_1','branchenpreis_2','branchenpreis_3'].map((ps, i) =>
+    `<button class="fs-ps-btn${i === 0 ? ' active' : ''}" data-ps="${ps}">${PREISSTUFE_LABEL[ps]}</button>`
+  ).join('');
+
+  const slotRows = slots.map((s, idx) => {
+    const cp = s.cluster_prices || {};
+    const grundpreis = cp.grundpreis ?? s.price_per_episode_eur ?? 0;
+    const slotLabel = s.slot === 'preroll' ? 'PreRoll'
+      : s.slot === 'storytelling' ? 'Storytelling'
+      : (s.slot || '—');
+    return `<tr>
+      <td class="fs-slot-name">${slotLabel}</td>
+      <td>
+        <div class="fs-price-total" id="fs-price-${idx}">${num(grundpreis)} EUR</div>
+        <div style="font-size:11px;color:#888">${PREIS_HINWEIS}</div>
+      </td>
+      <td>
+        <label style="font-size:12px;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:4px">${LABELS.folgen}</label>
+        <input class="fs-folgen-input" type="number" min="1" value="1" data-idx="${idx}" data-prices='${JSON.stringify(cp)}'>
+      </td>
+      <td><button class="btn-merken fs-merken-btn" data-idx="${idx}" data-slot="${slotLabel}">+ Merken</button></td>
+    </tr>`;
+  }).join('');
+
+  const laufzeitExpl = laufzeit === '1 Tag' ? 'Eine Episode wird taeglich produziert'
+    : laufzeit === '1 Woche' ? 'Eine Episode pro Woche'
+    : laufzeit === '2 Wochen' ? 'Eine Episode alle 2 Wochen' : '';
+
+  const laufzeitSection = laufzeit ? `
+    <div class="modal-section">
+      <div class="modal-section-title">${LABELS.laufzeit_label}</div>
+      <div class="fs-laufzeit-val">${laufzeit}</div>
+      ${laufzeitExpl ? `<div style="font-size:13px;color:#888;margin-top:4px">${laufzeitExpl}</div>` : ''}
+    </div>` : '';
+
+  const midrollWarn = midrollExcluded
+    ? `<div class="midroll-warn-banner" style="margin-bottom:12px">⚠ Bei diesem Podcast ist MidRoll nicht buchbar.</div>`
+    : '';
+
+  return `
+    <div class="modal-section">
+      <div class="modal-section-title">${LABELS.festplatzierung}</div>
+      <div style="font-size:13px;color:#888;margin-bottom:16px">${LABELS.festplatz_hinweis}</div>
+      ${midrollWarn}
+      <div class="fs-ps-group" id="fs-ps-group">${psBtns}</div>
+      <table class="fs-slot-table">
+        <thead><tr>
+          <th>Format</th>
+          <th>Preis pro Episode</th>
+          <th style="width:110px">${LABELS.folgen}</th>
+          <th>Aktion</th>
+        </tr></thead>
+        <tbody>${slotRows}</tbody>
+      </table>
+    </div>
+    ${laufzeitSection}`;
+}
+
+function calcTKPPrice(tkpTable, adType, slotKey, pkKey, ai, preisstufe, volumeDiscounts) {
+  const clusterKey = PREISSTUFE_TO_CLUSTER[preisstufe] || 'grundpreis';
+  const row = tkpTable.find(r =>
+    r.ad_type_length === adType && r.slot === slotKey && r.performance_class === pkKey);
+  if (!row) return null;
+  const tkp = (row.cluster_prices || {})[clusterKey];
+  if (tkp == null) return null;
+  const mediapreis = tkp * ai / 1000;
+  let volDiscount = null;
+  if (pkKey === 'PK_II' && Array.isArray(volumeDiscounts)) {
+    for (const vd of volumeDiscounts) {
+      if (ai >= vd.min_audio_impressions && (!volDiscount || vd.rabatt_pct > volDiscount.rabatt_pct)) {
+        volDiscount = vd;
+      }
+    }
+  }
+  const discountEur = volDiscount ? Math.round(mediapreis * volDiscount.rabatt_pct / 100) : 0;
+  const gesamtpreis = Math.round(mediapreis - discountEur);
+  const mbvValue = MBV_BY_PREISSTUFE[preisstufe] || 3500;
+  return {
+    tkp,
+    mediapreis:  Math.round(mediapreis),
+    volDiscount,
+    discountEur,
+    gesamtpreis,
+    mbv_check: { erfuellt: gesamtpreis >= mbvValue, mbv_value: mbvValue },
+  };
+}
+
+function renderTKPResult(result, preisstufe, ai, pkKey) {
+  const el = document.getElementById('tkp-result');
+  if (!el) return;
+  if (!result) {
+    el.innerHTML = '<div class="konfig-result-empty">Fuer diese Kombination kein TKP verfuegbar.</div>';
+    return;
+  }
+  const discountRow = result.volDiscount
+    ? `<div class="konfig-result-row discount">
+         <span>${LABELS.mengenrabatt} (${result.volDiscount.rabatt_pct}%)</span>
+         <span>- ${num(result.discountEur)} EUR</span>
+       </div>` : '';
+  const hint = pkKey === 'PK_II' && !result.volDiscount
+    ? `<div class="konfig-result-hint">Mengenrabatt ab 250.000 AI (PK II Brand)</div>`
+    : pkKey !== 'PK_II'
+    ? `<div class="konfig-result-hint">Mengenrabatte nur bei Brand-Buchungen (PK II)</div>`
+    : '';
+  const mbvClass = result.mbv_check.erfuellt ? 'ok' : 'fail';
+  el.innerHTML = `
+    <div class="konfig-result-row"><span>${LABELS.tkp_kombination}</span><span>${num(result.tkp)} EUR</span></div>
+    <div class="konfig-result-row"><span>Audio Impressions</span><span>${num(ai)}</span></div>
+    <div class="konfig-result-row"><span>${LABELS.mediapreis}</span><span>${num(result.mediapreis)} EUR</span></div>
+    ${discountRow}
+    <div class="konfig-result-row total"><span>${LABELS.gesamtpreis}</span><span>${num(result.gesamtpreis)} EUR</span></div>
+    <div class="konfig-result-hint">${PREIS_HINWEIS}</div>
+    ${hint}
+    <div class="konfig-result-mbv ${mbvClass}">${result.mbv_check.erfuellt ? LABELS.mbv_erfuellt : LABELS.mbv_nicht_erfuellt}: ${num(result.mbv_check.mbv_value)} EUR</div>`;
+}
+
+function initPodcastKonfigurator(d) {
+  const pricing        = d.pricing || {};
+  const tkpTable       = pricing.tkp_table || [];
+  const midrollExcluded = !!pricing.midroll_excluded;
+  const volumeDiscounts = pricing.volume_discounts || [];
+
+  function getActiveData(groupId, attr) {
+    return document.querySelector(`#${groupId} .konfig-btn.active`)?.dataset[attr] || null;
+  }
+
+  function recalc() {
+    const adType     = getActiveData('konfig-adtype', 'adtype');
+    const slotKey    = getActiveData('konfig-slot',   'slot');
+    const pkKey      = getActiveData('konfig-buch',   'buch');
+    const preisstufe = document.querySelector('[name="konfig-ps"]:checked')?.value || 'listenpreis';
+    const aiRaw      = (document.getElementById('konfig-ai')?.value || '1000000').replace(/\D/g, '');
+    const ai         = parseInt(aiRaw, 10) || 0;
+    if (!adType || !slotKey || !pkKey) {
+      const el = document.getElementById('tkp-result');
+      if (el) el.innerHTML = '<div class="konfig-result-empty">Bitte Spotformat und Platzierung waehlen.</div>';
+      return;
+    }
+    renderTKPResult(calcTKPPrice(tkpTable, adType, slotKey, pkKey, ai, preisstufe, volumeDiscounts), preisstufe, ai, pkKey);
+  }
+
+  function wireSlotButtons() {
+    document.querySelectorAll('#konfig-slot .konfig-btn:not(:disabled)').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#konfig-slot .konfig-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        recalc();
+      });
+    });
+  }
+
+  function rebuildSlots(adType) {
+    const slots = [...new Set(tkpTable.filter(r => r.ad_type_length === adType).map(r => r.slot))];
+    const container = document.getElementById('konfig-slot');
+    if (!container) return;
+    container.innerHTML = slots.map((sk, i) => {
+      const disabled = midrollExcluded && isMidrollSlot(sk);
+      const warnClass = !disabled && midrollExcluded && sk === 'preroll_or_midroll' ? ' warn' : '';
+      const baseTooltip = SLOT_TOOLTIPS[sk] || '';
+      const tooltip = disabled
+        ? baseTooltip + ' — NICHT buchbar: MidRoll bei diesem Podcast ausgeschlossen.'
+        : midrollExcluded && sk === 'preroll_or_midroll'
+          ? baseTooltip + ' Achtung: MidRoll nicht buchbar, nur PreRoll ausspielbar.'
+          : baseTooltip;
+      const isActive = !disabled && i === 0;
+      return `<button class="konfig-btn${isActive ? ' active' : ''}${warnClass}"${disabled ? ' disabled' : ''} data-slot="${sk}">
+        ${SLOT_LABELS[sk] || sk}${infoWrap(tooltip)}
+      </button>`;
+    }).join('');
+    wireSlotButtons();
+  }
+
+  // AdType
+  document.querySelectorAll('#konfig-adtype .konfig-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#konfig-adtype .konfig-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      rebuildSlots(btn.dataset.adtype);
+      recalc();
+    });
+  });
+
+  // Slot (initial wiring)
+  wireSlotButtons();
+
+  // Buchungsbreite
+  document.querySelectorAll('#konfig-buch .konfig-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#konfig-buch .konfig-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      recalc();
+    });
+  });
+
+  // AI input mit Tausender-Formatierung
+  const aiInput = document.getElementById('konfig-ai');
+  if (aiInput) {
+    aiInput.addEventListener('input', function() {
+      const raw = this.value.replace(/\D/g, '');
+      const n = parseInt(raw, 10);
+      if (!isNaN(n)) this.value = new Intl.NumberFormat('de-DE').format(n);
+      recalc();
+    });
+  }
+
+  // Preisstufe
+  document.querySelectorAll('[name="konfig-ps"]').forEach(r => r.addEventListener('change', recalc));
+
+  // Merken
+  document.getElementById('btn-konfig-merken')?.addEventListener('click', () => {
+    const adType     = getActiveData('konfig-adtype', 'adtype');
+    const slotKey    = getActiveData('konfig-slot',   'slot');
+    const pkKey      = getActiveData('konfig-buch',   'buch');
+    const preisstufe = document.querySelector('[name="konfig-ps"]:checked')?.value || 'listenpreis';
+    const aiRaw      = (document.getElementById('konfig-ai')?.value || '').replace(/\D/g, '');
+    const ai         = parseInt(aiRaw, 10) || 0;
+    const result     = calcTKPPrice(tkpTable, adType, slotKey, pkKey, ai, preisstufe, volumeDiscounts);
+    const pkLabel    = pkKey === 'PK_II' ? 'Brand/Channel (PK II)' : 'Diese Show/Premium Targeting (PK I)';
+    showMerkenPopupPodcast({
+      name: d.name || '',
+      summary: [
+        `${AD_TYPE_LABELS[adType] || adType} | ${SLOT_LABELS[slotKey] || slotKey} | ${pkLabel}`,
+        `Audio Impressions: ${num(ai)} | ${PREISSTUFE_LABEL[preisstufe] || preisstufe}`,
+        `Gesamtpreis: ${result ? num(result.gesamtpreis) + ' EUR' : 'n/a'}`,
+      ].join('\n'),
+    });
+  });
+
+  recalc();
+}
+
+function initFixedSlotKonfigurator(d) {
+  const pricing = d.pricing || {};
+  const slots   = pricing.fixed_slots || [];
+
+  function currentPs() {
+    return document.querySelector('#fs-ps-group .fs-ps-btn.active')?.dataset.ps || 'listenpreis';
+  }
+
+  function updatePrices() {
+    const ck = PREISSTUFE_TO_CLUSTER[currentPs()] || 'grundpreis';
+    document.querySelectorAll('.fs-folgen-input').forEach(input => {
+      const idx    = parseInt(input.dataset.idx, 10);
+      const cp     = JSON.parse(input.dataset.prices || '{}');
+      const base   = cp[ck] ?? (slots[idx]?.price_per_episode_eur ?? 0);
+      const folgen = parseInt(input.value, 10) || 1;
+      const el     = document.getElementById(`fs-price-${idx}`);
+      if (el) el.textContent = `${num(base * folgen)} EUR`;
+    });
+  }
+
+  document.querySelectorAll('#fs-ps-group .fs-ps-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#fs-ps-group .fs-ps-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      updatePrices();
+    });
+  });
+
+  document.querySelectorAll('.fs-folgen-input').forEach(input => {
+    input.addEventListener('input', updatePrices);
+  });
+
+  document.querySelectorAll('.fs-merken-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx      = parseInt(btn.dataset.idx, 10);
+      const slotLabel = btn.dataset.slot || '—';
+      const ps       = currentPs();
+      const ck       = PREISSTUFE_TO_CLUSTER[ps] || 'grundpreis';
+      const input    = document.querySelector(`.fs-folgen-input[data-idx="${idx}"]`);
+      const cp       = JSON.parse(input?.dataset.prices || '{}');
+      const base     = cp[ck] ?? (slots[idx]?.price_per_episode_eur ?? 0);
+      const folgen   = parseInt(input?.value, 10) || 1;
+      showMerkenPopupPodcast({
+        name: d.name || '',
+        summary: [
+          `${slotLabel} | ${PREISSTUFE_LABEL[ps] || ps}`,
+          `${folgen} Folge${folgen !== 1 ? 'n' : ''} | Preis: ${num(base * folgen)} EUR`,
+        ].join('\n'),
+      });
+    });
+  });
+}
+
+function showMerkenPopupPodcast(config) {
+  const backdrop = document.createElement('div');
+  backdrop.className = 'merken-popup-backdrop';
+  backdrop.innerHTML = `
+    <div class="merken-popup" role="dialog">
+      <div class="merken-popup-title">${LABELS.kampagne_merken}</div>
+      <div class="merken-popup-summary">
+        <strong>${config.name}</strong><br>
+        ${(config.summary || '').replace(/\n/g, '<br>')}
+      </div>
+      <div class="merken-date-section-label">${LABELS.wunsch_zeitraum}</div>
+      <div class="merken-date-row">
+        <div class="merken-date-group">
+          <span class="merken-date-label">${LABELS.von}</span>
+          <input class="merken-date-input" type="date" id="mp-von">
+        </div>
+        <div class="merken-date-group">
+          <span class="merken-date-label">${LABELS.bis}</span>
+          <input class="merken-date-input" type="date" id="mp-bis">
+        </div>
+      </div>
+      <label class="merken-checkbox-row">
+        <input type="checkbox" id="mp-ohne"> ${LABELS.ohne_zeitraum}
+      </label>
+      <div class="merken-error" id="mp-error">Bitte Zeitraum eingeben oder Checkbox setzen.</div>
+      <div class="merken-actions">
+        <button class="merken-btn-ok" id="mp-ok" disabled>${LABELS.merken_btn}</button>
+        <button class="merken-btn-cancel" id="mp-cancel">${LABELS.abbrechen}</button>
+      </div>
+    </div>`;
+
+  const escHandler = e => { if (e.key === 'Escape') close(); };
+  const close = () => { backdrop.remove(); document.removeEventListener('keydown', escHandler); };
+
+  function validate() {
+    const von  = backdrop.querySelector('#mp-von').value;
+    const bis  = backdrop.querySelector('#mp-bis').value;
+    const ohne = backdrop.querySelector('#mp-ohne').checked;
+    const errEl = backdrop.querySelector('#mp-error');
+    const okBtn = backdrop.querySelector('#mp-ok');
+    if (ohne)                           { errEl.textContent = ''; okBtn.disabled = false; return true; }
+    if (!von && !bis)                   { errEl.textContent = 'Bitte Zeitraum eingeben oder Checkbox setzen.'; okBtn.disabled = true; return false; }
+    if (von && bis && bis < von)        { errEl.textContent = 'Bis-Datum muss nach Von-Datum liegen.'; okBtn.disabled = true; return false; }
+    errEl.textContent = ''; okBtn.disabled = false; return true;
+  }
+
+  backdrop.querySelector('#mp-von').addEventListener('input', validate);
+  backdrop.querySelector('#mp-bis').addEventListener('input', validate);
+  backdrop.querySelector('#mp-ohne').addEventListener('change', () => {
+    const ohne = backdrop.querySelector('#mp-ohne').checked;
+    backdrop.querySelector('#mp-von').disabled = ohne;
+    backdrop.querySelector('#mp-bis').disabled = ohne;
+    validate();
+  });
+  backdrop.querySelector('#mp-cancel').addEventListener('click', close);
+  backdrop.addEventListener('click', e => { if (e.target === backdrop) close(); });
+  backdrop.querySelector('#mp-ok').addEventListener('click', () => {
+    if (!validate()) return;
+    const von  = backdrop.querySelector('#mp-von').value;
+    const bis  = backdrop.querySelector('#mp-bis').value;
+    const ohne = backdrop.querySelector('#mp-ohne').checked;
+    const zeitraum = ohne ? 'ohne festen Zeitraum' : `${von} – ${bis}`;
+    close();
+    alert(`Gemerkt: ${config.name}\n${config.summary}\nZeitraum: ${zeitraum}\n(Speicher-Logik kommt in Etappe 5)`);
+  });
+
   document.addEventListener('keydown', escHandler);
   document.body.appendChild(backdrop);
 }

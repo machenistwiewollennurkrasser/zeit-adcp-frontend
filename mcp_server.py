@@ -1054,10 +1054,24 @@ _BP_LEVELS = {
 }
 
 _SPOT_LENGTH = {
-    "audio_ad_20s":        20,
-    "audio_ad_30s":        30,
-    "native_audio_ad_60s": 60,
+    "audio_ad_20s":         20,
+    "native_audio_ad_30s":  30,
+    "native_audio_ad_60s":  60,
     "native_audio_ad_240s": 240,
+}
+
+# Nur bei PK II Brand-Buchungen anwendbar, nicht bei PK I
+VOLUMEN_RABATTE = [
+    {"min_audio_impressions":  250000, "rabatt_pct": 20},
+    {"min_audio_impressions":  500000, "rabatt_pct": 30},
+    {"min_audio_impressions": 1000000, "rabatt_pct": 40},
+    {"min_audio_impressions": 2000000, "rabatt_pct": 50},
+]
+
+# Verbrechen: AdSlot fuer Eigenwerbung reserviert. Was jetzt: Podcastlaenge zu kurz.
+PODCASTS_OHNE_MIDROLL = {
+    "verbrechen_podcast_2026",
+    "was_jetzt_podcast_2026",
 }
 
 
@@ -1177,6 +1191,7 @@ def _build_pricing_newsletter(p: dict) -> dict:
 
 
 def _build_pricing_podcast(p: dict) -> dict:
+    pid = p.get("product_id", "")
     fpp = get_podcast_fixed_placement_pricing(p)
 
     if fpp and fpp.get("formats"):
@@ -1186,11 +1201,20 @@ def _build_pricing_podcast(p: dict) -> dict:
             cp   = f.get("cluster_prices") or f.get("cluster_prices_eur_net") or {}
             price = next(iter(cp.values()), None) if cp else None
             fixed_slots.append({
-                "slot": slot, "price_per_episode_eur": price,
-                "min_episodes": f.get("min_episodes"),
+                "slot":                slot,
+                "cluster_prices":      cp,
+                "price_per_episode_eur": price,
+                "min_episodes":        f.get("min_episodes"),
             })
-        return {"currency": "EUR", "pricing_model": "fixed_slot",
-                "fixed_slots": fixed_slots, "bp_levels": dict(_BP_LEVELS)}
+        return {
+            "currency":        "EUR",
+            "pricing_model":   "fixed_slot",
+            "laufzeit":        fpp.get("laufzeit"),
+            "fixed_slots":     fixed_slots,
+            "midroll_excluded": pid in PODCASTS_OHNE_MIDROLL,
+            "volume_discounts": None,
+            "bp_levels":       dict(_BP_LEVELS),
+        }
 
     # TKP: Default-Raten aus podcast_definitions, Produkt-Level hat Vorrang
     pod_defs = definitions.get("podcast") or {}
@@ -1219,11 +1243,13 @@ def _build_pricing_podcast(p: dict) -> dict:
 
     mbv = pod_defs.get("minimum_booking_value_eur_net") or {}
     return {
-        "currency":      "EUR",
-        "pricing_model": "tkp",
-        "tkp_table":     tkp_rows,
-        "mbv_eur_net":   mbv if isinstance(mbv, dict) else {},
-        "bp_levels":     dict(_BP_LEVELS),
+        "currency":        "EUR",
+        "pricing_model":   "tkp",
+        "tkp_table":       tkp_rows,
+        "mbv_eur_net":     mbv if isinstance(mbv, dict) else {},
+        "midroll_excluded": pid in PODCASTS_OHNE_MIDROLL,
+        "volume_discounts": VOLUMEN_RABATTE,
+        "bp_levels":       dict(_BP_LEVELS),
     }
 
 

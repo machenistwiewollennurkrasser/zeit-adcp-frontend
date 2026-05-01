@@ -332,7 +332,7 @@ footer .footer-inner {
 <header>
   <div class="header-inner">
     <div class="header-logo-wrap">
-      <svg width="130" height="auto" viewBox="0 0 203 29" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block">
+      <svg width="130" viewBox="0 0 203 29" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block">
         <g clip-path="url(#clip0_3110_9537)">
           <path d="M76.754 0.129021H69.3842C68.3561 0.129021 65.4002 0.08436 64.3672 0C63.4676 2.4117 62.3554 4.81845 61.1543 7.22519C61.1543 7.44353 61.4558 7.57255 61.6684 7.48323C65.0987 2.96749 67.669 1.63261 70.4073 1.63261V24.4743C70.4073 26.494 70.1058 27.1838 67.8321 27.6155C67.7036 27.7892 67.7036 28.0919 67.8321 28.2606H78.2863C78.4148 28.0472 78.4148 27.8338 78.2863 27.6155C76.0125 27.1838 75.716 26.499 75.716 24.4743V1.63261C78.4593 1.63261 81.1136 2.96749 84.455 7.48323C84.6724 7.56759 84.969 7.43857 84.969 7.22519C83.7679 4.85815 82.6953 2.4514 81.7562 0C80.2585 0.08436 78.2863 0.129021 76.7441 0.129021H76.754ZM73.3681 26.757H72.77V1.63261H73.3681V26.7521V26.757Z" fill="black"/>
           <path d="M22.5699 20.6048C19.8266 24.6888 16.8708 26.7581 9.97053 26.7581H7.27172L22.5254 0.343459V0.125115H8.55687C7.40024 0.125115 5.51701 0.0804538 4.2714 -0.00390625C3.41135 2.4475 2.34369 4.8989 1.18706 7.43963C1.23154 7.61331 1.53306 7.74233 1.70112 7.65797C4.31589 3.87169 6.28809 1.63367 13.7419 1.63367H15.7537L0.5 28.0483V28.2617H15.1556C16.6978 28.2617 18.2844 28.3063 19.8266 28.3907C20.7707 25.8549 21.8828 23.3589 23.0839 20.8231C23.0395 20.6494 22.7824 20.5204 22.5699 20.6048ZM3.93035 26.7581L18.3685 1.63367H19.1L4.65695 26.7581H3.93035Z" fill="black"/>
@@ -576,8 +576,6 @@ async function checkServer() {
     serverOk = true;
     el.className = 'server-status ok';
     txt.textContent = `${productsLoaded} Produkte geladen`;
-    document.getElementById('hero-subline').textContent =
-      `Sales-Tool für Print · Newsletter · Podcast · ${productsLoaded} Produkte · Echtdaten Stand Januar 2026`;
     document.getElementById('search-btn').disabled = false;
   } catch (e) {
     serverOk = false;

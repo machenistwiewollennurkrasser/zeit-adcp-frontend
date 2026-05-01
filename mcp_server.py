@@ -187,6 +187,7 @@ def load_product_index(load_dir: Path):
             logger.info(f"  Definitions: {category} aus {path.name}")
             continue
 
+        data["_category"] = path.parent.name
         products.append(data)
 
     return ProductIndex(products=products), definitions
@@ -904,6 +905,101 @@ async def legacy_adcp_endpoint(request: Request):
     except Exception as e:
         logger.error(f"Error in legacy endpoint: {e}")
         raise HTTPException(500, "Internal server error")
+
+
+# =====================================================
+# Browse: /products/list
+# =====================================================
+
+ZEIT_REGIONAL_IDS = {
+    "zeit_hamburg_2026", "zeit_schweiz_2026", "zeit_oesterreich_2026",
+    "zeit_im_osten_2026", "zeit_alpen_2026", "christ_und_welt_2026",
+}
+
+PODCAST_GENRE_MAP = {
+    "true_crime": "True-Crime-Podcast", "crime": "True-Crime-Podcast",
+    "wirtschaft": "Wirtschafts-Podcast", "politik": "Politik-Podcast",
+    "wissen": "Wissens-Podcast", "kultur": "Kultur-Podcast",
+}
+
+
+def _product_subtitle(p: dict) -> str:
+    pt  = p.get("product_type", "")
+    cat = p.get("_category", "")
+    if pt == "wochenzeitung":
+        return "Wochenzeitung"
+    if pt == "magazin":
+        freq = p.get("publication_frequency", "")
+        return "Wochenmagazin" if freq == "weekly" else "Magazin"
+    if pt == "b2b_magazin":
+        return "B2B-Magazin"
+    if pt == "kindermagazin":
+        return "Kindermagazin"
+    if pt == "submagazin":
+        return "Sub-Magazin"
+    if pt == "sonderheft":
+        return "Sonderveroeffentlichung in DIE ZEIT"
+    if pt == "beilage" or cat == "beilegendes_magazin":
+        return "Beilage in DIE ZEIT"
+    if pt == "newsletter":
+        pricing_models = p.get("pricing_models", [])
+        if isinstance(pricing_models, dict):
+            for pm in pricing_models.values():
+                if isinstance(pm, dict) and pm.get("basis") == "magazine_companion":
+                    return "Magazin-Newsletter"
+        return "Newsletter"
+    if pt == "podcast":
+        tags = p.get("matching_metadata", {}).get("topical_tags", [])
+        for tag in tags:
+            for key, label in PODCAST_GENRE_MAP.items():
+                if key in tag.lower():
+                    return label
+        return "Podcast"
+    return pt.replace("_", " ").title() if pt else "Produkt"
+
+
+@app.get("/products/list")
+async def products_list():
+    wochenzeitung, regional, svoe, beilagen = [], [], [], []
+    magazine, podcasts, newsletter = [], [], []
+
+    for p in product_index.products:
+        pt  = p.get("product_type", "")
+        pid = p.get("product_id", "")
+        cat = p.get("_category", "")
+        item = {
+            "product_id":   pid,
+            "name":         p.get("product_name", ""),
+            "product_type": pt,
+            "subtitle":     _product_subtitle(p),
+        }
+        if pid in ZEIT_REGIONAL_IDS or cat == "regional":
+            regional.append(item)
+        elif cat == "die_zeit" and pt == "wochenzeitung":
+            wochenzeitung.append(item)
+        elif cat == "sonderveroeffentlichung" or pt == "sonderheft":
+            svoe.append(item)
+        elif cat == "beilegendes_magazin" or pt == "beilage":
+            beilagen.append(item)
+        elif pt in ("magazin", "b2b_magazin", "kindermagazin", "submagazin"):
+            magazine.append(item)
+        elif pt == "podcast":
+            podcasts.append(item)
+        elif pt == "newsletter":
+            newsletter.append(item)
+
+    s = lambda lst: sorted(lst, key=lambda x: x["name"].lower())
+    return {
+        "die_zeit": {
+            "wochenzeitung":             s(wochenzeitung),
+            "regional":                  s(regional),
+            "sonderveroeffentlichungen": s(svoe),
+            "beilagen":                  s(beilagen),
+        },
+        "magazine":   s(magazine),
+        "podcasts":   s(podcasts),
+        "newsletter": s(newsletter),
+    }
 
 
 # =====================================================

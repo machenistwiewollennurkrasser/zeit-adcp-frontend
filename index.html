@@ -588,7 +588,7 @@ async function runSearch() {
     if (!res.ok) throw new Error(`Server-Fehler: ${res.status}`);
     const data = await res.json();
 
-    let results = data.result?.matches || data.matches || [];
+    let results = data.products || data.result?.matches || data.matches || [];
 
     // Sicherstellen dass wir ein Array haben
     if (!Array.isArray(results)) results = [];

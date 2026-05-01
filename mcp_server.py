@@ -950,6 +950,8 @@ def _product_subtitle(p: dict) -> str:
     pt  = p.get("product_type", "")
     pid = p.get("product_id", "")
     cat = p.get("_category", "")
+    if pid in ZEIT_REGIONAL_IDS:
+        return "Regionalausgabe DIE ZEIT"
     if pt == "wochenzeitung":
         return "Wochenzeitung"
     if pt == "magazin":

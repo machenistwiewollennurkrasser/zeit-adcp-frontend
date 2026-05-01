@@ -349,6 +349,47 @@ header {
 }
 .modal-link:hover { background: var(--yellow); }
 
+/* MODAL DETAIL – TAG PILLS */
+.tag-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag-pill { border: 1px solid var(--black); padding: 3px 8px; font-size: 12px; letter-spacing: 0.04em; }
+
+/* MODAL DETAIL – REACH WARNING */
+.reach-warning { background: var(--yellow); border: 1px solid var(--black); padding: 8px 12px; font-size: 13px; margin-bottom: 12px; }
+
+/* MODAL DETAIL – FORMATE SCROLL */
+.formats-scroll { max-height: 320px; overflow-y: auto; }
+
+/* MODAL DETAIL – ISSUES CAROUSEL */
+.issues-carousel-outer { display: flex; align-items: center; gap: 8px; }
+.issues-carousel { display: flex; gap: 8px; overflow-x: auto; scroll-behavior: smooth; padding-bottom: 6px; flex: 1; }
+.issues-carousel::-webkit-scrollbar { height: 4px; }
+.issues-carousel::-webkit-scrollbar-thumb { background: #ccc; }
+.issue-tile {
+  border: 1px solid var(--black); padding: 8px 10px;
+  width: 130px; min-width: 130px; height: 80px; box-sizing: border-box;
+  display: flex; flex-direction: column; justify-content: flex-start;
+  cursor: default; background: var(--white); flex-shrink: 0;
+}
+.issue-tile:hover { background: #f5f5f5; }
+.issue-tile-date { font-size: 14px; font-weight: 700; line-height: 1.2; }
+.issue-tile-theme {
+  font-size: 11px; color: #555; margin-top: 4px; line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.carousel-btn {
+  border: 1px solid var(--black); background: none; cursor: pointer;
+  padding: 6px 10px; font-size: 14px; flex-shrink: 0; line-height: 1;
+}
+.carousel-btn:hover { background: var(--yellow); }
+
+/* MODAL DETAIL – MERKEN BUTTON */
+.btn-merken {
+  border: 1px solid var(--black); background: none; padding: 5px 10px;
+  font-size: 11px; cursor: pointer; font-family: inherit;
+  text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap;
+}
+.btn-merken:hover { background: var(--yellow); }
+
 /* FOOTER */
 footer { border-top: 1px solid var(--black); padding: 28px 0; }
 footer .footer-inner {
@@ -575,6 +616,25 @@ const API_BASE = "";
 
 const PREIS_SUFFIX_NETTO = "netto";
 const PREIS_HINWEIS = "Listenpreise netto, zzgl. MwSt.";
+
+const LABELS = {
+  redaktioneller_fokus: "Redaktioneller Fokus",
+  themenwelten:         "Themenwelten",
+  zielgruppen:          "Zielgruppen",
+  reichweite:           "Reichweite",
+  verbreitete_auflage:  "Verbreitete Auflage",
+  leserschaft:          "Leserschaft",
+  abo_anteil:           "Abo-Anteil",
+  quelle:               "Quelle",
+  formate_und_preise:   "Formate und Preise",
+  erscheinungstermine:  "Erscheinungstermine",
+  merken:               "+ Merken",
+  auf_anfrage:          "auf Anfrage",
+  preis_hinweis:        "Listenpreis, netto zzgl. MwSt.",
+  laedt:                "Laedt...",
+  fehler_laden:         "Daten konnten nicht geladen werden",
+  schliessen:           "Schliessen",
+};
 
 // ============================================================
 // HILFSFUNKTIONEN
@@ -937,6 +997,167 @@ function closeModal() {
 }
 
 // ============================================================
+// PRODUKT-MODAL (Akkordeon-Karten)
+// ============================================================
+
+const _MAGAZIN_TYPES = new Set(['magazin','sonderheft','beilage','wochenzeitung','submagazin','b2b_magazin','kindermagazin']);
+
+function openProductModal(item) {
+  if (_MAGAZIN_TYPES.has(item.product_type)) {
+    openMagazinModal(item.product_id, item.name, item.subtitle);
+  } else {
+    document.getElementById('modal-body').innerHTML = `
+      <div class="modal-header">
+        <div class="modal-name">${item.name}</div>
+        <div class="modal-sub">${item.subtitle || ''}</div>
+      </div>
+      <div class="modal-section">
+        <p style="font-size:15px">Modal fuer diesen Produkttyp folgt in einem naechsten Schritt.</p>
+      </div>`;
+    document.getElementById('modal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+async function openMagazinModal(productId, name, subtitle) {
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-header">
+      <div class="modal-name">${name}</div>
+      <div class="modal-sub">${subtitle || ''}</div>
+    </div>
+    <div class="modal-section"><p>${LABELS.laedt}</p></div>`;
+  document.getElementById('modal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  try {
+    const res = await fetch(`${API_BASE}/products/detail/${productId}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const d = await res.json();
+    document.getElementById('modal-body').innerHTML = buildMagazinModalHTML(d);
+    const carousel = document.getElementById('dm-carousel');
+    if (carousel) {
+      document.getElementById('dm-prev').addEventListener('click', () => carousel.scrollBy({ left: -300, behavior: 'smooth' }));
+      document.getElementById('dm-next').addEventListener('click', () => carousel.scrollBy({ left:  300, behavior: 'smooth' }));
+    }
+  } catch (e) {
+    document.getElementById('modal-body').innerHTML = `
+      <div class="modal-section">
+        <p style="color:#c00;font-size:15px">${LABELS.fehler_laden}</p>
+      </div>`;
+  }
+}
+
+function buildMagazinModalHTML(d) {
+  const common  = d.common  || {};
+  const reach   = d.reach   || {};
+  const pricing = d.pricing || {};
+  const sched   = d.schedule || {};
+
+  const header = `
+    <div class="modal-header">
+      <div class="modal-name">${d.name || '—'}</div>
+      <div class="modal-sub">${d.subtitle || ''}</div>
+    </div>`;
+
+  const editorial = common.editorial_focus ? `
+    <div class="modal-section">
+      <div class="modal-section-title">${LABELS.redaktioneller_fokus}</div>
+      <div style="font-size:15px;line-height:1.65">${common.editorial_focus}</div>
+    </div>` : '';
+
+  const themes = (common.themenwelten || []).length ? `
+    <div class="modal-section">
+      <div class="modal-section-title">${LABELS.themenwelten}</div>
+      <div class="tag-pills">${(common.themenwelten || []).map(t =>
+        `<span class="tag-pill">${t}</span>`).join('')}</div>
+    </div>` : '';
+
+  const audiences = (common.zielgruppen || []).length ? `
+    <div class="modal-section">
+      <div class="modal-section-title">${LABELS.zielgruppen}</div>
+      <div class="tag-pills">${(common.zielgruppen || []).map(t =>
+        `<span class="tag-pill">${t}</span>`).join('')}</div>
+    </div>` : '';
+
+  const rRows = [
+    reach.circulation_total != null
+      ? `<tr><td class="k">${LABELS.verbreitete_auflage}</td><td class="v">${num(reach.circulation_total)}</td></tr>` : '',
+    reach.reader_total != null
+      ? `<tr><td class="k">${LABELS.leserschaft}</td><td class="v">${num(reach.reader_total)}</td></tr>` : '',
+    reach.subscription_share_pct != null
+      ? `<tr><td class="k">${LABELS.abo_anteil}</td><td class="v">${reach.subscription_share_pct} %</td></tr>` : '',
+    reach.source
+      ? `<tr><td class="k">${LABELS.quelle}</td><td class="v" style="font-size:13px;color:#888">${reach.source}</td></tr>` : '',
+  ].filter(Boolean).join('');
+  const reachWarn = reach.warning ? `<div class="reach-warning">${reach.warning}</div>` : '';
+  const reachSection = rRows ? `
+    <div class="modal-section">
+      <div class="modal-section-title">${LABELS.reichweite}</div>
+      ${reachWarn}
+      <table class="kv-table">${rRows}</table>
+    </div>` : '';
+
+  const formats = pricing.formats || [];
+  const fRows = formats.map(f => {
+    let price;
+    if (f.auf_anfrage) {
+      price = `<span>${LABELS.auf_anfrage}</span>`;
+    } else if (f.price_net_eur != null) {
+      price = `<span class="price-net">${num(f.price_net_eur)} EUR</span><br><span style="font-size:11px;color:#888">${LABELS.preis_hinweis}</span>`;
+    } else {
+      price = `<span style="color:#c00;font-size:12px">Preis fehlt</span>`;
+    }
+    return `<tr>
+      <td>${f.format_name || '—'}</td>
+      <td>${price}</td>
+      <td style="font-size:13px;color:#666">${f.booking_unit || ''}</td>
+      <td><button class="btn-merken" onclick="alert('${LABELS.merken} – Funktion kommt in Etappe 5')">${LABELS.merken}</button></td>
+    </tr>`;
+  }).join('');
+  const formatsSection = formats.length ? `
+    <div class="modal-section">
+      <div class="modal-section-title">${LABELS.formate_und_preise}</div>
+      <div class="formats-scroll">
+        <table class="formats-table">
+          <thead><tr>
+            <th style="min-width:200px">Format</th>
+            <th style="min-width:160px">Preis (netto)</th>
+            <th>Buchungseinheit</th>
+            <th>Aktion</th>
+          </tr></thead>
+          <tbody>${fRows}</tbody>
+        </table>
+      </div>
+    </div>` : '';
+
+  const issues = sched.issues || [];
+  const tiles = issues.map(i => {
+    const pub      = i.publication_date    || '';
+    const adClose  = i.ad_close_date       || '';
+    const matClose = i.material_close_date || '';
+    const theme    = i.thematic_focus      || '';
+    const tip = [
+      adClose  ? `Anzeigenschluss: ${fmtDate(adClose)}`  : '',
+      matClose ? `DU-Schluss: ${fmtDate(matClose)}`       : '',
+    ].filter(Boolean).join(' | ');
+    return `<div class="issue-tile" title="${tip}">
+      <div class="issue-tile-date">${fmtDate(pub)}</div>
+      <div class="issue-tile-theme">${theme}</div>
+    </div>`;
+  }).join('');
+  const issuesSection = issues.length ? `
+    <div class="modal-section">
+      <div class="modal-section-title">${LABELS.erscheinungstermine}</div>
+      <div class="issues-carousel-outer">
+        <button class="carousel-btn" id="dm-prev">&#9664;</button>
+        <div class="issues-carousel" id="dm-carousel">${tiles}</div>
+        <button class="carousel-btn" id="dm-next">&#9654;</button>
+      </div>
+    </div>` : '';
+
+  return header + editorial + themes + audiences + reachSection + formatsSection + issuesSection;
+}
+
+// ============================================================
 // EVENT LISTENERS
 // ============================================================
 
@@ -999,9 +1220,7 @@ function makeProductCard(item) {
   el.className = 'product-card';
   el.innerHTML = `<div class="product-card-name">${item.name}</div>
     <div class="product-card-subtitle">${item.subtitle}</div>`;
-  el.addEventListener('click', () => {
-    alert('Detailansicht fuer ' + item.name + ' kommt in Etappe 3.');
-  });
+  el.addEventListener('click', () => openProductModal(item));
   return el;
 }
 

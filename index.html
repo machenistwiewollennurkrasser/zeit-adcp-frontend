@@ -525,39 +525,40 @@ async function checkServer() {
 
 function buildBrief() {
   const query = document.getElementById('query-input').value.trim();
-  const parts = [];
 
-  // Freitext
-  if (query) parts.push(query);
-
-  // Kanal
+  // Filter-Werte sammeln
   const channels = [];
-  if (document.getElementById('f-print').checked) channels.push("Print");
+  if (document.getElementById('f-print').checked)      channels.push("Print");
   if (document.getElementById('f-newsletter').checked) channels.push("Newsletter");
-  if (document.getElementById('f-podcast').checked) channels.push("Podcast");
-  if (channels.length && channels.length < 3) parts.push(channels.join(" "));
+  if (document.getElementById('f-podcast').checked)    channels.push("Podcast");
 
-  // Branchen
-  const branches = [...document.querySelectorAll('[data-branche]:checked')].map(el => el.parentElement.textContent.trim());
-  if (branches.length) parts.push("Branche: " + branches.join(", "));
-
-  // Zielgruppen
+  const branches  = [...document.querySelectorAll('[data-branche]:checked')].map(el => el.parentElement.textContent.trim());
   const audiences = [...document.querySelectorAll('[data-audience]:checked')].map(el => el.parentElement.textContent.trim());
-  if (audiences.length) parts.push("Zielgruppe: " + audiences.join(", "));
+  const themes    = [...document.querySelectorAll('[data-theme]:checked')].map(el => el.parentElement.textContent.trim());
+  const formats   = [...document.querySelectorAll('.format-chip.active')].map(el => el.dataset.fmt);
+  const budget    = parseInt(document.getElementById('f-budget').value) || 0;
 
-  // Themen
-  const themes = [...document.querySelectorAll('[data-theme]:checked')].map(el => el.parentElement.textContent.trim());
-  if (themes.length) parts.push("Thema: " + themes.join(", "));
+  // Pseudo-Brief bauen (Variante B - ausformuliert)
+  const sentence = [];
 
-  // Formate
-  const formats = [...document.querySelectorAll('.format-chip.active')].map(el => el.dataset.fmt);
-  if (formats.length) parts.push("Format: " + formats.join(", "));
+  // Kanal: weglassen wenn alle drei oder keiner gesetzt
+  if (channels.length > 0 && channels.length < 3) {
+    sentence.push("Suche " + channels.map(c => c + "-Werbung").join(" und "));
+  }
 
-  // Budget
-  const budget = parseInt(document.getElementById('f-budget').value) || 0;
-  if (budget > 0 && budget < 100000) parts.push(`Budget ${eur(budget)} brutto`);
+  if (themes.length)                 sentence.push("im Themenfeld " + themes.join(", "));
+  if (audiences.length)              sentence.push("fuer die Zielgruppe " + audiences.join(", "));
+  if (branches.length)               sentence.push("aus der Branche " + branches.join(", "));
+  if (budget > 0 && budget < 100000) sentence.push("mit einem Budget von " + budget + " EUR");
+  if (formats.length)                sentence.push("im Format " + formats.join(", "));
 
-  return parts.join(". ") || "alle Produkte";
+  const pseudoBrief = sentence.length ? sentence.join(" ") + "." : "";
+
+  // Freitext und Pseudo-Brief kombinieren
+  if (query && pseudoBrief) return query + " " + pseudoBrief;
+  if (query)                return query;
+  if (pseudoBrief)          return pseudoBrief;
+  return "alle Produkte";
 }
 
 // ============================================================

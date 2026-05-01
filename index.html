@@ -288,7 +288,7 @@ header {
 
 /* MODAL */
 .modal {
-  position: fixed; inset: 0; z-index: 100;
+  position: fixed; inset: 0; z-index: 200;
   background: rgba(0,0,0,0.5);
   display: flex; align-items: flex-start; justify-content: center;
   padding: 40px 20px; overflow-y: auto;
@@ -389,6 +389,28 @@ header {
   text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap;
 }
 .btn-merken:hover { background: var(--yellow); }
+
+/* MODAL DETAIL – TERMIN-SELECTION */
+.issue-tile.selected { background: var(--yellow); border-width: 2px; }
+
+/* BESTAETIGUNG-POPUP */
+.confirm-popup-backdrop {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(0,0,0,0.3);
+  display: flex; align-items: center; justify-content: center;
+}
+.confirm-popup {
+  background: var(--white); border: 1px solid var(--black);
+  padding: 32px 40px; max-width: 400px; width: 90%;
+}
+.confirm-popup-title { font-size: 20px; font-weight: 700; margin-bottom: 24px; line-height: 1.2; }
+.confirm-popup-actions { display: flex; gap: 12px; }
+.confirm-popup-btn {
+  border: 1px solid var(--black); background: none; padding: 10px 20px;
+  font-size: 13px; cursor: pointer; font-family: inherit;
+  text-transform: uppercase; letter-spacing: 0.07em;
+}
+.confirm-popup-btn:hover { background: var(--yellow); }
 
 /* FOOTER */
 footer { border-top: 1px solid var(--black); padding: 28px 0; }
@@ -634,6 +656,11 @@ const LABELS = {
   laedt:                "Laedt...",
   fehler_laden:         "Daten konnten nicht geladen werden",
   schliessen:           "Schliessen",
+  termin_hinweis:        "Termin oben waehlen, dann Format unten merken (optional)",
+  merken_mit_datum:      (datum) => "+ Merken (" + datum + ")",
+  confirm_no_date_titel: "Ohne festgelegtes Datum merken?",
+  confirm_ja:            "Ja, ohne Datum",
+  confirm_abbrechen:     "Abbrechen",
 };
 
 // ============================================================
@@ -1033,11 +1060,47 @@ async function openMagazinModal(productId, name, subtitle) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const d = await res.json();
     document.getElementById('modal-body').innerHTML = buildMagazinModalHTML(d);
+
+    // Carousel
     const carousel = document.getElementById('dm-carousel');
     if (carousel) {
       document.getElementById('dm-prev').addEventListener('click', () => carousel.scrollBy({ left: -300, behavior: 'smooth' }));
       document.getElementById('dm-next').addEventListener('click', () => carousel.scrollBy({ left:  300, behavior: 'smooth' }));
     }
+
+    // Termin-Selection
+    let selectedIssueIndex = null;
+    const issues = (d.schedule || {}).issues || [];
+    const tileDivs = document.querySelectorAll('.issue-tile');
+    tileDivs.forEach((tile, idx) => {
+      tile.style.cursor = 'pointer';
+      tile.addEventListener('click', () => {
+        if (selectedIssueIndex === idx) {
+          tile.classList.remove('selected');
+          selectedIssueIndex = null;
+        } else {
+          if (selectedIssueIndex !== null) tileDivs[selectedIssueIndex].classList.remove('selected');
+          tile.classList.add('selected');
+          selectedIssueIndex = idx;
+        }
+        updateMerkenButtons(selectedIssueIndex, issues);
+      });
+    });
+
+    // Merken-Buttons
+    document.querySelectorAll('.btn-merken').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const formatName = btn.dataset.format || '—';
+        if (selectedIssueIndex !== null && issues[selectedIssueIndex]) {
+          const datum = fmtDate(issues[selectedIssueIndex].publication_date);
+          alert(`Gemerkt: ${formatName} fuer ${datum} (Speicher-Logik kommt in Etappe 5)`);
+        } else {
+          showConfirmPopup(() => {
+            alert(`Gemerkt: ${formatName} ohne Datum (Speicher-Logik kommt in Etappe 5)`);
+          });
+        }
+      });
+    });
   } catch (e) {
     document.getElementById('modal-body').innerHTML = `
       <div class="modal-section">
@@ -1110,7 +1173,7 @@ function buildMagazinModalHTML(d) {
       <td>${f.format_name || '—'}</td>
       <td>${price}</td>
       <td style="font-size:13px;color:#666">${f.booking_unit || ''}</td>
-      <td><button class="btn-merken" onclick="alert('${LABELS.merken} – Funktion kommt in Etappe 5')">${LABELS.merken}</button></td>
+      <td><button class="btn-merken" data-format="${f.format_name || ''}">${LABELS.merken}</button></td>
     </tr>`;
   }).join('');
   const formatsSection = formats.length ? `
@@ -1154,7 +1217,37 @@ function buildMagazinModalHTML(d) {
       </div>
     </div>` : '';
 
-  return header + editorial + themes + audiences + reachSection + formatsSection + issuesSection;
+  const terminHinweis = `<div style="padding:8px 40px;font-size:12px;color:#888;border-bottom:1px solid #eee">${LABELS.termin_hinweis}</div>`;
+  return header + editorial + themes + audiences + reachSection + issuesSection + terminHinweis + formatsSection;
+}
+
+function updateMerkenButtons(selectedIdx, issues) {
+  const datum = selectedIdx !== null && issues[selectedIdx]
+    ? fmtDate(issues[selectedIdx].publication_date)
+    : null;
+  document.querySelectorAll('.btn-merken').forEach(btn => {
+    btn.textContent = datum ? LABELS.merken_mit_datum(datum) : LABELS.merken;
+  });
+}
+
+function showConfirmPopup(onConfirm) {
+  const backdrop = document.createElement('div');
+  backdrop.className = 'confirm-popup-backdrop';
+  backdrop.innerHTML = `
+    <div class="confirm-popup" role="dialog">
+      <div class="confirm-popup-title">${LABELS.confirm_no_date_titel}</div>
+      <div class="confirm-popup-actions">
+        <button class="confirm-popup-btn" id="cp-ja">${LABELS.confirm_ja}</button>
+        <button class="confirm-popup-btn" id="cp-abbrechen">${LABELS.confirm_abbrechen}</button>
+      </div>
+    </div>`;
+  const escHandler = e => { if (e.key === 'Escape') close(); };
+  const close = () => { backdrop.remove(); document.removeEventListener('keydown', escHandler); };
+  backdrop.addEventListener('click', e => { if (e.target === backdrop) close(); });
+  backdrop.querySelector('#cp-abbrechen').addEventListener('click', close);
+  backdrop.querySelector('#cp-ja').addEventListener('click', () => { close(); onConfirm(); });
+  document.addEventListener('keydown', escHandler);
+  document.body.appendChild(backdrop);
 }
 
 // ============================================================

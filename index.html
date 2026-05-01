@@ -426,6 +426,7 @@ header {
   padding: 8px 10px; font-size: 12px; line-height: 1.4; min-width: 200px; max-width: 280px;
   z-index: 500; white-space: normal; pointer-events: none;
   font-style: normal; text-transform: none; letter-spacing: 0; font-weight: 400;
+  color: var(--black);
 }
 
 /* PODCAST-KONFIGURATOR */
@@ -1623,7 +1624,7 @@ function buildPodcastTKPSection(d) {
         <div class="konfig-row">
           <div class="konfig-label">${LABELS.audio_impressions}</div>
           <div class="konfig-ai-wrap">
-            <input class="konfig-ai-input" id="konfig-ai" type="text" value="1.000.000">
+            <input class="konfig-ai-input" id="konfig-ai" type="text" value="100.000">
           </div>
         </div>
         <div class="konfig-row">
@@ -1781,7 +1782,7 @@ function initPodcastKonfigurator(d) {
     const slotKey    = getActiveData('konfig-slot',   'slot');
     const pkKey      = getActiveData('konfig-buch',   'buch');
     const preisstufe = document.querySelector('[name="konfig-ps"]:checked')?.value || 'listenpreis';
-    const aiRaw      = (document.getElementById('konfig-ai')?.value || '1000000').replace(/\D/g, '');
+    const aiRaw      = (document.getElementById('konfig-ai')?.value || '100000').replace(/\D/g, '');
     const ai         = parseInt(aiRaw, 10) || 0;
     if (!adType || !slotKey || !pkKey) {
       const el = document.getElementById('tkp-result');

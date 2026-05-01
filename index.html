@@ -329,7 +329,7 @@ header {
 .formats-table td { padding: 10px 12px; border-bottom: 1px solid #eee; vertical-align: middle; }
 .formats-table tr:last-child td { border-bottom: none; }
 .formats-table tr:hover td { background: var(--yellow); }
-.formats-table .price-gross { font-weight: 700; }
+.formats-table .price-net { font-weight: 700; }
 .formats-table .price-bp { color: var(--gray); font-style: italic; font-size: 12px; }
 .issues-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .issues-table th {
@@ -456,7 +456,7 @@ footer .footer-inner {
         </div>
 
         <div class="filter-group">
-          <span class="filter-group-label">Budget (Brutto max.)</span>
+          <span class="filter-group-label">Budget (max., netto)</span>
           <div class="budget-row">
             <input type="range" id="f-budget" min="0" max="100000" step="5000" value="100000">
             <span class="budget-value" id="budget-display">Alle</span>
@@ -561,7 +561,7 @@ footer .footer-inner {
 <footer>
   <div class="footer-inner">
     ZEIT AdCP Interface Pilot · Holtzbrinck AI Exploration Program · San Francisco 2026
-    · Preise brutto inkl. 19% MwSt. · Datenstand Januar 2026
+    · Listenpreise netto, zzgl. MwSt. · Datenstand Januar 2026
     · Kontakt: <a href="mailto:advise@zeit.de" style="color:inherit">advise@zeit.de</a>
   </div>
 </footer>
@@ -572,13 +572,18 @@ footer .footer-inner {
 // ============================================================
 
 const API_BASE = "";
-const VAT = 1.19;
+
+const PREIS_SUFFIX_NETTO = "netto";
+const PREIS_HINWEIS = "Listenpreise netto, zzgl. MwSt.";
 
 // ============================================================
 // HILFSFUNKTIONEN
 // ============================================================
 
-function gross(net) { return Math.round(net * VAT); }
+function formatPriceNet(n) {
+  if (n == null) return "auf Anfrage";
+  return new Intl.NumberFormat('de-DE').format(n) + " EUR " + PREIS_SUFFIX_NETTO;
+}
 
 function eur(n) {
   return new Intl.NumberFormat('de-DE', {
@@ -759,8 +764,7 @@ function renderResults(results, query) {
     const ml = matchLabel(score);
 
     // Preis
-    const priceNet = r.pricing?.price_net_eur;
-    const priceGross = priceNet ? gross(priceNet) : null;
+    const priceNet = r.pricing?.price_net_eur ?? null;
     const formatName = r.pricing?.format || '';
 
     // Reichweite
@@ -782,8 +786,8 @@ function renderResults(results, query) {
           ${reachVal ? `<strong>${num(reachVal)} ${reachLabel}</strong>${reachSource}` : '<strong>—</strong>'}
         </div>
         <div class="rc-price">
-          <div class="rc-price-label">Brutto</div>
-          <div class="rc-price-value">${priceGross ? eur(priceGross) : '—'}</div>
+          <div class="rc-price-label">Listenpreis netto</div>
+          <div class="rc-price-value">${formatPriceNet(priceNet)}</div>
         </div>
         <div class="rc-badge">
           <div class="match-badge ${mc}">${ml}</div>
@@ -834,8 +838,7 @@ async function openModal(idx) {
     const net = f.price_net_eur || 0;
     return `<tr>
       <td>${f.format_name || '—'}${f.placement ? ` <span style="color:#888;font-size:12px">(${f.placement})</span>` : ''}</td>
-      <td class="price-gross">${eur(gross(net))}</td>
-      <td style="color:#666;font-size:13px">${eur(net)} netto</td>
+      <td class="price-net">${formatPriceNet(net > 0 ? net : null)}</td>
       <td class="price-bp" title="Wird ergänzt">—</td>
       <td class="price-bp" title="Wird ergänzt">—</td>
       <td class="price-bp" title="Wird ergänzt">—</td>
@@ -881,14 +884,13 @@ async function openModal(idx) {
       </div>
 
       ${adFormats.length ? `<div class="modal-section">
-        <div class="modal-section-title">Formate und Preise · inkl. 19% MwSt.</div>
+        <div class="modal-section-title">Formate und Preise · Listenpreis netto</div>
         <div style="overflow-x:auto">
           <table class="formats-table">
             <thead>
               <tr>
                 <th style="min-width:200px">Format</th>
-                <th>Brutto</th>
-                <th>Netto</th>
+                <th>Listenpreis netto</th>
                 <th title="Wird ergänzt">BP 1</th>
                 <th title="Wird ergänzt">BP 2</th>
                 <th title="Wird ergänzt">BP 3</th>

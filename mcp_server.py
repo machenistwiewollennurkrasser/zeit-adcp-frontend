@@ -1053,6 +1053,13 @@ _BP_LEVELS = {
     "branchenpreis_4": "disabled",
 }
 
+_SPOT_LENGTH = {
+    "audio_ad_20s":        20,
+    "audio_ad_30s":        30,
+    "native_audio_ad_60s": 60,
+    "native_audio_ad_240s": 240,
+}
+
 
 def _find_product(product_id: str) -> Optional[dict]:
     for p in product_index.products:
@@ -1170,9 +1177,7 @@ def _build_pricing_newsletter(p: dict) -> dict:
 
 
 def _build_pricing_podcast(p: dict) -> dict:
-    pm  = get_podcast_pricing_model(p)
     fpp = get_podcast_fixed_placement_pricing(p)
-    tkp = get_podcast_tkp_pricing(p)
 
     if fpp and fpp.get("formats"):
         fixed_slots = []
@@ -1187,17 +1192,39 @@ def _build_pricing_podcast(p: dict) -> dict:
         return {"currency": "EUR", "pricing_model": "fixed_slot",
                 "fixed_slots": fixed_slots, "bp_levels": dict(_BP_LEVELS)}
 
-    # TKP: rates live in definitions, surface what the product carries
-    tkp_table = []
-    for entry in (tkp.get("slots") or tkp.get("rates") or []):
-        tkp_table.append({
-            "slot":               entry.get("slot"),
-            "spot_length_seconds": entry.get("spot_length_seconds"),
-            "performance_class":  entry.get("performance_class"),
-            "tkp_eur":            entry.get("tkp_eur") or entry.get("tkp_eur_net"),
-        })
-    return {"currency": "EUR", "pricing_model": "tkp",
-            "tkp_table": tkp_table, "bp_levels": dict(_BP_LEVELS)}
+    # TKP: Default-Raten aus podcast_definitions, Produkt-Level hat Vorrang
+    pod_defs = definitions.get("podcast") or {}
+    table = dict(pod_defs.get("tkp_pricing_table") or {})
+    product_override = (get_podcast_tkp_pricing(p) or {}).get("tkp_pricing_table") or {}
+    if product_override:
+        table.update(product_override)
+
+    tkp_rows = []
+    for ad_type_length, slots in table.items():
+        if not isinstance(slots, dict):
+            continue
+        for slot_key, pks in slots.items():
+            if not isinstance(pks, dict):
+                continue
+            for pk, cluster_prices in pks.items():
+                if not isinstance(cluster_prices, dict):
+                    continue
+                tkp_rows.append({
+                    "ad_type_length":      ad_type_length,
+                    "spot_length_seconds": _SPOT_LENGTH.get(ad_type_length),
+                    "slot":                slot_key,
+                    "performance_class":   pk,
+                    "cluster_prices":      cluster_prices,
+                })
+
+    mbv = pod_defs.get("minimum_booking_value_eur_net") or {}
+    return {
+        "currency":      "EUR",
+        "pricing_model": "tkp",
+        "tkp_table":     tkp_rows,
+        "mbv_eur_net":   mbv if isinstance(mbv, dict) else {},
+        "bp_levels":     dict(_BP_LEVELS),
+    }
 
 
 def _build_schedule_magazin(p: dict) -> Optional[dict]:

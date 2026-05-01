@@ -42,7 +42,16 @@ import urllib.request
 import tempfile
 from datetime import datetime
 
-from matching import match_products, ProductIndex, parse_brief, check_industry_discount
+from matching import (
+    match_products, ProductIndex, parse_brief, check_industry_discount,
+    get_reach, get_audience, get_matching_metadata,
+    get_print_specifics, get_print_ad_formats,
+    get_newsletter_specifics, get_newsletter_formats, get_newsletter_pricing,
+    get_newsletter_pricing_model, get_newsletter_parent_relationship,
+    get_podcast_specifics, get_podcast_pricing_model,
+    get_podcast_fixed_placement_pricing, get_podcast_tkp_pricing,
+    get_issues, format_newsletter_schedule,
+)
 
 # =====================================================
 # Logging
@@ -1030,6 +1039,253 @@ async def products_list():
         "podcasts":   s(podcasts),
         "newsletter": s(newsletter),
     }
+
+
+# =====================================================
+# Detail: /products/detail/{product_id}
+# =====================================================
+
+_BP_LEVELS = {
+    "listenpreis":    "active",
+    "branchenpreis_1": "disabled",
+    "branchenpreis_2": "disabled",
+    "branchenpreis_3": "disabled",
+    "branchenpreis_4": "disabled",
+}
+
+
+def _find_product(product_id: str) -> Optional[dict]:
+    for p in product_index.products:
+        if p.get("product_id") == product_id:
+            return p
+    return None
+
+
+def _top_level_type(p: dict) -> str:
+    pt  = p.get("product_type", "")
+    cat = p.get("_category", "")
+    pid = p.get("product_id", "")
+    if pt == "newsletter":
+        return "newsletter"
+    if pt == "podcast":
+        return "podcast"
+    if (cat in ("die_zeit", "regional", "sonderveroeffentlichung", "beilegendes_magazin")
+            or pid in ZEIT_REGIONAL_IDS
+            or pid in DIE_ZEIT_BEILAGEN_IDS
+            or pid in DIE_ZEIT_SONDERVEROEFFENTLICHUNGEN_IDS):
+        return "die_zeit"
+    return "magazin"
+
+
+def _die_zeit_subtype(p: dict) -> Optional[str]:
+    pid = p.get("product_id", "")
+    pt  = p.get("product_type", "")
+    cat = p.get("_category", "")
+    if pid in ZEIT_REGIONAL_IDS or cat == "regional":
+        return "regional"
+    if cat == "die_zeit" and pt == "wochenzeitung":
+        return "wochenzeitung"
+    if pid in DIE_ZEIT_BEILAGEN_IDS or pt == "beilage":
+        return "beilage"
+    if pid in DIE_ZEIT_SONDERVEROEFFENTLICHUNGEN_IDS or pt == "sonderheft":
+        return "sonderveroeffentlichung"
+    return None
+
+
+def _build_common(p: dict) -> dict:
+    aud = get_audience(p)
+    mm  = get_matching_metadata(p)
+    return {
+        "editorial_focus": p.get("editorial_focus") or p.get("description_long"),
+        "themenwelten":    mm.get("topical_tags") or [],
+        "zielgruppen":     aud.get("primary") or aud.get("primary_segments") or [],
+    }
+
+
+def _build_reach_magazin(p: dict) -> dict:
+    r = get_reach(p)
+    return {
+        "circulation_total":      r.get("circulation_total"),
+        "reader_total":           r.get("reader_total"),
+        "subscription_share_pct": r.get("subscription_share_pct"),
+        "source":                 r.get("source"),
+        "warning":                r.get("reader_data_age_warning"),
+    }
+
+
+def _build_reach_newsletter(p: dict) -> dict:
+    r   = get_reach(p)
+    aud = get_audience(p)
+    return {
+        "subscribers_total": r.get("subscribers_total") or aud.get("subscribers_total"),
+        "open_rate_pct":     r.get("open_rate_pct"),
+        "source":            r.get("source"),
+    }
+
+
+def _build_reach_podcast(p: dict) -> dict:
+    r = get_reach(p)
+    return {
+        "downloads_per_episode":      r.get("downloads_per_episode"),
+        "audio_impressions_typical":  r.get("audio_impressions_typical"),
+        "engagement_metrics": {
+            "completion_rate_pct":     r.get("completion_rate_pct"),
+            "attentive_listening_pct": r.get("attentive_listening_pct"),
+            "ad_recall_pct":           r.get("ad_recall_pct"),
+        },
+        "source": r.get("source"),
+    }
+
+
+def _build_pricing_magazin(p: dict) -> dict:
+    formats = []
+    for f in get_print_ad_formats(p):
+        if f.get("mvp_in_scope") is False:
+            continue
+        formats.append({
+            "format_name":  f.get("format_name") or f.get("name", ""),
+            "price_net_eur": f.get("price_net_eur"),
+            "booking_unit": f.get("booking_unit"),
+            "auf_anfrage":  bool(f.get("auf_anfrage", False)),
+        })
+    return {"currency": "EUR", "price_basis": "listenpreis_netto",
+            "formats": formats, "bp_levels": dict(_BP_LEVELS)}
+
+
+def _build_pricing_newsletter(p: dict) -> dict:
+    formats = []
+    for f in get_newsletter_formats(p):
+        price = f.get("price_eur_net") or f.get("kulturpreis_eur_net")
+        if price is None:
+            cp = f.get("cluster_prices") or {}
+            price = next(iter(cp.values()), None) if cp else None
+        formats.append({
+            "format_name":  f.get("format_display_name") or f.get("format_id", ""),
+            "price_net_eur": price,
+            "booking_unit": f.get("price_unit"),
+            "auf_anfrage":  bool(f.get("auf_anfrage", False)),
+        })
+    return {"currency": "EUR", "price_basis": "listenpreis_netto",
+            "formats": formats, "bp_levels": dict(_BP_LEVELS)}
+
+
+def _build_pricing_podcast(p: dict) -> dict:
+    pm  = get_podcast_pricing_model(p)
+    fpp = get_podcast_fixed_placement_pricing(p)
+    tkp = get_podcast_tkp_pricing(p)
+
+    if fpp and fpp.get("formats"):
+        fixed_slots = []
+        for f in (fpp.get("formats") or []):
+            slot = f.get("slot") or f.get("ad_type_id") or f.get("format_id", "")
+            cp   = f.get("cluster_prices") or f.get("cluster_prices_eur_net") or {}
+            price = next(iter(cp.values()), None) if cp else None
+            fixed_slots.append({
+                "slot": slot, "price_per_episode_eur": price,
+                "min_episodes": f.get("min_episodes"),
+            })
+        return {"currency": "EUR", "pricing_model": "fixed_slot",
+                "fixed_slots": fixed_slots, "bp_levels": dict(_BP_LEVELS)}
+
+    # TKP: rates live in definitions, surface what the product carries
+    tkp_table = []
+    for entry in (tkp.get("slots") or tkp.get("rates") or []):
+        tkp_table.append({
+            "slot":               entry.get("slot"),
+            "spot_length_seconds": entry.get("spot_length_seconds"),
+            "performance_class":  entry.get("performance_class"),
+            "tkp_eur":            entry.get("tkp_eur") or entry.get("tkp_eur_net"),
+        })
+    return {"currency": "EUR", "pricing_model": "tkp",
+            "tkp_table": tkp_table, "bp_levels": dict(_BP_LEVELS)}
+
+
+def _build_schedule_magazin(p: dict) -> Optional[dict]:
+    issues = []
+    for iss in get_issues(p):
+        themes = iss.get("issue_themes") or []
+        issues.append({
+            "issue_number":        iss.get("issue_id") or iss.get("issue_number"),
+            "publication_date":    iss.get("publication_date"),
+            "ad_close_date":       iss.get("booking_deadline"),
+            "material_close_date": iss.get("material_deadline"),
+            "thematic_focus":      themes[0] if themes else iss.get("special_theme"),
+        })
+    return {"issues": issues} if issues else None
+
+
+def _build_schedule_newsletter(p: dict) -> Optional[dict]:
+    freq = format_newsletter_schedule(p)
+    ns   = get_newsletter_specifics(p)
+    ch   = ns.get("channel") or {}
+    rule = ch.get("ad_close_rule") or ch.get("booking_deadline_rule")
+    return {"frequency": freq, "ad_close_rule": rule} if (freq or rule) else None
+
+
+def _check_completeness(p: dict, top_type: str, pricing: dict,
+                        schedule: Optional[dict]) -> dict:
+    missing = []
+    if not (p.get("editorial_focus") or p.get("description_long")):
+        missing.append("editorial_focus")
+    fmts = pricing.get("formats") or pricing.get("fixed_slots") or pricing.get("tkp_table") or []
+    if not fmts:
+        missing.append("pricing.formats")
+    elif not any(f.get("price_net_eur") or f.get("price_per_episode_eur") or f.get("tkp_eur")
+                 for f in fmts):
+        missing.append("pricing.formats[].price")
+    if top_type in ("magazin", "die_zeit") and not (schedule and schedule.get("issues")):
+        missing.append("schedule.issues")
+    if top_type == "newsletter" and not (schedule and schedule.get("frequency")):
+        missing.append("schedule.frequency")
+    if not missing:
+        level = "full"
+    elif len(missing) <= 2:
+        level = "partial"
+    else:
+        level = "minimal"
+    return {"data_completeness": level, "missing_fields": missing}
+
+
+@app.get("/products/detail/{product_id}")
+async def product_detail(product_id: str):
+    p = _find_product(product_id)
+    if p is None:
+        raise HTTPException(404, detail={"error": "Product not found",
+                                         "product_id": product_id})
+    try:
+        top_type = _top_level_type(p)
+        subtype  = _die_zeit_subtype(p) if top_type == "die_zeit" else None
+        common   = _build_common(p)
+
+        if top_type in ("magazin", "die_zeit"):
+            reach    = _build_reach_magazin(p)
+            pricing  = _build_pricing_magazin(p)
+            schedule = _build_schedule_magazin(p)
+        elif top_type == "newsletter":
+            reach    = _build_reach_newsletter(p)
+            pricing  = _build_pricing_newsletter(p)
+            schedule = _build_schedule_newsletter(p)
+        else:  # podcast
+            reach    = _build_reach_podcast(p)
+            pricing  = _build_pricing_podcast(p)
+            schedule = None
+
+        return {
+            "product_id":       p.get("product_id"),
+            "name":             p.get("product_name"),
+            "subtitle":         _product_subtitle(p),
+            "product_type":     top_type,
+            "die_zeit_subtype": subtype,
+            "common":           common,
+            "reach":            reach,
+            "pricing":          pricing,
+            "schedule":         schedule,
+            "_meta":            _check_completeness(p, top_type, pricing, schedule),
+        }
+    except Exception as e:
+        logger.error(f"product_detail error for {product_id}: {e}", exc_info=True)
+        raise HTTPException(500, detail={"error": "Internal server error",
+                                         "product_id": product_id})
 
 
 # =====================================================

@@ -29,15 +29,55 @@ html, body {
 
 .container { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
 
-/* HEADER */
-header { background: var(--yellow); border-bottom: 1px solid var(--black); }
-.header-inner {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 20px 40px; max-width: 1200px; margin: 0 auto;
+/* HEADER – sticky, kompakt */
+header {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--yellow);
+  border-bottom: 2px solid var(--black);
 }
+.header-inner {
+  display: grid;
+  grid-template-columns: 200px 1fr 300px;
+  align-items: center;
+  height: 72px;
+  padding: 0 40px;
+  max-width: 1200px; margin: 0 auto;
+  gap: 32px;
+}
+.header-logo-wrap { display: flex; flex-direction: column; line-height: 1; }
 .logo { font-size: 24px; letter-spacing: -0.01em; }
 .logo .advise { font-style: italic; font-weight: 700; }
-.header-meta { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+.header-logo-subtitle {
+  font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.12em; margin-top: 4px;
+}
+
+/* TABS */
+.header-tabs {
+  display: flex; justify-content: center;
+  align-self: stretch; align-items: flex-end;
+}
+.tab-btn {
+  background: none; border: none;
+  border-bottom: 3px solid transparent;
+  padding: 0 28px 10px;
+  font-family: inherit; font-size: 14px;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  cursor: pointer; color: var(--black); font-weight: 700;
+  transition: border-color 0.08s;
+}
+.tab-btn.active { border-bottom-color: var(--black); }
+.tab-btn:hover:not(.active) { border-bottom-color: #888; }
+
+/* HEADER RECHTS */
+.header-right { display: flex; align-items: center; gap: 12px; justify-content: flex-end; }
+.btn-merkliste {
+  background: var(--black); color: var(--white); border: none;
+  padding: 10px 16px; font-family: inherit; font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  cursor: pointer; font-weight: 700; white-space: nowrap;
+}
+.btn-merkliste:hover { background: #333; }
 
 /* SERVER STATUS */
 .server-status {
@@ -50,11 +90,14 @@ header { background: var(--yellow); border-bottom: 1px solid var(--black); }
 .server-status.loading { color: var(--gray); }
 .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
-/* HERO */
-.hero { background: var(--yellow); padding: 60px 40px 70px; border-bottom: 1px solid var(--black); }
-.hero-inner { max-width: 1200px; margin: 0 auto; }
-.hero h1 { font-size: 88px; line-height: 0.95; letter-spacing: -0.02em; margin-bottom: 24px; font-weight: 500; }
-.hero .subline { font-size: 16px; text-transform: uppercase; letter-spacing: 0.08em; max-width: 800px; }
+/* TAB PANELS */
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+.tab-placeholder {
+  padding: 100px 0; text-align: center;
+  font-size: 14px; text-transform: uppercase;
+  letter-spacing: 0.1em; color: #888;
+}
 
 /* SEARCH */
 .search-section { padding: 40px 0 0; }
@@ -269,9 +312,9 @@ footer .footer-inner {
 /* RESPONSIVE */
 @media (max-width: 768px) {
   .container { padding: 0 20px; }
-  .header-inner { padding: 16px 20px; flex-direction: column; align-items: flex-start; gap: 8px; }
-  .hero { padding: 40px 20px 50px; }
-  .hero h1 { font-size: 48px; }
+  .header-inner { grid-template-columns: 1fr; height: auto; padding: 12px 20px; gap: 10px; }
+  .header-tabs { justify-content: flex-start; }
+  .header-right { justify-content: flex-start; }
   .filter-grid { grid-template-columns: 1fr; }
   .filter-group { border-right: none; border-top: 1px solid var(--black); }
   .filter-group:first-child { border-top: none; }
@@ -288,25 +331,33 @@ footer .footer-inner {
 
 <header>
   <div class="header-inner">
-    <div class="logo">ZEIT<span class="advise"> Advise</span></div>
-    <div style="display:flex;align-items:center;gap:16px">
+    <div class="header-logo-wrap">
+      <div class="logo">ZEIT<span class="advise"> Advise</span></div>
+      <div class="header-logo-subtitle">Media Finder</div>
+    </div>
+    <div class="header-tabs">
+      <button class="tab-btn active" data-tab="produkte">Produkte</button>
+      <button class="tab-btn" data-tab="filter">Filter</button>
+    </div>
+    <div class="header-right">
       <span id="server-status" class="server-status loading">
         <span class="status-dot"></span>
         <span id="status-text">Verbinde...</span>
       </span>
-      <div class="header-meta">AdCP Discovery · Phase 1 · Stand April 2026</div>
+      <button class="btn-merkliste" id="merkliste-btn">MERKLISTE (0)</button>
     </div>
   </div>
 </header>
 
-<section class="hero">
-  <div class="hero-inner">
-    <h1>ZEIT-Werbeumfelder.<br>Direkt finden.</h1>
-    <div class="subline" id="hero-subline">Sales-Tool für Print · Newsletter · Podcast · Echtdaten Stand Januar 2026</div>
-  </div>
-</section>
-
 <main>
+
+  <div id="tab-produkte" class="tab-panel active">
+    <div class="container">
+      <div class="tab-placeholder">Produktuebersicht kommt in Etappe 3.</div>
+    </div>
+  </div>
+
+  <div id="tab-filter" class="tab-panel">
   <div class="container">
 
     <section class="search-section">
@@ -427,6 +478,8 @@ footer .footer-inner {
     </section>
 
   </div>
+  </div><!-- /tab-filter -->
+
 </main>
 
 <!-- DETAIL MODAL -->
@@ -866,6 +919,23 @@ document.getElementById('modal').addEventListener('click', e => {
   if (e.target === document.getElementById('modal')) closeModal();
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ============================================================
+// TAB-LOGIK
+// ============================================================
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+document.getElementById('merkliste-btn').addEventListener('click', () => {
+  // Etappe 5
+});
 
 // ============================================================
 // INIT

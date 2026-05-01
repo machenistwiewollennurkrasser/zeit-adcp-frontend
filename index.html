@@ -99,6 +99,53 @@ header {
   letter-spacing: 0.1em; color: #888;
 }
 
+/* AKKORDEON */
+.accordion { border-top: 1px solid var(--black); }
+.accordion-section { border-bottom: 1px solid var(--black); }
+.accordion-trigger {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 0; cursor: pointer; user-select: none;
+  background: var(--white); transition: background 0.08s;
+}
+.accordion-trigger:hover { background: #f5f5f5; }
+.accordion-title { font-size: 28px; font-weight: 500; letter-spacing: -0.01em; }
+.accordion-count { font-size: 16px; color: #666; font-weight: 400; margin-left: 6px; }
+.accordion-arrow { font-size: 16px; flex-shrink: 0; }
+.accordion-body { overflow: hidden; max-height: 0; transition: max-height 0.25s ease; }
+.accordion-inner { padding: 8px 0 32px; }
+
+/* SUB-SEKTIONEN (DIE ZEIT) */
+.sub-section { margin-bottom: 28px; }
+.sub-section:last-child { margin-bottom: 0; }
+.sub-title {
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700;
+  padding-bottom: 10px; margin-bottom: 16px; border-bottom: 1px solid var(--black);
+}
+
+/* KARTEN-GRID */
+.product-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media (max-width: 900px) { .product-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .product-grid { grid-template-columns: 1fr; } }
+
+/* PRODUKTKARTE */
+.product-card {
+  border: 1px solid var(--black); padding: 20px; min-height: 100px;
+  cursor: pointer; background: var(--white); transition: background 0.08s;
+  display: flex; flex-direction: column; justify-content: flex-end;
+}
+.product-card:hover { background: #FFF9C4; }
+.product-card-name { font-size: 18px; font-weight: 700; line-height: 1.2; margin-bottom: 6px; }
+.product-card-subtitle { font-size: 13px; color: #666; }
+
+/* LADE- UND FEHLERZUSTAND */
+.products-loading {
+  padding: 60px 0; text-align: center;
+  font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; color: #888;
+}
+.products-error {
+  padding: 60px 0; text-align: center; font-size: 14px; color: var(--red);
+}
+
 /* SEARCH */
 .search-section { padding: 40px 0 0; }
 .search-bar { display: flex; border: 1px solid var(--black); }
@@ -372,7 +419,9 @@ footer .footer-inner {
 
   <div id="tab-produkte" class="tab-panel active">
     <div class="container">
-      <div class="tab-placeholder">Produktuebersicht kommt in Etappe 3.</div>
+      <div id="accordion-root">
+        <div class="products-loading">Produkte werden geladen …</div>
+      </div>
     </div>
   </div>
 
@@ -938,6 +987,123 @@ document.getElementById('modal').addEventListener('click', e => {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
 // ============================================================
+// PRODUKTE-UEBERSICHT (Akkordeon)
+// ============================================================
+
+let productListCache = null;
+
+function makeProductCard(item) {
+  const el = document.createElement('div');
+  el.className = 'product-card';
+  el.innerHTML = `<div class="product-card-name">${item.name}</div>
+    <div class="product-card-subtitle">${item.subtitle}</div>`;
+  el.addEventListener('click', () => {
+    alert('Detailansicht fuer ' + item.name + ' kommt in Etappe 3.');
+  });
+  return el;
+}
+
+function makeGrid(items) {
+  const grid = document.createElement('div');
+  grid.className = 'product-grid';
+  items.forEach(item => grid.appendChild(makeProductCard(item)));
+  return grid;
+}
+
+function makeAccordionSection(title, count, bodyFn) {
+  const section = document.createElement('div');
+  section.className = 'accordion-section';
+
+  const trigger = document.createElement('div');
+  trigger.className = 'accordion-trigger';
+  trigger.innerHTML = `<span class="accordion-title">${title}<span class="accordion-count">(${count})</span></span>
+    <span class="accordion-arrow">&#9662;</span>`;
+
+  const body = document.createElement('div');
+  body.className = 'accordion-body';
+  const inner = document.createElement('div');
+  inner.className = 'accordion-inner';
+  bodyFn(inner);
+  body.appendChild(inner);
+
+  trigger.addEventListener('click', () => {
+    const isOpen = body.style.maxHeight && body.style.maxHeight !== '0px';
+    if (isOpen) {
+      body.style.maxHeight = body.scrollHeight + 'px';
+      requestAnimationFrame(() => { body.style.maxHeight = '0'; });
+      trigger.querySelector('.accordion-arrow').innerHTML = '&#9662;';
+    } else {
+      body.style.maxHeight = body.scrollHeight + 'px';
+      trigger.querySelector('.accordion-arrow').innerHTML = '&#9652;';
+      body.addEventListener('transitionend', function onEnd() {
+        body.removeEventListener('transitionend', onEnd);
+        if (body.style.maxHeight !== '0px') body.style.maxHeight = 'none';
+      });
+    }
+  });
+
+  section.appendChild(trigger);
+  section.appendChild(body);
+  return section;
+}
+
+function renderAccordion(data) {
+  const root = document.getElementById('accordion-root');
+  root.innerHTML = '';
+  root.className = 'accordion';
+
+  const dz = data.die_zeit || {};
+  const dzAll = [
+    ...(dz.wochenzeitung || []),
+    ...(dz.regional || []),
+    ...(dz.sonderveroeffentlichungen || []),
+    ...(dz.beilagen || []),
+  ];
+  root.appendChild(makeAccordionSection('DIE ZEIT', dzAll.length, inner => {
+    [
+      { key: 'wochenzeitung',             label: 'WOCHENZEITUNG' },
+      { key: 'regional',                  label: 'REGIONALAUSGABEN' },
+      { key: 'sonderveroeffentlichungen', label: 'SONDERVEROEFFENTLICHUNGEN' },
+      { key: 'beilagen',                  label: 'BEILAGEN' },
+    ].forEach(({ key, label }) => {
+      const items = dz[key] || [];
+      if (!items.length) return;
+      const sub = document.createElement('div');
+      sub.className = 'sub-section';
+      sub.innerHTML = `<div class="sub-title">${label}</div>`;
+      sub.appendChild(makeGrid(items));
+      inner.appendChild(sub);
+    });
+  }));
+
+  [
+    { key: 'magazine',   label: 'MAGAZINE' },
+    { key: 'podcasts',   label: 'PODCASTS' },
+    { key: 'newsletter', label: 'NEWSLETTER' },
+  ].forEach(({ key, label }) => {
+    const items = data[key] || [];
+    root.appendChild(makeAccordionSection(label, items.length, inner => {
+      inner.appendChild(makeGrid(items));
+    }));
+  });
+}
+
+async function loadProductList() {
+  if (productListCache) { renderAccordion(productListCache); return; }
+  const root = document.getElementById('accordion-root');
+  root.className = '';
+  root.innerHTML = '<div class="products-loading">Produkte werden geladen …</div>';
+  try {
+    const res = await fetch(`${API_BASE}/products/list`);
+    if (!res.ok) throw new Error(`Status ${res.status}`);
+    productListCache = await res.json();
+    renderAccordion(productListCache);
+  } catch (e) {
+    root.innerHTML = '<div class="products-error">Produkte konnten nicht geladen werden. Bitte Seite neu laden.</div>';
+  }
+}
+
+// ============================================================
 // TAB-LOGIK
 // ============================================================
 
@@ -947,6 +1113,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.add('active');
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'produkte') loadProductList();
   });
 });
 

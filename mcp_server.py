@@ -916,6 +916,29 @@ ZEIT_REGIONAL_IDS = {
     "zeit_im_osten_2026", "zeit_alpen_2026", "christ_und_welt_2026",
 }
 
+DIE_ZEIT_BEILAGEN_IDS = {
+    "agenda_kultur_2026",
+    "entdecken_2026",
+    "was_tun_2026",
+    "zeit_reisetraeume_2026",
+}
+
+DIE_ZEIT_SONDERVEROEFFENTLICHUNGEN_IDS = {
+    "zeit_was_tun_themen_2026",
+    "zeit_fuer_unternehmer_speziale_2026",
+    "zeit_geld_2026",
+    "zeit_gesundheit_speziale_2026",
+    "zeit_green_2026",
+    "zeit_immobilien_speziale_2026",
+    "zeit_kunst_kultur_speziale_2026",
+    "zeit_literatur_2026",
+    "zeit_mobilitaet_technologie_speziale_2026",
+    "zeit_nachhaltigkeit_speziale_2026",
+    "zeit_reisen_speziale_2026",
+    "zeit_schule_bildung_2026",
+    "zeit_wissen_speziale_2026",
+}
+
 PODCAST_GENRE_MAP = {
     "true_crime": "True-Crime-Podcast", "crime": "True-Crime-Podcast",
     "wirtschaft": "Wirtschafts-Podcast", "politik": "Politik-Podcast",
@@ -925,6 +948,7 @@ PODCAST_GENRE_MAP = {
 
 def _product_subtitle(p: dict) -> str:
     pt  = p.get("product_type", "")
+    pid = p.get("product_id", "")
     cat = p.get("_category", "")
     if pt == "wochenzeitung":
         return "Wochenzeitung"
@@ -938,7 +962,11 @@ def _product_subtitle(p: dict) -> str:
     if pt == "submagazin":
         return "Sub-Magazin"
     if pt == "sonderheft":
-        return "Sonderveroeffentlichung in DIE ZEIT"
+        if pid in DIE_ZEIT_BEILAGEN_IDS:
+            return "Beilage in DIE ZEIT"
+        if pid in DIE_ZEIT_SONDERVEROEFFENTLICHUNGEN_IDS:
+            return "Sonderveroeffentlichung in DIE ZEIT"
+        return "Magazin"
     if pt == "beilage" or cat == "beilegendes_magazin":
         return "Beilage in DIE ZEIT"
     if pt == "newsletter":
@@ -977,11 +1005,11 @@ async def products_list():
             regional.append(item)
         elif cat == "die_zeit" and pt == "wochenzeitung":
             wochenzeitung.append(item)
-        elif cat == "sonderveroeffentlichung" or pt == "sonderheft":
-            svoe.append(item)
-        elif cat == "beilegendes_magazin" or pt == "beilage":
+        elif pid in DIE_ZEIT_BEILAGEN_IDS:
             beilagen.append(item)
-        elif pt in ("magazin", "b2b_magazin", "kindermagazin", "submagazin"):
+        elif pid in DIE_ZEIT_SONDERVEROEFFENTLICHUNGEN_IDS:
+            svoe.append(item)
+        elif pt in ("magazin", "b2b_magazin", "kindermagazin", "submagazin", "sonderheft"):
             magazine.append(item)
         elif pt == "podcast":
             podcasts.append(item)

@@ -476,16 +476,14 @@ function fmtDate(s) {
 }
 
 function matchClass(score) {
-  if (score >= 100) return "match-high";
-  if (score >= 50) return "match-high";
-  if (score >= 20) return "match-mid";
+  if (score >= 70) return "match-high";
+  if (score >= 30) return "match-mid";
   return "match-low";
 }
 
 function matchLabel(score) {
-  if (score >= 100) return "Sehr starker Match";
-  if (score >= 50) return "Guter Match";
-  if (score >= 20) return "Möglicher Match";
+  if (score >= 70) return "Starker Match";
+  if (score >= 30) return "Moeglicher Match";
   return "Schwacher Match";
 }
 
@@ -596,7 +594,7 @@ async function runSearch() {
     // Client-seitige Nachfilterung
     if (budgetMax > 0 && budgetMax < 100000) {
       results = results.filter(r => {
-        const price = r.best_format?.price_net_eur || r.pricing?.price_eur_net;
+        const price = r.pricing?.price_net_eur;
         if (!price) return true;
         return gross(price) <= budgetMax;
       });
@@ -626,14 +624,14 @@ async function runSearch() {
     // Sortierung
     if (sortVal === 'price_asc') {
       results.sort((a, b) => {
-        const pa = a.best_format?.price_net_eur || a.pricing?.price_eur_net || 0;
-        const pb = b.best_format?.price_net_eur || b.pricing?.price_eur_net || 0;
+        const pa = a.pricing?.price_net_eur || 0;
+        const pb = b.pricing?.price_net_eur || 0;
         return pa - pb;
       });
     } else if (sortVal === 'price_desc') {
       results.sort((a, b) => {
-        const pa = a.best_format?.price_net_eur || a.pricing?.price_eur_net || 0;
-        const pb = b.best_format?.price_net_eur || b.pricing?.price_eur_net || 0;
+        const pa = a.pricing?.price_net_eur || 0;
+        const pb = b.pricing?.price_net_eur || 0;
         return pb - pa;
       });
     }
@@ -665,41 +663,30 @@ function renderResults(results, query) {
 
   countEl.innerHTML = `<strong>${results.length}</strong> Treffer${query ? ` für „${query}"` : ''}`;
 
-  list.innerHTML = results.map(r => {
-    const p = r.product || {};
-    const name = p.product_name || '—';
-    const type = p.product_type || '';
-    const score = r.score || 0;
+  list.innerHTML = results.map((r, idx) => {
+    const name = r.name || '—';
+    const score = r.match_score || 0;
     const mc = matchClass(score);
     const ml = matchLabel(score);
 
     // Preis
-    const priceNet = r.best_format?.price_net_eur || r.pricing?.price_eur_net;
+    const priceNet = r.pricing?.price_net_eur;
     const priceGross = priceNet ? gross(priceNet) : null;
-    const formatName = r.best_format?.format || r.best_format?.format_name || '';
+    const formatName = r.pricing?.format || '';
 
     // Reichweite
-    const reach = p.reach || {};
-    const reachVal = reach.readers_total || reach.subscribers_total || reach.circulation_total;
-    const reachLabel = reach.readers_total ? 'Leser'
-      : reach.subscribers_total ? 'Abonnenten'
-      : reach.circulation_total ? 'Auflage' : '';
-    const reachSource = reach.source_readers || reach.source_subscribers || reach.source_circulation || '';
+    const reach = r.reach || {};
+    const reachVal = reach.readers || reach.circulation || reach.subscribers;
+    const reachLabel = reach.readers ? 'Leser'
+      : reach.circulation ? 'Auflage'
+      : reach.subscribers ? 'Abonnenten' : '';
+    const reachSource = reach.source ? ` (Quelle: ${reach.source})` : '';
 
-    // Kanaltyp-Label
-    const typeLabels = {
-      magazin: 'Magazin', sonderheft: 'Sonderheft', submagazin: 'Sub-Magazin',
-      b2b_magazin: 'B2B-Magazin', wochenzeitung: 'Wochenzeitung', beilage: 'Beilage',
-      newsletter: 'Newsletter', podcast: 'Podcast', kindermagazin: 'Kindermagazin'
-    };
-    const typeLabel = typeLabels[type] || type;
-
-    return `<div class="result-card" data-idx="${results.indexOf(r)}" onclick="openModal(${results.indexOf(r)})">
+    return `<div class="result-card" data-idx="${idx}" onclick="openModal(${idx})">
       <div class="result-card-bar ${mc}"></div>
       <div class="result-card-inner">
         <div class="rc-main">
           <div class="rc-name">${name}</div>
-          <div class="rc-sub">${typeLabel}${p.issues_per_year ? ` · ${p.issues_per_year} Ausgaben/Jahr` : ''}</div>
           ${formatName ? `<div class="rc-format">Empfehlung: ${formatName}</div>` : ''}
         </div>
         <div class="rc-reach">

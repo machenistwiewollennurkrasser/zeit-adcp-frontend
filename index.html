@@ -609,6 +609,56 @@ footer .footer-inner {
 .nl-formats-table th { text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #888; padding: 6px 10px; border-bottom: 2px solid #eee; }
 .nl-formats-table td { padding: 12px 10px; border-bottom: 1px solid #eee; vertical-align: middle; }
 .nl-formats-table .price-net { font-size: 17px; font-weight: 700; }
+
+/* ===== DIE ZEIT MODAL ===== */
+.dz-tabs { display: flex; border-bottom: 2px solid var(--black); background: var(--white); }
+.dz-tab { padding: 12px 24px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; cursor: pointer; background: none; border: none; border-bottom: 3px solid transparent; margin-bottom: -2px; font-family: inherit; }
+.dz-tab.active { border-bottom-color: var(--black); background: var(--yellow); }
+.dz-tab:hover:not(.active) { background: var(--gray-bg); }
+.dz-tab-content { display: none; }
+.dz-tab-content.active { display: block; }
+
+.dz-cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.dz-cal-nav-title { font-size: 14px; font-weight: 700; letter-spacing: .02em; }
+.dz-cal-nav-btns { display: flex; gap: 4px; }
+.dz-cal-nav-btn { background: none; border: 1px solid var(--black); width: 30px; height: 30px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+.dz-cal-nav-btn:hover { background: var(--yellow); }
+.dz-cal-nav-btn:disabled { border-color: #ccc; color: #ccc; cursor: default; }
+.dz-cal-nav-btn:disabled:hover { background: none; }
+.dz-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.dz-cal-hdr { font-size: 11px; font-weight: 600; color: #888; text-align: center; padding: 3px 0 6px; }
+.dz-day { min-height: 38px; border: 1px solid transparent; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #ccc; position: relative; }
+.dz-day.issue { cursor: pointer; background: var(--gray-bg); color: var(--black); border-color: #ddd; }
+.dz-day.issue:hover { background: var(--yellow); border-color: var(--black); }
+.dz-day.issue.selected { background: var(--yellow); border: 2px solid var(--black); font-weight: 700; }
+/* Blauer Streifen rechts: hat Sonderthemen */
+.dz-day.has-themes::after { content: ''; position: absolute; right: 0; top: 3px; bottom: 3px; width: 3px; background: #2563eb; border-radius: 1px; }
+/* Wochentag-Kuerzel oben links: abweichender Erscheinungstag */
+.dz-day-wkd { position: absolute; top: 2px; left: 3px; font-size: 9px; font-weight: 700; color: #e8500c; letter-spacing: .02em; line-height: 1; pointer-events: none; }
+
+.dz-filter-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: 13px; cursor: pointer; }
+.dz-filter-bar input { cursor: pointer; }
+
+.dz-issue-detail { margin-top: 16px; padding: 16px; background: var(--gray-bg); border: 1px solid #ddd; }
+.dz-issue-hdr { font-size: 14px; font-weight: 700; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #ddd; }
+.dz-deadlines { font-size: 13px; color: #555; display: flex; flex-direction: column; gap: 4px; margin-bottom: 4px; }
+.dz-dl-row { display: flex; gap: 8px; align-items: baseline; }
+.dz-dl-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #888; font-weight: 600; min-width: 90px; flex-shrink: 0; }
+.dz-sek-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #555; margin: 14px 0 8px; }
+.dz-sp-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.dz-sp-pill { border: 1px solid var(--black); padding: 8px 14px; cursor: pointer; background: var(--white); min-width: 160px; }
+.dz-sp-pill:hover { background: var(--yellow); }
+.dz-sp-pill-name { font-size: 13px; font-weight: 700; }
+.dz-sp-pill-cluster { font-size: 11px; color: #666; font-style: italic; margin-top: 2px; }
+.dz-sp-pill-date { font-size: 11px; color: #888; margin-top: 3px; }
+.dz-theme-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.dz-theme-pill { background: #eef2ff; border: 1px solid #c7d2fe; padding: 4px 10px; font-size: 12px; border-radius: 2px; }
+
+.dz-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; padding: 16px 0; }
+.dz-card { border: 1px solid var(--black); padding: 16px; cursor: pointer; background: var(--white); }
+.dz-card:hover { background: var(--yellow); }
+.dz-card-name { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.dz-card-sub { font-size: 12px; color: #666; font-style: italic; }
 </style>
 </head>
 <body>
@@ -882,6 +932,12 @@ const LABELS = {
   kw_prefix:                 "KW",
   nl_hinweis_footer:         "Listenpreise netto zzgl. MwSt. Anzeigenschluss beachten.",
   verfuegbarkeit_hinweis:    "Verfuegbarkeit bitte direkt beim Verlag anfragen.",
+  // DIE ZEIT Modal
+  dz_wochenzeitung_tab:      "Wochenzeitung",
+  dz_regional_tab:           "Regionalausgaben",
+  dz_sonder_tab:             "Sonderveroeffentlichungen",
+  dz_filter_nur_sonder:      "Nur Ausgaben mit Sonderthemen anzeigen",
+  dz_regional_sub:           "Regionalausgabe DIE ZEIT",
 };
 
 const MBV_BY_PREISSTUFE = {
@@ -1303,10 +1359,12 @@ function closeModal() {
 // PRODUKT-MODAL (Akkordeon-Karten)
 // ============================================================
 
-const _MAGAZIN_TYPES = new Set(['magazin','sonderheft','beilage','wochenzeitung','submagazin','b2b_magazin','kindermagazin']);
+const _MAGAZIN_TYPES = new Set(['magazin','sonderheft','beilage','submagazin','b2b_magazin','kindermagazin']);
 
 function openProductModal(item) {
-  if (_MAGAZIN_TYPES.has(item.product_type)) {
+  if (item.product_type === 'wochenzeitung') {
+    openDieZeitModal(item.product_id, item.name, item.subtitle);
+  } else if (_MAGAZIN_TYPES.has(item.product_type)) {
     openMagazinModal(item.product_id, item.name, item.subtitle);
   } else if (item.product_type === 'podcast') {
     openPodcastModal(item.product_id, item.name, item.subtitle);
@@ -2457,6 +2515,335 @@ function initNewsletterModal(d) {
       }
     });
   });
+}
+
+// ============================================================
+// DIE ZEIT MODAL
+// ============================================================
+
+async function openDieZeitModal(productId, name, subtitle) {
+  const body = document.getElementById('modal-body');
+  body.innerHTML = `
+    <div class="modal-header">
+      <div class="modal-name">${name}</div>
+      <div class="modal-sub">${subtitle || ''}</div>
+    </div>
+    <div class="modal-section"><p>${LABELS.laedt}</p></div>`;
+  document.getElementById('modal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+
+  let d;
+  try {
+    const res = await fetch(`${API_BASE}/products/detail/${productId}`);
+    if (!res.ok) throw new Error(res.status);
+    d = await res.json();
+  } catch(e) {
+    body.innerHTML = `
+      <div class="modal-header"><div class="modal-name">${name}</div></div>
+      <div class="modal-section"><p style="color:var(--red);font-size:15px">${LABELS.fehler_laden}</p></div>`;
+    return;
+  }
+  body.innerHTML = buildDieZeitModalHTML(d);
+  initDieZeitModal(d);
+}
+
+function buildDieZeitModalHTML(d) {
+  const common = d.common || {};
+  const reach  = d.reach  || {};
+
+  const header = `
+    <div class="modal-header">
+      <div class="modal-name">${d.name || ''}</div>
+      <div class="modal-sub">${d.subtitle || ''}</div>
+    </div>`;
+
+  const tabs = `
+    <div class="dz-tabs">
+      <button class="dz-tab active" data-tab="wochenzeitung">${LABELS.dz_wochenzeitung_tab}</button>
+      <button class="dz-tab" data-tab="regional">${LABELS.dz_regional_tab}</button>
+      <button class="dz-tab" data-tab="sonder">${LABELS.dz_sonder_tab}</button>
+    </div>`;
+
+  // --- Tab 1: Wochenzeitung ---
+  const editorial = common.editorial_focus ? `
+    <div class="modal-section">
+      <div class="modal-section-title">${LABELS.redaktioneller_fokus}</div>
+      <p style="font-size:14px;line-height:1.6;color:#444">${common.editorial_focus}</p>
+    </div>` : '';
+
+  const themenwelten = (common.themenwelten || []).length > 0 ? `
+    <div class="modal-section">
+      <div class="modal-section-title">${LABELS.themenwelten}</div>
+      <div class="tag-pills">${common.themenwelten.map(t => `<span class="tag-pill">${t}</span>`).join('')}</div>
+    </div>` : '';
+
+  const zielgruppen = (common.zielgruppen || []).length > 0 ? `
+    <div class="modal-section">
+      <div class="modal-section-title">${LABELS.zielgruppen}</div>
+      <div class="tag-pills">${common.zielgruppen.map(t => `<span class="tag-pill">${t}</span>`).join('')}</div>
+    </div>` : '';
+
+  const reachRows = [
+    reach.circulation_total != null ? `<tr><td class="k">${LABELS.verbreitete_auflage}</td><td class="v">${num(reach.circulation_total)}</td></tr>` : '',
+    reach.subscribers_total != null ? `<tr><td class="k">${LABELS.abonnenten}</td><td class="v">${num(reach.subscribers_total)}</td></tr>` : '',
+    reach.reader_total      != null ? `<tr><td class="k">${LABELS.leserschaft}</td><td class="v">${num(reach.reader_total)}</td></tr>` : '',
+    reach.source                    ? `<tr><td class="k">${LABELS.quelle}</td><td class="v" style="font-size:13px;color:#888">${reach.source}</td></tr>` : '',
+  ].filter(Boolean).join('');
+
+  const reachSection = `
+    <div class="modal-section">
+      <div class="modal-section-title">${LABELS.reichweite}</div>
+      ${reachRows ? `<table class="kv-table">${reachRows}</table>` : ''}
+    </div>`;
+
+  const calSection = `
+    <div class="modal-section" id="dz-cal-section">
+      <div class="modal-section-title">${LABELS.erscheinungstermine}</div>
+      <label class="dz-filter-bar">
+        <input type="checkbox" id="dz-filter-themes">
+        <span>${LABELS.dz_filter_nur_sonder}</span>
+      </label>
+      <div id="dz-cal-body"></div>
+      <div id="dz-issue-detail" style="display:none"></div>
+    </div>`;
+
+  const formatePlaceholder = `
+    <div class="modal-section" style="background:var(--gray-bg)">
+      <div class="modal-section-title">${LABELS.formate_und_preise}</div>
+      <p style="font-size:13px;color:#888">Formate und Preise folgen in Welle 2B.</p>
+    </div>`;
+
+  const wochenzeitungContent = editorial + themenwelten + zielgruppen + reachSection + calSection + formatePlaceholder;
+
+  // --- Tab 2: Regionalausgaben ---
+  const regionalCards = (d.regional_editions || []).map(re => `
+    <div class="dz-card" data-pid="${re.product_id}">
+      <div class="dz-card-name">${re.product_name}</div>
+      <div class="dz-card-sub">${LABELS.dz_regional_sub}</div>
+    </div>`).join('');
+
+  const regionalContent = `
+    <div class="modal-section">
+      <div class="dz-card-grid">${regionalCards || '<p style="color:#888;font-size:13px">Keine Regionalausgaben gefunden.</p>'}</div>
+    </div>`;
+
+  // --- Tab 3: Sonderveroeffentlichungen ---
+  const sonderItems = (d.all_speziale || []).map(sp => `
+    <div class="dz-card" data-pid="${sp.speziale_product_id}">
+      <div class="dz-card-name">${sp.product_name}</div>
+      <div class="dz-card-sub">${sp.cluster_display_name || ''}</div>
+    </div>`).join('');
+
+  const sonderContent = `
+    <div class="modal-section">
+      <div class="dz-card-grid">${sonderItems || '<p style="color:#888;font-size:13px">Keine Sonderveroeffentlichungen gefunden.</p>'}</div>
+    </div>`;
+
+  const footer = `
+    <div class="modal-section" style="background:var(--gray-bg)">
+      <div style="font-size:12px;color:#888">${PREIS_HINWEIS}</div>
+    </div>`;
+
+  return `${header}${tabs}
+    <div class="dz-tab-content active" data-tab-content="wochenzeitung">${wochenzeitungContent}</div>
+    <div class="dz-tab-content" data-tab-content="regional">${regionalContent}</div>
+    <div class="dz-tab-content" data-tab-content="sonder">${sonderContent}</div>
+    ${footer}`;
+}
+
+function initDieZeitModal(d) {
+  // Sub-Reiter
+  document.querySelectorAll('.dz-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.dz-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.dz-tab-content').forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelector(`[data-tab-content="${tab.dataset.tab}"]`).classList.add('active');
+    });
+  });
+
+  // Regional: Magazin-Modal oeffnen
+  document.querySelectorAll('[data-tab-content="regional"] .dz-card').forEach(card => {
+    card.addEventListener('click', () => {
+      openMagazinModal(card.dataset.pid, card.querySelector('.dz-card-name').textContent, LABELS.dz_regional_sub);
+    });
+  });
+
+  // Speziale: Platzhalter
+  document.querySelectorAll('[data-tab-content="sonder"] .dz-card').forEach(card => {
+    card.addEventListener('click', () => {
+      alert('Sonderveroeffentlichungen-Detail-Modal kommt in naechster Iteration.');
+    });
+  });
+
+  // Kalender
+  initDieZeitCalendar(d.schedule || {});
+}
+
+function initDieZeitCalendar(sch) {
+  const issues = sch.issues || [];
+  if (!issues.length) return;
+
+  const issueByDate = {};
+  issues.forEach(iss => { if (iss.publication_date) issueByDate[iss.publication_date] = iss; });
+
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const issueDates = issues.map(i => i.publication_date).filter(Boolean).sort();
+  const todayISO   = fmtISO(today);
+  const firstFuture = issueDates.find(d => d >= todayISO) || issueDates[0];
+  const lastDate    = issueDates[issueDates.length - 1];
+
+  const [fy, fm] = firstFuture.split('-').map(Number);
+  const [ly, lm] = lastDate.split('-').map(Number);
+
+  let calYear      = fy;
+  let calMonth     = fm - 1;
+  let selectedDate = null;
+  let filterThemes = false;
+
+  const MONTHS_DE = ['Januar','Februar','Maerz','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  const WD_DE     = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+
+  function renderCalendar() {
+    const atMin = calYear === fy && calMonth === fm - 1;
+    const atMax = calYear === ly && calMonth === lm - 1;
+    const nav = `
+      <div class="dz-cal-nav">
+        <div class="dz-cal-nav-title">${MONTHS_DE[calMonth]} ${calYear}</div>
+        <div class="dz-cal-nav-btns">
+          <button class="dz-cal-nav-btn" id="dz-prev"${atMin ? ' disabled' : ''}>&#8592;</button>
+          <button class="dz-cal-nav-btn" id="dz-next"${atMax ? ' disabled' : ''}>&#8594;</button>
+        </div>
+      </div>`;
+
+    const hdrs = ['Mo','Di','Mi','Do','Fr','Sa','So'].map(h => `<div class="dz-cal-hdr">${h}</div>`).join('');
+    const firstDay = new Date(calYear, calMonth, 1);
+    const startOff = (firstDay.getDay() + 6) % 7;
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+
+    let cells = '';
+    for (let i = 0; i < startOff; i++) cells += '<div class="dz-day"></div>';
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+      const iss = issueByDate[dateStr];
+      if (!iss) { cells += `<div class="dz-day">${day}</div>`; continue; }
+
+      if (filterThemes && !iss.has_special_themes) {
+        cells += `<div class="dz-day" style="opacity:.3">${day}</div>`;
+        continue;
+      }
+      const isSel      = selectedDate === dateStr;
+      const hasThemes  = iss.has_special_themes;
+      const isSpecPub  = iss.is_special_publication_date;
+      const wkdAbbr    = isSpecPub ? WD_DE[new Date(calYear, calMonth, day).getDay()] : '';
+      const wkdEl      = wkdAbbr ? `<span class="dz-day-wkd">${wkdAbbr}</span>` : '';
+      const cls        = ['dz-day issue', hasThemes ? 'has-themes' : '', isSel ? 'selected' : ''].filter(Boolean).join(' ');
+      const tipData    = encodeURIComponent(JSON.stringify({
+        bd_label: iss.booking_deadline_label || null,
+        pp_label: iss.premium_deadline_label || null,
+        speziale: (iss.linked_speziale || []).map(sp => ({ name: sp.theme_display_name })),
+      }));
+      cells += `<div class="${cls}" data-date="${dateStr}" data-dztip="${tipData}">${wkdEl}${day}</div>`;
+    }
+
+    document.getElementById('dz-cal-body').innerHTML = nav + `<div class="dz-cal-grid">${hdrs}${cells}</div>`;
+
+    document.getElementById('dz-prev')?.addEventListener('click', () => {
+      if (calMonth === 0) { calYear--; calMonth = 11; } else calMonth--;
+      renderCalendar();
+    });
+    document.getElementById('dz-next')?.addEventListener('click', () => {
+      if (calMonth === 11) { calYear++; calMonth = 0; } else calMonth++;
+      renderCalendar();
+    });
+
+    document.querySelectorAll('#dz-cal-body .dz-day.issue').forEach(cell => {
+      cell.addEventListener('click', () => {
+        const wasSel = selectedDate === cell.dataset.date;
+        selectedDate = wasSel ? null : cell.dataset.date;
+        renderCalendar();
+        renderIssueDetail();
+      });
+      cell.addEventListener('mouseenter', () => _showNLTooltip(cell, _dzTipHTML(cell)));
+      cell.addEventListener('mouseleave', _hideNLTooltip);
+    });
+  }
+
+  function renderIssueDetail() {
+    const box = document.getElementById('dz-issue-detail');
+    if (!box) return;
+    if (!selectedDate) { box.style.display = 'none'; return; }
+
+    const iss = issueByDate[selectedDate];
+    if (!iss) { box.style.display = 'none'; return; }
+
+    const wdLong = {
+      monday:'Montag', tuesday:'Dienstag', wednesday:'Mittwoch', thursday:'Donnerstag',
+      friday:'Freitag', saturday:'Samstag', sunday:'Sonntag',
+    }[iss.publication_weekday] || iss.publication_weekday || '';
+
+    const deadlines = `
+      <div class="dz-deadlines">
+        <div class="dz-dl-row"><span class="dz-dl-lbl">Anzeigenschluss</span><span>${iss.booking_deadline_label || '—'}</span></div>
+        <div class="dz-dl-row"><span class="dz-dl-lbl">Premium-AS</span><span>${iss.premium_deadline_label || '—'}</span></div>
+      </div>`;
+
+    let spezialeSec = '';
+    if ((iss.linked_speziale || []).length > 0) {
+      const pills = iss.linked_speziale.map(sp => {
+        const adClose = sp.theme_specific_ad_close_date ? fmtDate(sp.theme_specific_ad_close_date) : null;
+        return `<div class="dz-sp-pill" data-pid="${sp.speziale_product_id}">
+          <div class="dz-sp-pill-name">${sp.theme_display_name}</div>
+          <div class="dz-sp-pill-cluster">${sp.cluster_display_name || ''}</div>
+          ${adClose ? `<div class="dz-sp-pill-date">AS: ${adClose}</div>` : ''}
+        </div>`;
+      }).join('');
+      spezialeSec = `<div class="dz-sek-title">Schwerpunktthemen</div><div class="dz-sp-pills">${pills}</div>`;
+    }
+
+    let themesSec = '';
+    if ((iss.issue_themes || []).length > 0) {
+      const pills = iss.issue_themes.map(t => `<span class="dz-theme-pill">${t}</span>`).join('');
+      themesSec = `<div class="dz-sek-title" style="margin-top:14px">Redaktionelle Schwerpunkte</div><div class="dz-theme-pills">${pills}</div>`;
+    }
+
+    box.innerHTML = `
+      <div class="dz-issue-hdr">Ausgabe ${iss.issue_number} | ${wdLong}, ${fmtDate(iss.publication_date)}</div>
+      ${deadlines}${spezialeSec}${themesSec}`;
+    box.style.display = 'block';
+
+    box.querySelectorAll('.dz-sp-pill').forEach(pill => {
+      pill.addEventListener('click', () => alert('Speziale-Detail-Modal kommt in naechster Iteration.'));
+    });
+  }
+
+  const filterCb = document.getElementById('dz-filter-themes');
+  if (filterCb) {
+    filterCb.addEventListener('change', () => {
+      filterThemes = filterCb.checked;
+      if (selectedDate && filterThemes && !issueByDate[selectedDate]?.has_special_themes) {
+        selectedDate = null;
+        renderIssueDetail();
+      }
+      renderCalendar();
+    });
+  }
+
+  renderCalendar();
+}
+
+function _dzTipHTML(cell) {
+  try {
+    const data = JSON.parse(decodeURIComponent(cell.dataset.dztip || '{}'));
+    const lines = [];
+    if (data.bd_label) lines.push(`<div>Anzeigenschluss: <strong>${data.bd_label}</strong></div>`);
+    if (data.pp_label) lines.push(`<div>Premium-AS: <strong>${data.pp_label}</strong></div>`);
+    if ((data.speziale || []).length > 0) {
+      lines.push(`<div style="margin-top:4px;border-top:1px solid rgba(255,255,255,.25);padding-top:4px">Sonderthemen:</div>`);
+      data.speziale.forEach(sp => lines.push(`<div>&#8226; ${sp.name}</div>`));
+    }
+    return lines.join('');
+  } catch(e) { return ''; }
 }
 
 // ============================================================

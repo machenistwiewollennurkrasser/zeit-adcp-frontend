@@ -560,6 +560,32 @@ footer .footer-inner {
   .modal-name { font-size: 28px; }
   footer .footer-inner { padding: 0 20px; }
 }
+
+/* Newsletter Modal */
+.nl-schedule-row { display: flex; flex-wrap: wrap; gap: 24px; margin-bottom: 4px; }
+.nl-schedule-item { font-size: 14px; color: #444; }
+.nl-schedule-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #888; margin-bottom: 2px; }
+.nl-cal-wrap { margin: 0 -20px; padding: 0 20px; overflow-x: hidden; }
+.nl-cal-months { display: flex; flex-direction: column; gap: 20px; }
+.nl-cal-month-name { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #888; margin-bottom: 8px; }
+.nl-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.nl-cal-header { font-size: 11px; font-weight: 600; color: #888; text-align: center; padding: 3px 0 6px; }
+.nl-day { min-height: 34px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #ccc; }
+.nl-day.pub { cursor: pointer; background: var(--gray-bg); color: var(--black); }
+.nl-day.pub:hover { background: #e0e0e0; }
+.nl-day.pub.selected { background: var(--black); color: #fff; font-weight: 700; }
+.nl-kw-rows { display: flex; flex-direction: column; }
+.nl-kw-row { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; cursor: pointer; gap: 12px; border-radius: 4px; padding-left: 4px; }
+.nl-kw-row:hover { background: var(--gray-bg); }
+.nl-kw-row.selected { background: var(--black); color: #fff; }
+.nl-kw-num { font-size: 11px; font-weight: 700; color: #888; min-width: 42px; text-align: right; }
+.nl-kw-row.selected .nl-kw-num { color: #ccc; }
+.nl-kw-range { font-size: 13px; }
+.nl-preisstufe-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.nl-formats-table { width: 100%; border-collapse: collapse; }
+.nl-formats-table th { text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #888; padding: 6px 10px; border-bottom: 2px solid #eee; }
+.nl-formats-table td { padding: 12px 10px; border-bottom: 1px solid #eee; vertical-align: middle; }
+.nl-formats-table .price-net { font-size: 17px; font-weight: 700; }
 </style>
 </head>
 <body>
@@ -823,6 +849,16 @@ const LABELS = {
   merken_btn:                "MERKEN",
   abbrechen:                 "ABBRECHEN",
   podcast_hinweis_footer:    "Mindestbuchungsvolumen: 3.500 EUR (Listenpreis), 2.275 EUR (BP I), 1.575 EUR (BP II), 1.400 EUR (BP III). AdBundle-Buchungen ohne garantierte Platzierung. Mengenrabatte nur bei PK II Brand-Buchungen.",
+  // Newsletter-Modal
+  abonnenten:                "Abonnenten",
+  erscheinungsrhythmus:      "Erscheinungsrhythmus",
+  anzeigenschluss_label:     "Anzeigenschluss",
+  termin_waehlen:            "Termin waehlen",
+  termin_hinweis_nl:         "Klicken Sie einen Erscheinungstag an, um ihn fuer die Buchung vorzumerken.",
+  termin_hinweis_nl_kw:      "Klicken Sie eine Kalenderwoche an, um sie fuer die Buchung vorzumerken.",
+  kw_prefix:                 "KW",
+  nl_hinweis_footer:         "Listenpreise netto zzgl. MwSt. Anzeigenschluss beachten.",
+  verfuegbarkeit_hinweis:    "Verfuegbarkeit bitte direkt beim Verlag anfragen.",
 };
 
 const MBV_BY_PREISSTUFE = {
@@ -1249,6 +1285,8 @@ function openProductModal(item) {
     openMagazinModal(item.product_id, item.name, item.subtitle);
   } else if (item.product_type === 'podcast') {
     openPodcastModal(item.product_id, item.name, item.subtitle);
+  } else if (item.product_type === 'newsletter') {
+    openNewsletterModal(item.product_id, item.name, item.subtitle);
   } else {
     document.getElementById('modal-body').innerHTML = `
       <div class="modal-header">
@@ -2003,6 +2041,343 @@ function showMerkenPopupPodcast(config) {
 
   document.addEventListener('keydown', escHandler);
   document.body.appendChild(backdrop);
+}
+
+// ============================================================
+// NEWSLETTER MODAL
+// ============================================================
+
+const DAY_ABBR = { mon:'Mo', tue:'Di', wed:'Mi', thu:'Do', fri:'Fr', sat:'Sa', sun:'So' };
+const DAY_ORDER = ['mon','tue','wed','thu','fri','sat','sun'];
+
+async function openNewsletterModal(productId, name, subtitle) {
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-header">
+      <div class="modal-name">${name}</div>
+      <div class="modal-sub">${subtitle || 'Newsletter'}</div>
+    </div>
+    <div class="modal-section"><p>${LABELS.laedt}</p></div>`;
+  document.getElementById('modal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  try {
+    const res = await fetch(`${API_BASE}/products/detail/${productId}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const d = await res.json();
+    document.getElementById('modal-body').innerHTML = buildNewsletterModalHTML(d);
+    initNewsletterModal(d);
+  } catch (e) {
+    document.getElementById('modal-body').innerHTML = `
+      <div class="modal-section">
+        <p style="color:var(--red);font-size:15px">${LABELS.fehler_laden}</p>
+      </div>`;
+  }
+}
+
+function buildNewsletterModalHTML(d) {
+  const common   = d.common   || {};
+  const reach    = d.reach    || {};
+  const pricing  = d.pricing  || {};
+  const sched    = d.schedule || {};
+  const isFourCluster = pricing.pricing_model === 'four_cluster';
+
+  const header = `
+    <div class="modal-header">
+      <div class="modal-name">${d.name || '—'}</div>
+      <div class="modal-sub">${d.subtitle || 'Newsletter'}</div>
+    </div>`;
+
+  const editorial = common.editorial_focus ? `
+    <div class="modal-section">
+      <div class="modal-section-title">${LABELS.redaktioneller_fokus}</div>
+      <div style="font-size:15px;line-height:1.65">${common.editorial_focus}</div>
+    </div>` : '';
+
+  const themes = (common.themenwelten || []).length ? `
+    <div class="modal-section">
+      <div class="modal-section-title">${LABELS.themenwelten}</div>
+      <div class="tag-pills">${(common.themenwelten || []).map(t =>
+        `<span class="tag-pill">${t}</span>`).join('')}</div>
+    </div>` : '';
+
+  const audiences = (common.zielgruppen || []).length ? `
+    <div class="modal-section">
+      <div class="modal-section-title">${LABELS.zielgruppen}</div>
+      <div class="tag-pills">${(common.zielgruppen || []).map(t =>
+        `<span class="tag-pill">${t}</span>`).join('')}</div>
+    </div>` : '';
+
+  const rRows = [
+    reach.subscribers_total != null
+      ? `<tr><td class="k">${LABELS.abonnenten}</td><td class="v">${num(reach.subscribers_total)}</td></tr>` : '',
+    reach.source
+      ? `<tr><td class="k">${LABELS.quelle}</td><td class="v" style="font-size:13px;color:#888">${reach.source}</td></tr>` : '',
+  ].filter(Boolean).join('');
+  const reachSection = rRows ? `
+    <div class="modal-section">
+      <div class="modal-section-title">${LABELS.reichweite}</div>
+      <table class="kv-table">${rRows}</table>
+    </div>` : '';
+
+  const schedItems = [
+    sched.frequency_label   ? `<div class="nl-schedule-item"><div class="nl-schedule-label">${LABELS.erscheinungsrhythmus}</div>${sched.frequency_label}</div>` : '',
+    sched.anzeigenschluss   ? `<div class="nl-schedule-item"><div class="nl-schedule-label">${LABELS.anzeigenschluss_label}</div>${sched.anzeigenschluss}</div>` : '',
+  ].filter(Boolean).join('');
+  const schedSection = schedItems ? `
+    <div class="modal-section">
+      <div class="nl-schedule-row">${schedItems}</div>
+    </div>` : '';
+
+  const isKW    = (pricing.booking_unit === 'kalenderwoche');
+  const calHint = isKW ? LABELS.termin_hinweis_nl_kw : LABELS.termin_hinweis_nl;
+  const pubDays = (sched.publication_days || []);
+  const calHTML = buildNewsletterCalendar(pubDays, isKW);
+  const calSection = `
+    <div class="modal-section" id="nl-cal-section">
+      <div class="modal-section-title">${LABELS.termin_waehlen}</div>
+      <div style="font-size:13px;color:#888;margin-bottom:12px">${calHint}</div>
+      ${calHTML}
+    </div>`;
+
+  const preisstufeToggle = isFourCluster ? `
+    <div style="margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#888;margin-bottom:8px">${LABELS.preisstufe}</div>
+      <div class="nl-preisstufe-row" id="nl-preisstufe-btns">
+        <button class="konfig-btn active" data-ps="listenpreis">${LABELS.listenpreis}</button>
+        <button class="konfig-btn" data-ps="branchenpreis_1">BP I</button>
+        <button class="konfig-btn" data-ps="branchenpreis_2">BP II</button>
+        <button class="konfig-btn" data-ps="branchenpreis_3">BP III</button>
+      </div>
+    </div>` : '';
+
+  const formats = pricing.formats || [];
+  const fRows = formats.map((f, i) => {
+    let priceCell;
+    if (f.auf_anfrage) {
+      priceCell = `<span>${LABELS.auf_anfrage}</span>`;
+    } else {
+      const basePrice = isFourCluster
+        ? (f.cluster_prices || {}).grundpreis
+        : f.price_net_eur;
+      priceCell = `<span class="price-net nl-price" data-idx="${i}">${basePrice != null ? num(basePrice) + ' EUR' : '—'}</span><br><span style="font-size:11px;color:#888">${LABELS.preis_hinweis}</span>`;
+    }
+    return `<tr>
+      <td>${f.format_name || '—'}</td>
+      <td>${priceCell}</td>
+      <td style="font-size:13px;color:#666">${f.booking_unit || pricing.booking_unit || ''}</td>
+      <td><button class="btn-merken nl-merken-btn" data-fidx="${i}">${LABELS.merken}</button></td>
+    </tr>`;
+  }).join('');
+  const formatsSection = formats.length ? `
+    <div class="modal-section">
+      <div class="modal-section-title">${LABELS.formate_und_preise}</div>
+      ${preisstufeToggle}
+      <div class="formats-scroll">
+        <table class="nl-formats-table">
+          <thead><tr>
+            <th style="min-width:180px">Format</th>
+            <th style="min-width:160px">Preis (netto)</th>
+            <th>Buchungseinheit</th>
+            <th>Aktion</th>
+          </tr></thead>
+          <tbody>${fRows}</tbody>
+        </table>
+      </div>
+    </div>` : '';
+
+  const footer = `
+    <div class="modal-section" style="background:var(--gray-bg)">
+      <div style="font-size:12px;color:#888;line-height:1.6">${LABELS.nl_hinweis_footer}${sched.anzeigenschluss ? ' ' + LABELS.anzeigenschluss_label + ': ' + sched.anzeigenschluss + '.' : ''} ${LABELS.verfuegbarkeit_hinweis}</div>
+    </div>`;
+
+  return header + editorial + themes + audiences + reachSection + schedSection + calSection + formatsSection + footer;
+}
+
+function buildNewsletterCalendar(pubDays, isKW) {
+  const pubSet = new Set((pubDays || []).map(d => d.toLowerCase()));
+  const today  = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (isKW) {
+    // Kalenderwoche-Modus: naechste 13 Wochen als Zeilen
+    const rows = [];
+    // Start: naechsten Montag finden
+    const start = new Date(today);
+    const dow = start.getDay(); // 0=So, 1=Mo, ...
+    const toMon = dow === 0 ? 1 : (8 - dow) % 7 || 7;
+    start.setDate(start.getDate() + toMon);
+
+    for (let w = 0; w < 13; w++) {
+      const mon = new Date(start);
+      mon.setDate(start.getDate() + w * 7);
+      const sun = new Date(mon);
+      sun.setDate(mon.getDate() + 6);
+      const kw  = getISOWeek(mon);
+      const fmtShort = d => d.toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit' });
+      rows.push(`<div class="nl-kw-row" data-kwdate="${fmtISO(mon)}" data-kwend="${fmtISO(sun)}" data-kw="${kw}">
+        <span class="nl-kw-num">${LABELS.kw_prefix} ${kw}</span>
+        <span class="nl-kw-range">${fmtShort(mon)} – ${fmtShort(sun)}</span>
+      </div>`);
+    }
+    return `<div class="nl-cal-wrap"><div class="nl-kw-rows" id="nl-kw-rows">${rows.join('')}</div></div>`;
+  }
+
+  // single_issue-Modus: 3 Monate als Grid
+  const months = [];
+  const MONTH_DE = ['Januar','Februar','Maerz','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  const DOW_IDX  = { mon:1, tue:2, wed:3, thu:4, fri:5, sat:6, sun:0 }; // JS getDay()
+  const pubDowSet = new Set((pubDays || []).map(d => DOW_IDX[d.toLowerCase()]));
+
+  for (let mi = 0; mi < 3; mi++) {
+    const y  = today.getFullYear() + Math.floor((today.getMonth() + mi) / 12);
+    const m  = (today.getMonth() + mi) % 12;
+    const firstDay = new Date(y, m, 1);
+    const lastDay  = new Date(y, m + 1, 0);
+    const startDow = (firstDay.getDay() + 6) % 7; // 0=Mo offset
+
+    let cells = '';
+    const headers = DAY_ORDER.map(k => `<div class="nl-cal-header">${DAY_ABBR[k]}</div>`).join('');
+    // empty cells before first
+    for (let i = 0; i < startDow; i++) cells += '<div class="nl-day"></div>';
+    for (let day = 1; day <= lastDay.getDate(); day++) {
+      const date    = new Date(y, m, day);
+      const isPub   = pubDowSet.has(date.getDay()) && date >= today;
+      const iso     = fmtISO(date);
+      cells += isPub
+        ? `<div class="nl-day pub" data-date="${iso}">${day}</div>`
+        : `<div class="nl-day">${day}</div>`;
+    }
+    months.push(`
+      <div>
+        <div class="nl-cal-month-name">${MONTH_DE[m]} ${y}</div>
+        <div class="nl-cal-grid">${headers}${cells}</div>
+      </div>`);
+  }
+  return `<div class="nl-cal-wrap"><div class="nl-cal-months" id="nl-cal-months">${months.join('')}</div></div>`;
+}
+
+function fmtISO(d) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
+function getISOWeek(d) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+}
+
+function initNewsletterModal(d) {
+  const pricing      = d.pricing  || {};
+  const sched        = d.schedule || {};
+  const isFourCluster = pricing.pricing_model === 'four_cluster';
+  const isKW          = pricing.booking_unit === 'kalenderwoche';
+  const formats       = pricing.formats || [];
+
+  let selectedDate = null; // ISO string for single_issue, or {von, bis, kw} for kalenderwoche
+  let selectedPS   = 'listenpreis';
+
+  function getPrice(fidx) {
+    const f = formats[fidx];
+    if (!f) return null;
+    if (f.auf_anfrage) return null;
+    if (isFourCluster) {
+      const ck = PREISSTUFE_TO_CLUSTER[selectedPS] || 'grundpreis';
+      return (f.cluster_prices || {})[ck];
+    }
+    return f.price_net_eur;
+  }
+
+  function updatePrices() {
+    document.querySelectorAll('.nl-price').forEach(el => {
+      const idx = parseInt(el.dataset.idx);
+      const p   = getPrice(idx);
+      el.textContent = p != null ? num(p) + ' EUR' : '—';
+    });
+  }
+
+  function updateMerkenBtns() {
+    document.querySelectorAll('.nl-merken-btn').forEach(btn => {
+      const label = selectedDate
+        ? LABELS.merken_mit_datum(formatSelectedDate())
+        : LABELS.merken;
+      btn.textContent = label;
+    });
+  }
+
+  function formatSelectedDate() {
+    if (!selectedDate) return '';
+    if (isKW) return `KW ${selectedDate.kw}`;
+    return fmtDate(selectedDate);
+  }
+
+  // Preisstufe-Toggle (four_cluster only)
+  if (isFourCluster) {
+    const psBtns = document.querySelectorAll('#nl-preisstufe-btns .konfig-btn');
+    psBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        psBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedPS = btn.dataset.ps;
+        updatePrices();
+      });
+    });
+  }
+
+  // Calendar selection — single_issue
+  if (!isKW) {
+    document.querySelectorAll('#nl-cal-months .nl-day.pub').forEach(cell => {
+      cell.addEventListener('click', () => {
+        const wasSelected = cell.classList.contains('selected');
+        document.querySelectorAll('#nl-cal-months .nl-day.pub').forEach(c => c.classList.remove('selected'));
+        if (!wasSelected) { cell.classList.add('selected'); selectedDate = cell.dataset.date; }
+        else               { selectedDate = null; }
+        updateMerkenBtns();
+      });
+    });
+  }
+
+  // Calendar selection — kalenderwoche
+  if (isKW) {
+    document.querySelectorAll('#nl-kw-rows .nl-kw-row').forEach(row => {
+      row.addEventListener('click', () => {
+        const wasSelected = row.classList.contains('selected');
+        document.querySelectorAll('#nl-kw-rows .nl-kw-row').forEach(r => r.classList.remove('selected'));
+        if (!wasSelected) {
+          row.classList.add('selected');
+          selectedDate = { von: row.dataset.kwdate, bis: row.dataset.kwend, kw: row.dataset.kw };
+        } else {
+          selectedDate = null;
+        }
+        updateMerkenBtns();
+      });
+    });
+  }
+
+  // Merken-Buttons
+  document.querySelectorAll('.nl-merken-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const fidx    = parseInt(btn.dataset.fidx);
+      const f       = formats[fidx] || {};
+      const price   = getPrice(fidx);
+      const psLabel = isFourCluster ? ` · ${PREISSTUFE_LABEL[selectedPS] || selectedPS}` : '';
+      const priceStr = price != null ? ` · ${num(price)} EUR netto` : '';
+      const summary = `${f.format_name || '—'}${psLabel}${priceStr}`;
+
+      if (selectedDate) {
+        const dateLine = isKW
+          ? `Kalenderwoche ${selectedDate.kw} (${fmtDate(selectedDate.von)} – ${fmtDate(selectedDate.bis)})`
+          : fmtDate(selectedDate);
+        showConfirmPopup(() => {
+          alert(`Gemerkt: ${d.name}\n${summary}\nTermin: ${dateLine}\n(Speicher-Logik kommt in Etappe 5)`);
+        }, `${d.name}\n${summary}\nTermin: ${dateLine}\n${LABELS.verfuegbarkeit_hinweis}`);
+      } else {
+        showConfirmPopup(() => {
+          alert(`Gemerkt (ohne Datum): ${d.name}\n${summary}\n(Speicher-Logik kommt in Etappe 5)`);
+        }, `${d.name}\n${summary}\n${LABELS.ohne_zeitraum}`);
+      }
+    });
+  });
 }
 
 // ============================================================

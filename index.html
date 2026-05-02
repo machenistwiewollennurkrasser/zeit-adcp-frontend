@@ -399,6 +399,7 @@ header {
   text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap;
 }
 .btn-merken:hover { background: var(--yellow); }
+.btn-merken.merken-active { background: var(--yellow); color: var(--black); }
 
 /* MODAL DETAIL – TERMIN-SELECTION */
 .issue-tile.selected { background: var(--yellow); border-width: 2px; }
@@ -1791,9 +1792,12 @@ async function openModal(idx) {
   document.body.style.overflow = 'hidden';
 }
 
+let _activeModalUnsub = null;
+
 function closeModal() {
   document.getElementById('modal').classList.add('hidden');
   document.body.style.overflow = '';
+  if (_activeModalUnsub) { _activeModalUnsub(); _activeModalUnsub = null; }
 }
 
 // ============================================================
@@ -2106,6 +2110,31 @@ async function openMagazinModal(productId, name, subtitle) {
     let selectedIssueIndex = null;
     const issues = (d.schedule || {}).issues || [];
     const tileDivs = document.querySelectorAll('.issue-tile');
+
+    function _magazinSchedule() {
+      if (selectedIssueIndex !== null && issues[selectedIssueIndex]) {
+        const iss = issues[selectedIssueIndex];
+        return {
+          type:           'date',
+          date:           iss.publication_date || null,
+          label:          fmtDate(iss.publication_date),
+          ad_close_label: iss.ad_close_date ? `AS: ${fmtDate(iss.ad_close_date)}` : null,
+        };
+      }
+      return { type: 'none', date: null, label: null, ad_close_label: null };
+    }
+
+    function _syncMagazinBtns() {
+      const sched = _magazinSchedule();
+      const datum = sched.date ? fmtDate(sched.date) : null;
+      document.querySelectorAll('.btn-merken').forEach(btn => {
+        const fid   = btn.dataset.formatId || '';
+        const added = Merkliste.isAdded(productId, fid, sched.date);
+        btn.textContent = added ? '✓ Gemerkt' : (datum ? LABELS.merken_mit_datum(datum) : LABELS.merken);
+        btn.classList.toggle('merken-active', added);
+      });
+    }
+
     tileDivs.forEach((tile, idx) => {
       tile.style.cursor = 'pointer';
       tile.addEventListener('click', () => {
@@ -2117,24 +2146,62 @@ async function openMagazinModal(productId, name, subtitle) {
           tile.classList.add('selected');
           selectedIssueIndex = idx;
         }
-        updateMerkenButtons(selectedIssueIndex, issues);
+        _syncMagazinBtns();
       });
     });
 
     // Merken-Buttons
     document.querySelectorAll('.btn-merken').forEach(btn => {
       btn.addEventListener('click', () => {
-        const formatName = btn.dataset.format || '—';
-        if (selectedIssueIndex !== null && issues[selectedIssueIndex]) {
-          const datum = fmtDate(issues[selectedIssueIndex].publication_date);
-          alert(`Gemerkt: ${formatName} fuer ${datum} (Speicher-Logik kommt in Etappe 5)`);
+        const fid   = btn.dataset.formatId || '';
+        const fname = btn.dataset.format   || '—';
+        const raw   = btn.dataset.price;
+        const price = raw !== '' && raw != null ? parseFloat(raw) : null;
+        const sched = _magazinSchedule();
+        const already = Merkliste.isAdded(productId, fid, sched.date);
+
+        if (already) {
+          const existing = Merkliste.getItems().find(x =>
+            x.product_id === productId &&
+            x.format_id  === fid &&
+            (x.schedule?.date || null) === sched.date
+          );
+          if (existing) {
+            const snap = { ...existing, schedule: { ...existing.schedule }, pricing: { ...existing.pricing } };
+            Merkliste.removeItem(existing.item_id);
+            mlShowToast(`"${fname}" entfernt.`, () => { Merkliste.addItem(snap); _syncMagazinBtns(); });
+            _syncMagazinBtns();
+          }
         } else {
-          showConfirmPopup(() => {
-            alert(`Gemerkt: ${formatName} ohne Datum (Speicher-Logik kommt in Etappe 5)`);
-          });
+          const item = {
+            product_id:       productId,
+            product_name:     d.name || name,
+            product_subtitle: d.subtitle || subtitle || '',
+            product_type:     d.product_type || '',
+            format_id:        fid,
+            format_name:      fname,
+            schedule:         sched,
+            pricing: {
+              list_price:       price,
+              list_price_label: price != null ? `${num(price)} EUR` : null,
+              price_locked:     false,
+            },
+          };
+          const id = Merkliste.addItem(item);
+          if (id !== null) {
+            mlShowToast(`"${fname}" gemerkt.`, () => { Merkliste.removeItem(id); _syncMagazinBtns(); });
+          } else {
+            mlShowToast('Bereits in der Merkliste.', null, 2000);
+          }
+          _syncMagazinBtns();
         }
       });
     });
+
+    // Live-Sync wenn Item im Side-Panel entfernt wird waehrend Modal offen
+    if (_activeModalUnsub) _activeModalUnsub();
+    _activeModalUnsub = Merkliste.subscribe(() => _syncMagazinBtns());
+    _syncMagazinBtns();
   } catch (e) {
     document.getElementById('modal-body').innerHTML = `
       <div class="modal-section">
@@ -2207,7 +2274,7 @@ function buildMagazinModalHTML(d) {
       <td>${f.format_name || '—'}</td>
       <td>${price}</td>
       <td style="font-size:13px;color:#666">${f.booking_unit || ''}</td>
-      <td><button class="btn-merken" data-format="${f.format_name || ''}">${LABELS.merken}</button></td>
+      <td><button class="btn-merken" data-format="${f.format_name || ''}" data-format-id="${f.format_name || ''}" data-price="${f.price_net_eur != null ? f.price_net_eur : ''}">${LABELS.merken}</button></td>
     </tr>`;
   }).join('');
   const formatsSection = formats.length ? `
@@ -3807,25 +3874,28 @@ _mlUpdateBadge(Merkliste.getItems());
 
 let _toastTimer = null;
 
-function mlShowToast(message, onUndo) {
+function mlShowToast(message, onUndo, duration = 4000) {
   document.querySelectorAll('.ml-toast').forEach(t => t.remove());
   if (_toastTimer) clearTimeout(_toastTimer);
 
   const toast = document.createElement('div');
   toast.className = 'ml-toast';
-  toast.innerHTML = `<span>${message}</span>
-    <button class="ml-toast-undo">Rueckgaengig</button>`;
+  if (onUndo) {
+    toast.innerHTML = `<span>${message}</span>
+      <button class="ml-toast-undo">Rueckgaengig</button>`;
+    const undoBtn = toast.querySelector('.ml-toast-undo');
+    undoBtn.addEventListener('click', () => {
+      if (_toastTimer) clearTimeout(_toastTimer);
+      toast.remove();
+      onUndo();
+      _mlSyncModalButtons();
+    });
+  } else {
+    toast.innerHTML = `<span>${message}</span>`;
+  }
   document.body.appendChild(toast);
 
-  const undoBtn = toast.querySelector('.ml-toast-undo');
-  undoBtn.addEventListener('click', () => {
-    if (_toastTimer) clearTimeout(_toastTimer);
-    toast.remove();
-    if (onUndo) onUndo();
-    _mlSyncModalButtons();
-  });
-
-  _toastTimer = setTimeout(() => toast.remove(), 4000);
+  _toastTimer = setTimeout(() => toast.remove(), duration);
 }
 
 // ---- Modal-Buttons synchronisieren (nach add/remove) ----

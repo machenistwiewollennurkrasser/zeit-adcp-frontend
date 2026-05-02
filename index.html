@@ -676,9 +676,9 @@ footer .footer-inner {
 .dz-price-cell { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .dz-action-cell { text-align: right; white-space: nowrap; }
 .dz-format-size { font-size: 12px; color: #888; }
-.dz-merken-btn { background: var(--black); color: var(--white); border: none; padding: 6px 12px; font-size: 12px; font-family: inherit; cursor: pointer; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; }
+.dz-merken-btn { border: 1px solid var(--black); background: none; padding: 5px 10px; font-size: 11px; cursor: pointer; font-family: inherit; text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+.dz-merken-btn:hover { background: var(--yellow); }
 .dz-merken-btn.merken-active { background: var(--yellow); color: var(--black); }
-.dz-merken-btn:hover:not(.merken-active) { background: #333; }
 .dz-formate-hinweis { font-size: 12px; color: #888; margin-top: 12px; font-style: italic; }
 
 .dz-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; padding: 16px 0; }
@@ -3695,6 +3695,12 @@ function buildDieZeitModalHTML(d) {
 function initDieZeitModal(d) {
   const pid = d.product_id || '';
   let   brKey = 'listenpreis';
+  const brLabels = Object.fromEntries(
+    (d.industry_discount_clusters || []).map(c => {
+      const n = c.cluster_key.match(/^br(\d+)/)?.[1] || '';
+      return [`br${n}`, `BR${n} ${Math.round(c.discount_pct_default)}%`];
+    })
+  );
 
   function _getIss() {
     const sel = document.querySelector('#dz-cal-body .dz-day.issue.selected');
@@ -3764,7 +3770,7 @@ function initDieZeitModal(d) {
       const listPrice = parseFloat(row.dataset.listPrice);
       const discounts = JSON.parse(row.dataset.discounts || '{}');
       const price     = brKey === 'listenpreis' ? listPrice : (discounts[brKey] ?? listPrice);
-      const brSuffix  = brKey !== 'listenpreis' ? ` (${brKey.toUpperCase()})` : '';
+      const brSuffix  = brKey !== 'listenpreis' ? ` (${brLabels[brKey] || brKey.toUpperCase()})` : '';
       const item = {
         product_id:       pid,
         product_name:     d.name     || '',
@@ -4200,7 +4206,7 @@ function _mlPriceStr(item) {
   if (p.price_locked) {
     return p.locked_label || (p.locked_price != null ? num(p.locked_price) + ' EUR netto' : 'auf Anfrage');
   }
-  if (p.list_price != null) return num(p.list_price) + ' EUR netto';
+  if (p.list_price != null) return p.list_price_label || (num(p.list_price) + ' EUR netto');
   return 'auf Anfrage';
 }
 

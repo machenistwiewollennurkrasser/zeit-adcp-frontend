@@ -1369,12 +1369,36 @@ def _build_die_zeit_wochenzeitung(p: dict) -> dict:
                 }
     all_speziale = list(seen.values())
 
+    # Phase 5.6: Format-Tabelle fuer DIE-ZEIT-Modal MVP, nur Standardformate
+    ad_formats = [
+        {
+            "format_name":          f.get("format_name"),
+            "format_type":          f.get("format_type"),
+            "type_area_width_mm":   f.get("type_area_width_mm"),
+            "type_area_height_mm":  f.get("type_area_height_mm"),
+            "price_net_eur":        f.get("price_net_eur"),
+            "industry_discounts":   f.get("industry_discounts") or [],
+        }
+        for f in ps.get("ad_formats", [])
+        if f.get("mvp_in_scope")
+    ]
+    idc = [
+        {
+            "cluster_key":       c.get("cluster_key"),
+            "label_external":    c.get("label_external"),
+            "discount_pct_default": c.get("discount_pct_default"),
+        }
+        for c in ps.get("industry_discount_clusters", [])
+    ]
+
     return {
-        "reach":                  reach,
-        "schedule":               schedule,
-        "regional_editions":      regional_editions,
-        "all_speziale":           all_speziale,
-        "special_theme_clusters": ps.get("special_theme_clusters") or [],
+        "reach":                       reach,
+        "schedule":                    schedule,
+        "regional_editions":           regional_editions,
+        "all_speziale":                all_speziale,
+        "special_theme_clusters":      ps.get("special_theme_clusters") or [],
+        "ad_formats":                  ad_formats,
+        "industry_discount_clusters":  idc,
     }
 
 
@@ -1704,18 +1728,20 @@ async def product_detail(product_id: str):
         if top_type == "die_zeit" and subtype == "wochenzeitung":
             wz = _build_die_zeit_wochenzeitung(p)
             return {
-                "product_id":             p.get("product_id"),
-                "name":                   p.get("product_name"),
-                "subtitle":               _product_subtitle(p),
-                "product_type":           "wochenzeitung",
-                "die_zeit_subtype":       "wochenzeitung",
-                "common":                 common,
-                "reach":                  wz["reach"],
-                "schedule":               wz["schedule"],
-                "pricing":                None,
-                "regional_editions":      wz["regional_editions"],
-                "all_speziale":           wz["all_speziale"],
-                "special_theme_clusters": wz["special_theme_clusters"],
+                "product_id":                  p.get("product_id"),
+                "name":                        p.get("product_name"),
+                "subtitle":                    _product_subtitle(p),
+                "product_type":                "wochenzeitung",
+                "die_zeit_subtype":            "wochenzeitung",
+                "common":                      common,
+                "reach":                       wz["reach"],
+                "schedule":                    wz["schedule"],
+                "pricing":                     None,
+                "regional_editions":           wz["regional_editions"],
+                "all_speziale":                wz["all_speziale"],
+                "special_theme_clusters":      wz["special_theme_clusters"],
+                "ad_formats":                  wz["ad_formats"],
+                "industry_discount_clusters":  wz["industry_discount_clusters"],
             }
 
         # Sonderveroeffentlichung: Terminkliste + Reichweite + Formate

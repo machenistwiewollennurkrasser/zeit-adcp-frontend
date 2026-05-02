@@ -669,6 +669,147 @@ footer .footer-inner {
 .dz-card:hover { background: var(--yellow); }
 .dz-card-name { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
 .dz-card-sub { font-size: 12px; color: #666; font-style: italic; }
+
+/* ============================================================
+   MERKLISTE BADGE (Header-Button)
+   ============================================================ */
+.ml-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; border-radius: 9px;
+  background: var(--yellow); color: var(--black); font-size: 10px; font-weight: 700;
+  padding: 0 5px; margin-left: 6px; vertical-align: middle;
+  transition: background 0.15s;
+}
+.ml-badge.empty { background: #555; color: #999; }
+
+/* ============================================================
+   MERKLISTE SIDE-PANEL
+   ============================================================ */
+.ml-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 600;
+  opacity: 0; transition: opacity 0.2s ease; pointer-events: none;
+}
+.ml-backdrop.open { opacity: 1; pointer-events: auto; }
+
+.ml-panel {
+  position: fixed; top: 0; right: 0; width: 480px; max-width: 100vw; height: 100vh;
+  background: var(--white); z-index: 610;
+  display: flex; flex-direction: column;
+  transform: translateX(100%); transition: transform 0.25s ease;
+  box-shadow: -4px 0 24px rgba(0,0,0,0.12);
+}
+.ml-panel.open { transform: translateX(0); }
+
+.ml-panel-hdr {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 24px 24px 16px; border-bottom: 2px solid var(--black); flex-shrink: 0;
+}
+.ml-panel-title { font-size: 20px; font-weight: 700; display: block; letter-spacing: -.01em; }
+.ml-panel-count { font-size: 12px; color: #888; margin-top: 3px; display: block; }
+.ml-close-btn {
+  background: none; border: 1px solid var(--black); width: 32px; height: 32px;
+  cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 2px;
+}
+.ml-close-btn:hover { background: var(--yellow); }
+
+.ml-tier-bar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 24px; border-bottom: 1px solid #eee; flex-shrink: 0;
+}
+.ml-tier-label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #888; white-space: nowrap; }
+.ml-tier-select {
+  flex: 1; border: 1px solid #ccc; background: var(--white);
+  padding: 6px 8px; font-family: inherit; font-size: 13px; cursor: pointer;
+  max-width: 240px;
+}
+
+.ml-body { flex: 1; overflow-y: auto; }
+
+.ml-empty { padding: 56px 24px; text-align: center; color: #888; font-size: 14px; line-height: 1.8; }
+.ml-empty-icon { font-size: 32px; margin-bottom: 12px; opacity: .3; }
+
+.ml-group { border-bottom: 1px solid #e8e8e8; }
+.ml-group-hdr { padding: 12px 24px 8px; background: var(--gray-bg); border-bottom: 1px solid #e8e8e8; }
+.ml-group-name { font-size: 14px; font-weight: 700; }
+.ml-group-sub  { font-size: 11px; color: #888; margin-top: 2px; }
+
+.ml-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 11px 24px; border-top: 1px solid #f2f2f2;
+  transition: background 0.1s;
+}
+.ml-item:hover { background: #fafafa; }
+.ml-item-main { flex: 1; min-width: 0; }
+.ml-item-format { font-size: 13px; font-weight: 600; }
+.ml-item-meta {
+  font-size: 12px; color: #666; margin-top: 4px;
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline;
+}
+.ml-item-meta-sep { color: #ccc; }
+.ml-item-as  { color: #999; }
+.ml-item-price { font-weight: 700; color: var(--black); }
+.ml-locked-badge {
+  font-size: 10px; background: #f5f5f5; border: 1px solid #ddd;
+  padding: 1px 6px; color: #666; white-space: nowrap;
+}
+.ml-remove-btn {
+  background: none; border: none; cursor: pointer; font-size: 15px;
+  color: #bbb; padding: 0 2px; flex-shrink: 0; line-height: 1; margin-top: 1px;
+}
+.ml-remove-btn:hover { color: #c00; }
+
+.ml-footer {
+  border-top: 2px solid var(--black); padding: 14px 24px; flex-shrink: 0; background: var(--gray-bg);
+}
+.ml-footer-hint { font-size: 11px; color: #888; margin-bottom: 10px; }
+.ml-footer-actions { display: flex; gap: 8px; }
+.ml-pdf-btn {
+  flex: 1; background: var(--black); color: var(--white); border: none;
+  padding: 10px; font-family: inherit; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em; cursor: pointer;
+}
+.ml-pdf-btn:hover { background: #333; }
+.ml-reset-btn {
+  background: none; border: 1px solid var(--black); color: var(--black);
+  padding: 10px 14px; font-family: inherit; font-size: 11px; cursor: pointer;
+  white-space: nowrap;
+}
+.ml-reset-btn:hover { background: #fee; border-color: #c00; color: #c00; }
+
+/* ============================================================
+   TOAST (Merken-Bestaetigung)
+   ============================================================ */
+.ml-toast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 700;
+  background: var(--black); color: var(--white);
+  padding: 12px 16px; font-size: 13px; display: flex; align-items: center; gap: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25); max-width: 340px;
+  animation: mlToastIn 0.2s ease;
+}
+.ml-toast-undo {
+  background: none; border: 1px solid #666; color: var(--white);
+  padding: 4px 10px; font-family: inherit; font-size: 11px; cursor: pointer;
+  white-space: nowrap; flex-shrink: 0;
+}
+.ml-toast-undo:hover { border-color: var(--yellow); color: var(--yellow); }
+@keyframes mlToastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* ============================================================
+   PRINT-ANSICHT
+   ============================================================ */
+.ml-print-hdr { display: none; }
+@media print {
+  body > *:not(#ml-panel) { display: none !important; }
+  #ml-panel { position: static !important; width: 100% !important; height: auto !important;
+    transform: none !important; box-shadow: none !important; }
+  .ml-backdrop { display: none !important; }
+  .ml-close-btn, .ml-footer-actions, .ml-tier-bar { display: none !important; }
+  .ml-print-hdr { display: block !important; padding: 0 24px 16px; border-bottom: 2px solid #000; margin-bottom: 8px; }
+  .ml-print-hdr-title { font-size: 18px; font-weight: 700; }
+  .ml-print-hdr-meta  { font-size: 12px; color: #666; margin-top: 4px; }
+  .ml-remove-btn { display: none !important; }
+}
 </style>
 </head>
 <body>
@@ -707,7 +848,7 @@ footer .footer-inner {
         <span class="status-dot"></span>
         <span id="status-text">Verbinde...</span>
       </span>
-      <button class="btn-merkliste" id="merkliste-btn">MERKLISTE (0)</button>
+      <button class="btn-merkliste" id="merkliste-btn">MERKLISTE <span class="ml-badge empty" id="ml-badge">0</span></button>
     </div>
   </div>
 </header>
@@ -863,6 +1004,41 @@ footer .footer-inner {
   </div>
 </footer>
 
+<!-- Merkliste Side-Panel -->
+<div id="ml-backdrop" class="ml-backdrop"></div>
+<aside id="ml-panel" class="ml-panel" aria-label="Merkliste" role="complementary">
+  <div class="ml-print-hdr">
+    <div class="ml-print-hdr-title">ZEIT AdCP Merkliste</div>
+    <div class="ml-print-hdr-meta" id="ml-print-meta"></div>
+  </div>
+  <div class="ml-panel-hdr">
+    <div>
+      <span class="ml-panel-title">Merkliste</span>
+      <span class="ml-panel-count" id="ml-panel-count">0 Eintraege</span>
+    </div>
+    <button class="ml-close-btn" id="ml-close-btn" aria-label="Schliessen">&#10005;</button>
+  </div>
+  <div class="ml-tier-bar">
+    <span class="ml-tier-label">Preisstufe</span>
+    <select class="ml-tier-select" id="ml-tier-select">
+      <option value="listenpreis">Listenpreis (Standard)</option>
+      <option value="rabatt_1" disabled>Rabatt 1 (noch nicht verfuegbar)</option>
+      <option value="rabatt_2" disabled>Rabatt 2 (noch nicht verfuegbar)</option>
+      <option value="rabatt_3" disabled>Rabatt 3 (noch nicht verfuegbar)</option>
+      <option value="rabatt_4" disabled>Rabatt 4 (noch nicht verfuegbar)</option>
+    </select>
+  </div>
+  <div class="ml-body" id="ml-body"></div>
+  <div class="ml-footer">
+    <div class="ml-footer-hint">Listenpreise netto, zzgl. MwSt.</div>
+    <div class="ml-footer-actions">
+      <button class="ml-pdf-btn" id="ml-pdf-btn">Als PDF speichern</button>
+      <button class="ml-reset-btn" id="ml-reset-btn">Alle entfernen</button>
+    </div>
+  </div>
+</aside>
+
+<script src="merkliste.js"></script>
 <script>
 // ============================================================
 // KONFIGURATION
@@ -3229,9 +3405,181 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
-document.getElementById('merkliste-btn').addEventListener('click', () => {
-  // Etappe 5
+// ============================================================
+// MERKLISTE PANEL (Schritte 2 + 3)
+// ============================================================
+
+const _mlPanel    = document.getElementById('ml-panel');
+const _mlBackdrop = document.getElementById('ml-backdrop');
+
+function mlOpen() {
+  _mlPanel.classList.add('open');
+  _mlBackdrop.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  _mlRender();
+}
+
+function mlClose() {
+  _mlPanel.classList.remove('open');
+  _mlBackdrop.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('merkliste-btn').addEventListener('click', mlOpen);
+document.getElementById('ml-close-btn').addEventListener('click', mlClose);
+_mlBackdrop.addEventListener('click', mlClose);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && _mlPanel.classList.contains('open')) mlClose(); });
+
+// Preisstufen-Toggle
+document.getElementById('ml-tier-select').addEventListener('change', e => {
+  Merkliste.setGlobalPriceTier(e.target.value);
 });
+
+// Alle entfernen
+document.getElementById('ml-reset-btn').addEventListener('click', () => {
+  if (!Merkliste.getItems().length) return;
+  showConfirmPopup(() => { Merkliste.clearAll(); });
+});
+
+// PDF-Export
+document.getElementById('ml-pdf-btn').addEventListener('click', () => {
+  const today = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const tierLabel = document.getElementById('ml-tier-select').selectedOptions[0]?.text || 'Listenpreis';
+  document.getElementById('ml-print-meta').textContent =
+    `Stand: ${today} · Preisstufe: ${tierLabel}`;
+  window.print();
+});
+
+// ---- Render ----
+
+function _mlPriceStr(item) {
+  const p = item.pricing;
+  if (p.price_locked) {
+    return p.locked_label || (p.locked_price != null ? num(p.locked_price) + ' EUR netto' : 'auf Anfrage');
+  }
+  if (p.list_price != null) return num(p.list_price) + ' EUR netto';
+  return 'auf Anfrage';
+}
+
+function _mlRender() {
+  const items = Merkliste.getItems();
+  const body  = document.getElementById('ml-body');
+  if (!items.length) {
+    body.innerHTML = `<div class="ml-empty">
+      <div class="ml-empty-icon">&#9776;</div>
+      <div>Noch keine Produkte gemerkt.</div>
+      <div>Klicken Sie in einem Produkt-Modal auf &ldquo;+ Merken&rdquo;.</div>
+    </div>`;
+    return;
+  }
+
+  // Gruppieren nach product_id
+  const groupMap = new Map();
+  items.forEach(item => {
+    if (!groupMap.has(item.product_id)) {
+      groupMap.set(item.product_id, {
+        product_name:    item.product_name,
+        product_subtitle: item.product_subtitle,
+        items: [],
+      });
+    }
+    groupMap.get(item.product_id).items.push(item);
+  });
+
+  let html = '';
+  groupMap.forEach(group => {
+    const itemRows = group.items.map(item => {
+      const priceStr  = _mlPriceStr(item);
+      const schedLabel = item.schedule?.label || item.schedule?.date || '';
+      const asLabel    = item.schedule?.ad_close_label ? `AS: ${item.schedule.ad_close_label}` : '';
+      const lockedBadge = item.pricing.price_locked
+        ? `<span class="ml-locked-badge">Preis aus Konfigurator</span>` : '';
+      return `<div class="ml-item">
+        <div class="ml-item-main">
+          <div class="ml-item-format">${item.format_name || '&mdash;'}</div>
+          <div class="ml-item-meta">
+            ${schedLabel ? `<span>${schedLabel}</span>` : ''}
+            ${schedLabel && asLabel ? `<span class="ml-item-meta-sep">&middot;</span>` : ''}
+            ${asLabel ? `<span class="ml-item-as">${asLabel}</span>` : ''}
+            ${(schedLabel || asLabel) ? `<span class="ml-item-meta-sep">&middot;</span>` : ''}
+            <span class="ml-item-price">${priceStr}</span>
+            ${lockedBadge}
+          </div>
+        </div>
+        <button class="ml-remove-btn" data-item-id="${item.item_id}" title="Entfernen">&#10005;</button>
+      </div>`;
+    }).join('');
+
+    html += `<div class="ml-group">
+      <div class="ml-group-hdr">
+        <div class="ml-group-name">${group.product_name}</div>
+        ${group.product_subtitle ? `<div class="ml-group-sub">${group.product_subtitle}</div>` : ''}
+      </div>
+      ${itemRows}
+    </div>`;
+  });
+
+  body.innerHTML = html;
+
+  body.querySelectorAll('.ml-remove-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.itemId;
+      Merkliste.removeItem(id);
+      // Merken-Buttons im offenen Modal aktualisieren
+      _mlSyncModalButtons();
+    });
+  });
+}
+
+// ---- Badge + Panel-Count aktualisieren ----
+
+function _mlUpdateBadge(items) {
+  const n     = items.length;
+  const badge = document.getElementById('ml-badge');
+  const count = document.getElementById('ml-panel-count');
+  badge.textContent = n;
+  badge.classList.toggle('empty', n === 0);
+  if (count) count.textContent = n === 1 ? '1 Eintrag' : `${n} Eintraege`;
+  // Panel neu rendern wenn offen
+  if (_mlPanel.classList.contains('open')) _mlRender();
+}
+
+Merkliste.subscribe(_mlUpdateBadge);
+// Initialzustand herstellen
+_mlUpdateBadge(Merkliste.getItems());
+
+// ---- Toast ----
+
+let _toastTimer = null;
+
+function mlShowToast(message, onUndo) {
+  document.querySelectorAll('.ml-toast').forEach(t => t.remove());
+  if (_toastTimer) clearTimeout(_toastTimer);
+
+  const toast = document.createElement('div');
+  toast.className = 'ml-toast';
+  toast.innerHTML = `<span>${message}</span>
+    <button class="ml-toast-undo">Rueckgaengig</button>`;
+  document.body.appendChild(toast);
+
+  const undoBtn = toast.querySelector('.ml-toast-undo');
+  undoBtn.addEventListener('click', () => {
+    if (_toastTimer) clearTimeout(_toastTimer);
+    toast.remove();
+    if (onUndo) onUndo();
+    _mlSyncModalButtons();
+  });
+
+  _toastTimer = setTimeout(() => toast.remove(), 4000);
+}
+
+// ---- Modal-Buttons synchronisieren (nach add/remove) ----
+
+function _mlSyncModalButtons() {
+  // btn-merken / spez-merken-btn im aktuell offenen Modal aktualisieren
+  // wird von den einzelnen Modals nach addItem aufgerufen -- hier nur Badge-Refresh
+  _mlUpdateBadge(Merkliste.getItems());
+}
 
 // ============================================================
 // INIT

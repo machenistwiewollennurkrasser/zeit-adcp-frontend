@@ -815,17 +815,56 @@ footer .footer-inner {
 /* ============================================================
    PRINT-ANSICHT
    ============================================================ */
-.ml-print-hdr { display: none; }
+.ml-print-hdr    { display: none; }
+.ml-print-sum    { display: none; }
+.ml-print-footer { display: none; }
+
 @media print {
+  @page { margin: 15mm 18mm; }
   body > *:not(#ml-panel) { display: none !important; }
   #ml-panel { position: static !important; width: 100% !important; height: auto !important;
     transform: none !important; box-shadow: none !important; }
   .ml-backdrop { display: none !important; }
-  .ml-close-btn, .ml-footer-actions, .ml-tier-bar { display: none !important; }
-  .ml-print-hdr { display: block !important; padding: 0 24px 16px; border-bottom: 2px solid #000; margin-bottom: 8px; }
-  .ml-print-hdr-title { font-size: 18px; font-weight: 700; }
-  .ml-print-hdr-meta  { font-size: 12px; color: #666; margin-top: 4px; }
-  .ml-remove-btn { display: none !important; }
+  .ml-close-btn, .ml-footer-actions, .ml-footer, .ml-tier-bar,
+  .ml-panel-hdr, .ml-remove-btn { display: none !important; }
+
+  /* Druckkopf */
+  .ml-print-hdr {
+    display: flex !important; justify-content: space-between; align-items: flex-start;
+    padding: 0 0 14px; border-bottom: 2px solid #000; margin-bottom: 20px;
+  }
+  .ml-print-hdr-left  { flex: 1; }
+  .ml-print-hdr-right { text-align: right; font-size: 12px; color: #555; white-space: nowrap; padding-left: 24px; }
+  .ml-print-hdr-title { font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
+  .ml-print-hdr-sub   { font-size: 12px; color: #555; margin-top: 4px; }
+
+  /* Body / Gruppen */
+  .ml-body { overflow: visible !important; }
+  .ml-group { page-break-inside: avoid; border-bottom: 1px solid #ddd; margin-bottom: 10px; padding-bottom: 6px; }
+  .ml-group-hdr { background: none !important; padding: 10px 0 6px; border-top: 1px solid #000; border-bottom: none !important; }
+  .ml-group-name { font-size: 14px; font-weight: 700; }
+  .ml-group-sub  { font-size: 11px; color: #666; }
+  .ml-item { padding: 5px 0; border-top: 1px solid #eee; }
+  .ml-item:hover { background: none !important; }
+  .ml-item-format { font-size: 13px; font-weight: 600; }
+  .ml-item-meta { font-size: 11px; color: #555; }
+  .ml-item-price { font-weight: 700; color: #000; }
+  .ml-locked-badge { display: none !important; }
+
+  /* Gesamtsumme */
+  .ml-print-sum {
+    display: flex !important; justify-content: space-between; align-items: center;
+    border-top: 2px solid #000; padding-top: 12px; margin-top: 16px;
+    font-size: 15px; font-weight: 700;
+  }
+  .ml-print-sum-label { letter-spacing: .03em; }
+  .ml-print-sum-value { font-variant-numeric: tabular-nums; }
+
+  /* Druckfooter */
+  .ml-print-footer {
+    display: block !important; margin-top: 28px; padding-top: 10px;
+    border-top: 1px solid #ccc; font-size: 11px; color: #888; line-height: 1.6;
+  }
 }
 </style>
 </head>
@@ -1025,8 +1064,11 @@ footer .footer-inner {
 <div id="ml-backdrop" class="ml-backdrop"></div>
 <aside id="ml-panel" class="ml-panel" aria-label="Merkliste" role="complementary">
   <div class="ml-print-hdr">
-    <div class="ml-print-hdr-title">ZEIT AdCP Merkliste</div>
-    <div class="ml-print-hdr-meta" id="ml-print-meta"></div>
+    <div class="ml-print-hdr-left">
+      <div class="ml-print-hdr-title">ZEIT Werbeangebot</div>
+      <div class="ml-print-hdr-sub" id="ml-print-tier-line"></div>
+    </div>
+    <div class="ml-print-hdr-right" id="ml-print-date"></div>
   </div>
   <div class="ml-panel-hdr">
     <div>
@@ -1046,12 +1088,20 @@ footer .footer-inner {
     </select>
   </div>
   <div class="ml-body" id="ml-body"></div>
+  <div class="ml-print-sum">
+    <span class="ml-print-sum-label">Gesamtbudget netto</span>
+    <span class="ml-print-sum-value" id="ml-print-sum-value"></span>
+  </div>
   <div class="ml-footer">
     <div class="ml-footer-hint">Listenpreise netto, zzgl. MwSt.</div>
     <div class="ml-footer-actions">
       <button class="ml-pdf-btn" id="ml-pdf-btn">Als PDF speichern</button>
       <button class="ml-reset-btn" id="ml-reset-btn">Alle entfernen</button>
     </div>
+  </div>
+  <div class="ml-print-footer">
+    Dieses Angebot ist unverbindlich. Stand: <span id="ml-print-footer-date"></span><br>
+    Erstellt mit ZEIT AdCP, ZEIT Advise.
   </div>
 </aside>
 
@@ -4194,8 +4244,25 @@ document.getElementById('ml-reset-btn').addEventListener('click', () => {
 document.getElementById('ml-pdf-btn').addEventListener('click', () => {
   const today = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const tierLabel = document.getElementById('ml-tier-select').selectedOptions[0]?.text || 'Listenpreis';
-  document.getElementById('ml-print-meta').textContent =
-    `Stand: ${today} · Preisstufe: ${tierLabel}`;
+  // Gesamtbudget berechnen
+  const items = Merkliste.getItems();
+  let total = 0;
+  let hasUnresolved = false;
+  items.forEach(item => {
+    const p = item.pricing;
+    if (p.price_locked && p.locked_price != null)       total += p.locked_price;
+    else if (!p.price_locked && p.list_price != null)   total += p.list_price;
+    else                                                 hasUnresolved = true;
+  });
+  const sumStr = hasUnresolved
+    ? `${num(Math.round(total))} EUR + Positionen auf Anfrage`
+    : `${num(Math.round(total))} EUR`;
+  // Druckinhalte setzen
+  document.getElementById('ml-print-date').textContent      = `Stand: ${today}`;
+  document.getElementById('ml-print-tier-line').textContent =
+    `Preisstufe: ${tierLabel} · alle Preise netto zzgl. MwSt.`;
+  document.getElementById('ml-print-sum-value').textContent = sumStr;
+  document.getElementById('ml-print-footer-date').textContent = today;
   window.print();
 });
 

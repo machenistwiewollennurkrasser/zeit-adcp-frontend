@@ -422,7 +422,7 @@ header {
 .info-icon-wrap:hover .info-tooltip { display: block; }
 .info-tooltip {
   display: none; position: absolute; bottom: calc(100% + 6px); left: 50%;
-  transform: translateX(-50%); background: var(--white); border: 1px solid var(--black);
+  transform: translateX(-50%); background: #fff !important; border: 1px solid var(--black);
   padding: 8px 10px; font-size: 12px; line-height: 1.4; min-width: 200px; max-width: 280px;
   z-index: 500; white-space: normal; pointer-events: none;
   font-style: normal; text-transform: none; letter-spacing: 0; font-weight: 400;
@@ -442,7 +442,8 @@ header {
 .konfig-btn:hover:not(:disabled) { background: var(--yellow); }
 .konfig-btn.active { background: var(--black); color: var(--white); }
 .konfig-btn.active .info-icon { color: #aaa; border-color: #aaa; }
-.konfig-btn:disabled { opacity: 0.35; cursor: not-allowed; border-color: #ccc; background: #f5f5f5; }
+.konfig-btn:disabled { opacity: 0.35; cursor: not-allowed; border-color: #ccc; background: #f5f5f5; pointer-events: auto; }
+.konfig-btn:disabled:hover .info-tooltip { display: block; }
 .konfig-btn.warn { border-color: var(--orange); }
 .midroll-warn-banner {
   background: #fff3e0; border: 1px solid var(--orange);
@@ -860,7 +861,7 @@ const LABELS = {
   mbv_nicht_erfuellt:        "⚠ Mindestbuchungsvolumen NICHT erfuellt",
   konfiguration_merken:      "+ KONFIGURATION MERKEN",
   festplatzierung:           "Festplatzierung",
-  festplatz_hinweis:         "Garantierte Audio-Werbung in einer spezifischen Episode",
+  festplatz_hinweis:         "Garantierte Audio-Werbung in einer spezifischen Episode. Dieser Podcast ist ausschliesslich als Festplatzierung buchbar, keine TKP-Buchung moeglich.",
   folgen:                    "Folgen",
   laufzeit_label:            "Laufzeit",
   kampagne_merken:           "KAMPAGNE MERKEN",

@@ -40,7 +40,7 @@ import logging
 import os
 import urllib.request
 import tempfile
-from datetime import datetime
+from datetime import datetime, date as _date, timedelta
 
 from matching import (
     match_products, ProductIndex, parse_brief, check_industry_discount,
@@ -1275,6 +1275,134 @@ def _build_schedule_magazin(p: dict) -> Optional[dict]:
     return {"issues": issues} if issues else None
 
 
+# -------------------------------------------------------
+# Ad-Close-Berechnung fuer Newsletter-Kalender
+# -------------------------------------------------------
+
+_DOW_MAP = {'mon': 0, 'tue': 1, 'wed': 2, 'thu': 3, 'fri': 4, 'sat': 5, 'sun': 6}
+_DOW_KEY = {0: 'mon', 1: 'tue', 2: 'wed', 3: 'thu', 4: 'fri', 5: 'sat', 6: 'sun'}
+_DOW_ABBR_DE = {0: 'Mo', 1: 'Di', 2: 'Mi', 3: 'Do', 4: 'Fr', 5: 'Sa', 6: 'So'}
+
+
+def _fmt_ad_close_label(d: _date, time_str: str) -> str:
+    return f"{_DOW_ABBR_DE[d.weekday()]} {d.strftime('%d.%m.%Y')}, {time_str}"
+
+
+def _ad_close_iso(d: _date, time_str: str) -> str:
+    h, m = (int(x) for x in time_str.split(":"))
+    return datetime(d.year, d.month, d.day, h, m).isoformat()
+
+
+def _iso_week(d: _date) -> int:
+    return d.isocalendar()[1]
+
+
+def calc_ad_close_date(issue_date: _date, logic: str, reference, time_str: str = "12:00") -> Optional[_date]:
+    if not issue_date or not logic:
+        return None
+    if logic == "weekday_previous_week":
+        target_dow = _DOW_MAP.get(str(reference), 0)
+        mon_of_week = issue_date - timedelta(days=issue_date.weekday())
+        mon_of_prev = mon_of_week - timedelta(weeks=1)
+        return mon_of_prev + timedelta(days=target_dow)
+    if logic == "weekday_before_issue":
+        target_dow = _DOW_MAP.get(str(reference), 0)
+        d = issue_date - timedelta(days=1)
+        for _ in range(14):
+            if d.weekday() == target_dow:
+                return d
+            d -= timedelta(days=1)
+    if logic == "workdays_before_issue":
+        n = int(reference)
+        d = issue_date - timedelta(days=1)
+        counted = 0
+        for _ in range(n * 3 + 14):
+            if d.weekday() < 5:
+                counted += 1
+                if counted >= n:
+                    return d
+            d -= timedelta(days=1)
+    return None
+
+
+def _calc_next_issues(pub_days: list, dl: dict, ns: dict, is_kw: bool) -> list:
+    logic   = dl.get("ad_close_logic")
+    ref     = dl.get("ad_close_reference")
+    t       = dl.get("ad_close_time") or "12:00"
+    fmts    = (ns.get("pricing") or {}).get("formats") or []
+    today   = _date.today()
+    horizon = today + timedelta(weeks=16)
+    result  = []
+
+    if is_kw:
+        days_to_mon = (7 - today.weekday()) % 7 or 7
+        kw_start = today + timedelta(days=days_to_mon)
+        for _ in range(16):
+            kw_end  = kw_start + timedelta(days=6)
+            kw_num  = _iso_week(kw_start)
+            acd     = calc_ad_close_date(kw_start, logic, ref, t)
+            entry   = {
+                "kw_number": kw_num,
+                "kw_start":  kw_start.isoformat(),
+                "kw_end":    kw_end.isoformat(),
+            }
+            if acd:
+                entry["ad_close"]       = _ad_close_iso(acd, t)
+                entry["ad_close_label"] = _fmt_ad_close_label(acd, t)
+            result.append(entry)
+            kw_start += timedelta(weeks=1)
+        return result
+
+    if not pub_days:
+        return result
+
+    dow_set = {_DOW_MAP[d] for d in pub_days if d in _DOW_MAP}
+
+    pub_day_overrides: dict = {}
+    if logic == "pub_day_specific":
+        for ov in (dl.get("pub_day_overrides") or []):
+            pd = ov.get("publication_day")
+            if pd:
+                pub_day_overrides[pd] = ov
+
+    max_entries = 100
+    d = today + timedelta(days=1)
+    while d <= horizon and len(result) < max_entries:
+        if d.weekday() in dow_set:
+            day_key = _DOW_KEY[d.weekday()]
+            entry   = {"issue_date": d.isoformat(), "weekday": day_key}
+            if logic == "format_specific":
+                fmt_closes = []
+                for fmt in fmts:
+                    fo  = fmt.get("ad_close_overrides") or {}
+                    fl  = fo.get("ad_close_logic")
+                    fr  = fo.get("ad_close_reference")
+                    ft  = fo.get("ad_close_time") or t
+                    acd = calc_ad_close_date(d, fl, fr, ft) if fl else None
+                    fmt_closes.append({
+                        "format_name":    fmt.get("format_display_name") or fmt.get("format_id", ""),
+                        "ad_close":       _ad_close_iso(acd, ft) if acd else None,
+                        "ad_close_label": _fmt_ad_close_label(acd, ft) if acd else None,
+                    })
+                entry["format_ad_closes"] = fmt_closes
+            elif logic == "pub_day_specific":
+                ov = pub_day_overrides.get(day_key)
+                if ov:
+                    ov_t = ov.get("ad_close_time") or t
+                    acd  = calc_ad_close_date(d, ov.get("ad_close_logic"), ov.get("ad_close_reference"), ov_t)
+                    if acd:
+                        entry["ad_close"]       = _ad_close_iso(acd, ov_t)
+                        entry["ad_close_label"] = _fmt_ad_close_label(acd, ov_t)
+            elif logic:
+                acd = calc_ad_close_date(d, logic, ref, t)
+                if acd:
+                    entry["ad_close"]       = _ad_close_iso(acd, t)
+                    entry["ad_close_label"] = _fmt_ad_close_label(acd, t)
+            result.append(entry)
+        d += timedelta(days=1)
+    return result
+
+
 def _build_schedule_newsletter(p: dict) -> Optional[dict]:
     ns  = get_newsletter_specifics(p)
     ch  = ns.get("channel") or {}
@@ -1283,13 +1411,17 @@ def _build_schedule_newsletter(p: dict) -> Optional[dict]:
     publication_days = ch.get("publication_days") or []
     issues_per_year  = ch.get("issues_per_year")
     anzeigenschluss  = dl.get("anzeigenschluss")
+    booking_unit     = (ns.get("pricing") or {}).get("booking_unit")
+    is_kw            = booking_unit == "kalenderwoche"
     if not (freq_label or publication_days or issues_per_year or anzeigenschluss):
         return None
+    next_issues = _calc_next_issues(publication_days, dl, ns, is_kw)
     return {
         "frequency_label":   freq_label or None,
         "publication_days":  publication_days,
         "issues_per_year":   issues_per_year,
         "anzeigenschluss":   anzeigenschluss,
+        "next_issues":       next_issues,
     }
 
 

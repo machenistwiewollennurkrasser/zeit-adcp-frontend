@@ -590,6 +590,18 @@ footer .footer-inner {
 .nl-kw-num { font-size: 16px; font-weight: 700; line-height: 1.2; }
 .nl-kw-range { font-size: 11px; color: #666; margin-top: 2px; }
 .nl-kw-box.selected .nl-kw-range { color: #444; }
+/* Kalender-Tooltip */
+.nl-cal-tooltip {
+  position: fixed; z-index: 600; pointer-events: none;
+  background: var(--black); color: #fff;
+  font-size: 12px; line-height: 1.55; padding: 7px 11px;
+  border-radius: 2px; max-width: 260px; white-space: normal;
+}
+.nl-cal-tooltip::after {
+  content: ''; position: absolute; bottom: -5px; left: var(--arrow-left, 50%);
+  transform: translateX(-50%);
+  border: 5px solid transparent; border-bottom: none; border-top-color: var(--black);
+}
 /* Formate */
 .nl-preisstufe-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
 .nl-formats-table { width: 100%; border-collapse: collapse; }
@@ -2268,6 +2280,58 @@ function getISOWeek(d) {
   return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
 }
 
+// Tooltip-Singleton fuer Kalender-Hover
+let _nlTip = null;
+let _nlTipTimer = null;
+
+function _showNLTooltip(el, html) {
+  if (!html) return;
+  if (!_nlTip) {
+    _nlTip = document.createElement('div');
+    _nlTip.className = 'nl-cal-tooltip';
+    document.body.appendChild(_nlTip);
+  }
+  clearTimeout(_nlTipTimer);
+  _nlTipTimer = setTimeout(() => {
+    _nlTip.innerHTML = html;
+    _nlTip.style.display = 'block';
+    const r  = el.getBoundingClientRect();
+    const tw = _nlTip.offsetWidth;
+    const th = _nlTip.offsetHeight;
+    // Horizontale Position: zentriert ueber dem Element, mit Rand-Clipping-Schutz
+    let left = r.left + r.width / 2 - tw / 2;
+    const margin = 8;
+    if (left < margin) left = margin;
+    if (left + tw > window.innerWidth - margin) left = window.innerWidth - margin - tw;
+    // Pfeil-Position relativ zur Tooltip-Box
+    const arrowLeft = (r.left + r.width / 2) - left;
+    _nlTip.style.setProperty('--arrow-left', Math.max(12, Math.min(tw - 12, arrowLeft)) + 'px');
+    _nlTip.style.left = left + 'px';
+    _nlTip.style.top  = (r.top - th - 8) + 'px';
+  }, 200);
+}
+
+function _hideNLTooltip() {
+  clearTimeout(_nlTipTimer);
+  if (_nlTip) _nlTip.style.display = 'none';
+}
+
+function _nlAdCloseHTML(el) {
+  const raw = el.dataset.fmtcloses;
+  if (raw) {
+    try {
+      const fmts = JSON.parse(decodeURIComponent(raw));
+      if (fmts && fmts.length) {
+        return fmts.map(f =>
+          `<div><strong>${f.format_name}:</strong> ${f.ad_close_label || '—'}</div>`
+        ).join('');
+      }
+    } catch(e) {}
+  }
+  const label = el.dataset.adclose;
+  return label ? `${LABELS.anzeigenschluss_label}: <strong>${label}</strong>` : '';
+}
+
 function initNewsletterModal(d) {
   const pricing       = d.pricing  || {};
   const sched         = d.schedule || {};
@@ -2336,6 +2400,8 @@ function initNewsletterModal(d) {
           renderCalendar();
           updateMerkenBtns();
         });
+        cell.addEventListener('mouseenter', () => _showNLTooltip(cell, _nlAdCloseHTML(cell)));
+        cell.addEventListener('mouseleave', _hideNLTooltip);
       });
     } else {
       document.querySelectorAll('#nl-cal-inner .nl-kw-box:not(.past)').forEach(box => {
@@ -2345,6 +2411,8 @@ function initNewsletterModal(d) {
           renderCalendar();
           updateMerkenBtns();
         });
+        box.addEventListener('mouseenter', () => _showNLTooltip(box, _nlAdCloseHTML(box)));
+        box.addEventListener('mouseleave', _hideNLTooltip);
       });
     }
   }

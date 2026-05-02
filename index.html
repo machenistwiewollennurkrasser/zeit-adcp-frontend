@@ -484,6 +484,7 @@ header {
   cursor: pointer; font-weight: 700;
 }
 .btn-konfiguration-merken:hover { background: #333; }
+.btn-konfiguration-merken.merken-active { background: var(--yellow); color: var(--black); border-color: var(--yellow); }
 
 /* FIXED-SLOT */
 .fs-ps-group { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
@@ -2716,13 +2717,36 @@ function renderTKPResult(result, preisstufe, ai, pkKey) {
 }
 
 function initPodcastKonfigurator(d) {
-  const pricing        = d.pricing || {};
-  const tkpTable       = pricing.tkp_table || [];
+  const pricing         = d.pricing || {};
+  const tkpTable        = pricing.tkp_table || [];
   const midrollExcluded = !!pricing.midroll_excluded;
   const volumeDiscounts = pricing.volume_discounts || [];
+  const pid             = d.product_id || '';
 
   function getActiveData(groupId, attr) {
     return document.querySelector(`#${groupId} .konfig-btn.active`)?.dataset[attr] || null;
+  }
+
+  function getCurrentKonfig() {
+    const adType  = getActiveData('konfig-adtype', 'adtype');
+    const slotKey = getActiveData('konfig-slot',   'slot');
+    const pkKey   = getActiveData('konfig-buch',   'buch');
+    if (!adType || !slotKey || !pkKey) return null;
+    const preisstufe = document.querySelector('[name="konfig-ps"]:checked')?.value || 'listenpreis';
+    const aiRaw      = (document.getElementById('konfig-ai')?.value || '100000').replace(/\D/g, '');
+    const ai         = parseInt(aiRaw, 10) || 0;
+    return { adType, slotKey, pkKey, preisstufe, ai };
+  }
+
+  function _syncTKPBtn() {
+    const btn = document.getElementById('btn-konfig-merken');
+    if (!btn) return;
+    const cfg = getCurrentKonfig();
+    if (!cfg) { btn.textContent = LABELS.konfiguration_merken; btn.classList.remove('merken-active'); return; }
+    const fid   = `${cfg.adType}_${cfg.slotKey}_${cfg.pkKey.toLowerCase()}_${cfg.preisstufe}`;
+    const added = Merkliste.getItems().some(x => x.product_id === pid && x.format_id === fid);
+    btn.textContent = added ? '✓ Gemerkt' : LABELS.konfiguration_merken;
+    btn.classList.toggle('merken-active', added);
   }
 
   function recalc() {
@@ -2735,9 +2759,11 @@ function initPodcastKonfigurator(d) {
     if (!adType || !slotKey || !pkKey) {
       const el = document.getElementById('tkp-result');
       if (el) el.innerHTML = '<div class="konfig-result-empty">Bitte Spotformat und Platzierung waehlen.</div>';
+      _syncTKPBtn();
       return;
     }
     renderTKPResult(calcTKPPrice(tkpTable, adType, slotKey, pkKey, ai, preisstufe, volumeDiscounts), preisstufe, ai, pkKey);
+    _syncTKPBtn();
   }
 
   function wireSlotButtons() {
@@ -2809,24 +2835,70 @@ function initPodcastKonfigurator(d) {
 
   // Merken
   document.getElementById('btn-konfig-merken')?.addEventListener('click', () => {
-    const adType     = getActiveData('konfig-adtype', 'adtype');
-    const slotKey    = getActiveData('konfig-slot',   'slot');
-    const pkKey      = getActiveData('konfig-buch',   'buch');
-    const preisstufe = document.querySelector('[name="konfig-ps"]:checked')?.value || 'listenpreis';
-    const aiRaw      = (document.getElementById('konfig-ai')?.value || '').replace(/\D/g, '');
-    const ai         = parseInt(aiRaw, 10) || 0;
-    const result     = calcTKPPrice(tkpTable, adType, slotKey, pkKey, ai, preisstufe, volumeDiscounts);
-    const pkLabel    = pkKey === 'PK_II' ? 'Brand/Channel (PK II)' : 'Diese Show/Premium Targeting (PK I)';
+    const cfg = getCurrentKonfig();
+    if (!cfg) {
+      mlShowToast('Bitte Spotformat und Platzierung waehlen.', null, 2000);
+      return;
+    }
+    const { adType, slotKey, pkKey, preisstufe, ai } = cfg;
+    const fid      = `${adType}_${slotKey}_${pkKey.toLowerCase()}_${preisstufe}`;
+    const existing = Merkliste.getItems().find(x => x.product_id === pid && x.format_id === fid);
+    if (existing) {
+      Merkliste.removeItem(existing.item_id);
+      mlShowToast('Aus der Merkliste entfernt.', null, 2000);
+      _syncTKPBtn();
+      return;
+    }
+    const result = calcTKPPrice(tkpTable, adType, slotKey, pkKey, ai, preisstufe, volumeDiscounts);
+    if (!result) {
+      mlShowToast('Kein Preis fuer diese Konfiguration verfuegbar.', null, 2000);
+      return;
+    }
+    const adTypeShort = AD_TYPE_LABELS[adType] || adType;
+    const slotShort   = SLOT_LABELS[slotKey]   || slotKey;
+    const pkShort     = pkKey === 'PK_II' ? 'Brand/Channel' : 'Diese Show';
+    const fname       = `${adTypeShort} · ${slotShort} · ${pkShort} · ${num(ai)} AI`;
     showMerkenPopupPodcast({
-      name: d.name || '',
+      name:    d.name || '',
       summary: [
-        `${AD_TYPE_LABELS[adType] || adType} | ${SLOT_LABELS[slotKey] || slotKey} | ${pkLabel}`,
-        `Audio Impressions: ${num(ai)} | ${PREISSTUFE_LABEL[preisstufe] || preisstufe}`,
-        `Gesamtpreis: ${result ? num(result.gesamtpreis) + ' EUR' : 'n/a'}`,
+        fname,
+        `${PREISSTUFE_LABEL[preisstufe] || preisstufe} · ${num(result.gesamtpreis)} EUR`,
       ].join('\n'),
+      onConfirm: ({ von, bis, ohne }) => {
+        const sched = ohne
+          ? { type: 'none',       date: null,    label: 'Ohne festen Zeitraum', ad_close_label: null }
+          : { type: 'date_range', date: von || null, label: `${fmtDate(von)} bis ${fmtDate(bis)}`, ad_close_label: null };
+        const item = {
+          product_id:       pid,
+          product_name:     d.name     || '',
+          product_subtitle: d.subtitle || '',
+          product_type:     d.product_type || 'podcast',
+          format_id:        fid,
+          format_name:      fname,
+          schedule:         sched,
+          pricing: {
+            list_price:       null,
+            list_price_label: null,
+            price_locked:     true,
+            locked_tier:      preisstufe,
+            locked_price:     result.gesamtpreis,
+            locked_label:     `${num(ai)} AI · ${num(result.gesamtpreis)} EUR`,
+          },
+        };
+        const id = Merkliste.addItem(item);
+        if (id !== null) {
+          const mbvWarn = !result.mbv_check.erfuellt ? ` (MBV: ${num(result.mbv_check.mbv_value)} EUR)` : '';
+          mlShowToast(`"${fname}" gemerkt.${mbvWarn}`, () => { Merkliste.removeItem(id); _syncTKPBtn(); });
+        } else {
+          mlShowToast('Bereits in der Merkliste.', null, 2000);
+        }
+        _syncTKPBtn();
+      },
     });
   });
 
+  if (_activeModalUnsub) _activeModalUnsub();
+  _activeModalUnsub = Merkliste.subscribe(() => _syncTKPBtn());
   recalc();
 }
 

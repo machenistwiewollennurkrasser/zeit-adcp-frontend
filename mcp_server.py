@@ -1174,20 +1174,28 @@ def _build_pricing_magazin(p: dict) -> dict:
 
 
 def _build_pricing_newsletter(p: dict) -> dict:
+    ns  = get_newsletter_specifics(p)
+    npr = ns.get("pricing") or {}
     formats = []
     for f in get_newsletter_formats(p):
-        price = f.get("price_eur_net") or f.get("kulturpreis_eur_net")
-        if price is None:
-            cp = f.get("cluster_prices") or {}
-            price = next(iter(cp.values()), None) if cp else None
+        cp         = f.get("cluster_prices") or {}
+        flat_price = f.get("price_eur_net") or f.get("kulturpreis_eur_net")
         formats.append({
-            "format_name":  f.get("format_display_name") or f.get("format_id", ""),
-            "price_net_eur": price,
-            "booking_unit": f.get("price_unit"),
-            "auf_anfrage":  bool(f.get("auf_anfrage", False)),
+            "format_name":    f.get("format_display_name") or f.get("format_id", ""),
+            "price_net_eur":  flat_price if flat_price is not None else next(iter(cp.values()), None),
+            "cluster_prices": cp if cp else None,
+            "booking_unit":   f.get("price_unit"),
+            "auf_anfrage":    bool(f.get("auf_anfrage", False)),
         })
-    return {"currency": "EUR", "price_basis": "listenpreis_netto",
-            "formats": formats, "bp_levels": dict(_BP_LEVELS)}
+    return {
+        "currency":            "EUR",
+        "price_basis":         "listenpreis_netto",
+        "pricing_model":       get_newsletter_pricing_model(p),
+        "booking_unit":        npr.get("booking_unit"),
+        "applicable_clusters": npr.get("applicable_clusters"),
+        "formats":             formats,
+        "bp_levels":           dict(_BP_LEVELS),
+    }
 
 
 def _build_pricing_podcast(p: dict) -> dict:
@@ -1268,11 +1276,21 @@ def _build_schedule_magazin(p: dict) -> Optional[dict]:
 
 
 def _build_schedule_newsletter(p: dict) -> Optional[dict]:
-    freq = format_newsletter_schedule(p)
-    ns   = get_newsletter_specifics(p)
-    ch   = ns.get("channel") or {}
-    rule = ch.get("ad_close_rule") or ch.get("booking_deadline_rule")
-    return {"frequency": freq, "ad_close_rule": rule} if (freq or rule) else None
+    ns  = get_newsletter_specifics(p)
+    ch  = ns.get("channel") or {}
+    dl  = ns.get("deadlines") or {}
+    freq_label      = format_newsletter_schedule(p)
+    publication_days = ch.get("publication_days") or []
+    issues_per_year  = ch.get("issues_per_year")
+    anzeigenschluss  = dl.get("anzeigenschluss")
+    if not (freq_label or publication_days or issues_per_year or anzeigenschluss):
+        return None
+    return {
+        "frequency_label":   freq_label or None,
+        "publication_days":  publication_days,
+        "issues_per_year":   issues_per_year,
+        "anzeigenschluss":   anzeigenschluss,
+    }
 
 
 def _check_completeness(p: dict, top_type: str, pricing: dict,
@@ -1288,7 +1306,7 @@ def _check_completeness(p: dict, top_type: str, pricing: dict,
         missing.append("pricing.formats[].price")
     if top_type in ("magazin", "die_zeit") and not (schedule and schedule.get("issues")):
         missing.append("schedule.issues")
-    if top_type == "newsletter" and not (schedule and schedule.get("frequency")):
+    if top_type == "newsletter" and not (schedule and schedule.get("frequency_label")):
         missing.append("schedule.frequency")
     if not missing:
         level = "full"

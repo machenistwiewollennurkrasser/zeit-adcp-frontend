@@ -565,22 +565,32 @@ footer .footer-inner {
 .nl-schedule-row { display: flex; flex-wrap: wrap; gap: 24px; margin-bottom: 4px; }
 .nl-schedule-item { font-size: 14px; color: #444; }
 .nl-schedule-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #888; margin-bottom: 2px; }
-.nl-cal-wrap { margin: 0 -20px; padding: 0 20px; overflow-x: hidden; }
-.nl-cal-months { display: flex; flex-direction: column; gap: 20px; }
-.nl-cal-month-name { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #888; margin-bottom: 8px; }
+/* Kalender-Navigation */
+.nl-cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.nl-cal-nav-title { font-size: 14px; font-weight: 700; letter-spacing: .02em; }
+.nl-cal-nav-btns { display: flex; gap: 4px; }
+.nl-cal-nav-btn { background: none; border: 1px solid var(--black); width: 30px; height: 30px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+.nl-cal-nav-btn:hover { background: var(--yellow); }
+.nl-cal-nav-btn:disabled { border-color: #ccc; color: #ccc; cursor: default; }
+.nl-cal-nav-btn:disabled:hover { background: none; }
+/* Tag-Grid (single_issue) */
 .nl-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
 .nl-cal-header { font-size: 11px; font-weight: 600; color: #888; text-align: center; padding: 3px 0 6px; }
-.nl-day { min-height: 34px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #ccc; }
-.nl-day.pub { cursor: pointer; background: var(--gray-bg); color: var(--black); }
-.nl-day.pub:hover { background: #e0e0e0; }
-.nl-day.pub.selected { background: var(--black); color: #fff; font-weight: 700; }
-.nl-kw-rows { display: flex; flex-direction: column; }
-.nl-kw-row { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; cursor: pointer; gap: 12px; border-radius: 4px; padding-left: 4px; }
-.nl-kw-row:hover { background: var(--gray-bg); }
-.nl-kw-row.selected { background: var(--black); color: #fff; }
-.nl-kw-num { font-size: 11px; font-weight: 700; color: #888; min-width: 42px; text-align: right; }
-.nl-kw-row.selected .nl-kw-num { color: #ccc; }
-.nl-kw-range { font-size: 13px; }
+.nl-day { min-height: 34px; border: 1px solid transparent; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #ccc; }
+.nl-day.pub { cursor: pointer; background: var(--gray-bg); color: var(--black); border-color: #ddd; }
+.nl-day.pub:hover { background: var(--yellow); border-color: var(--black); }
+.nl-day.pub.selected { background: var(--yellow); border: 2px solid var(--black); font-weight: 700; }
+/* KW-Grid (kalenderwoche) */
+.nl-kw-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; }
+.nl-kw-box { border: 1px solid #ddd; padding: 10px 12px; cursor: pointer; border-radius: 2px; background: var(--gray-bg); }
+.nl-kw-box:hover { background: var(--yellow); border-color: var(--black); }
+.nl-kw-box.selected { background: var(--yellow); border: 2px solid var(--black); }
+.nl-kw-box.past { opacity: .4; cursor: default; border-color: #ddd; background: none; }
+.nl-kw-box.past:hover { background: none; border-color: #ddd; }
+.nl-kw-num { font-size: 16px; font-weight: 700; line-height: 1.2; }
+.nl-kw-range { font-size: 11px; color: #666; margin-top: 2px; }
+.nl-kw-box.selected .nl-kw-range { color: #444; }
+/* Formate */
 .nl-preisstufe-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
 .nl-formats-table { width: 100%; border-collapse: collapse; }
 .nl-formats-table th { text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #888; padding: 6px 10px; border-bottom: 2px solid #eee; }
@@ -934,7 +944,9 @@ function num(n) { return new Intl.NumberFormat('de-DE').format(n); }
 
 function fmtDate(s) {
   if (!s) return '—';
-  const d = new Date(s);
+  // Parse YYYY-MM-DD als lokales Datum, nicht UTC (verhindert Off-by-one bei negativem UTC-Offset)
+  const m = typeof s === 'string' && s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const d = m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(s);
   if (isNaN(d)) return s;
   return d.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
 }
@@ -2129,13 +2141,11 @@ function buildNewsletterModalHTML(d) {
 
   const isKW    = (pricing.booking_unit === 'kalenderwoche');
   const calHint = isKW ? LABELS.termin_hinweis_nl_kw : LABELS.termin_hinweis_nl;
-  const pubDays = (sched.publication_days || []);
-  const calHTML = buildNewsletterCalendar(pubDays, isKW);
   const calSection = `
     <div class="modal-section" id="nl-cal-section">
       <div class="modal-section-title">${LABELS.termin_waehlen}</div>
       <div style="font-size:13px;color:#888;margin-bottom:12px">${calHint}</div>
-      ${calHTML}
+      <div id="nl-cal-body"></div>
     </div>`;
 
   const preisstufeToggle = isFourCluster ? `
@@ -2192,67 +2202,58 @@ function buildNewsletterModalHTML(d) {
   return header + editorial + themes + audiences + reachSection + schedSection + calSection + formatsSection + footer;
 }
 
-function buildNewsletterCalendar(pubDays, isKW) {
-  const pubSet = new Set((pubDays || []).map(d => d.toLowerCase()));
-  const today  = new Date();
-  today.setHours(0, 0, 0, 0);
+const _MONTH_DE = ['Januar','Februar','Maerz','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const _DOW_IDX_JS = { mon:1, tue:2, wed:3, thu:4, fri:5, sat:6, sun:0 }; // JS Date.getDay()
+
+function buildNLCalMonth(pubDays, isKW, year, month, today, selectedDate, nextIssues) {
+  const fmtShort = d => d.toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit'});
 
   if (isKW) {
-    // Kalenderwoche-Modus: naechste 13 Wochen als Zeilen
-    const rows = [];
-    // Start: naechsten Montag finden
-    const start = new Date(today);
-    const dow = start.getDay(); // 0=So, 1=Mo, ...
-    const toMon = dow === 0 ? 1 : (8 - dow) % 7 || 7;
-    start.setDate(start.getDate() + toMon);
-
-    for (let w = 0; w < 13; w++) {
-      const mon = new Date(start);
-      mon.setDate(start.getDate() + w * 7);
-      const sun = new Date(mon);
-      sun.setDate(mon.getDate() + 6);
-      const kw  = getISOWeek(mon);
-      const fmtShort = d => d.toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit' });
-      rows.push(`<div class="nl-kw-row" data-kwdate="${fmtISO(mon)}" data-kwend="${fmtISO(sun)}" data-kw="${kw}">
-        <span class="nl-kw-num">${LABELS.kw_prefix} ${kw}</span>
-        <span class="nl-kw-range">${fmtShort(mon)} – ${fmtShort(sun)}</span>
+    // KW-Grid: alle Montage im Monat
+    const boxes = [];
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    for (let day = 1; day <= daysInMonth; day++) {
+      const d = new Date(year, month, day);
+      if (d.getDay() !== 1) continue; // nur Montage
+      const sun = new Date(d); sun.setDate(d.getDate() + 6);
+      const kw  = getISOWeek(d);
+      const iso = fmtISO(d);
+      const isPast  = d < today;
+      const isSel   = selectedDate && selectedDate.von === iso;
+      // find next_issues entry for ad_close_label
+      const ni = (nextIssues || []).find(x => x.kw_start === iso);
+      const cls = ['nl-kw-box', isPast ? 'past' : '', isSel ? 'selected' : ''].filter(Boolean).join(' ');
+      boxes.push(`<div class="${cls}" data-kwdate="${iso}" data-kwend="${fmtISO(sun)}" data-kw="${kw}" data-adclose="${ni ? ni.ad_close_label || '' : ''}">
+        <div class="nl-kw-num">${LABELS.kw_prefix} ${kw}</div>
+        <div class="nl-kw-range">${fmtShort(d)} – ${fmtShort(sun)}</div>
       </div>`);
     }
-    return `<div class="nl-cal-wrap"><div class="nl-kw-rows" id="nl-kw-rows">${rows.join('')}</div></div>`;
+    return `<div id="nl-cal-inner"><div class="nl-kw-grid">${boxes.join('')}</div></div>`;
   }
 
-  // single_issue-Modus: 3 Monate als Grid
-  const months = [];
-  const MONTH_DE = ['Januar','Februar','Maerz','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
-  const DOW_IDX  = { mon:1, tue:2, wed:3, thu:4, fri:5, sat:6, sun:0 }; // JS getDay()
-  const pubDowSet = new Set((pubDays || []).map(d => DOW_IDX[d.toLowerCase()]));
+  // Tag-Grid
+  const pubDowSet = new Set((pubDays || []).map(k => _DOW_IDX_JS[k] ?? -1));
+  const firstDay  = new Date(year, month, 1);
+  const daysInMon = new Date(year, month + 1, 0).getDate();
+  const startOff  = (firstDay.getDay() + 6) % 7; // 0=Mo
 
-  for (let mi = 0; mi < 3; mi++) {
-    const y  = today.getFullYear() + Math.floor((today.getMonth() + mi) / 12);
-    const m  = (today.getMonth() + mi) % 12;
-    const firstDay = new Date(y, m, 1);
-    const lastDay  = new Date(y, m + 1, 0);
-    const startDow = (firstDay.getDay() + 6) % 7; // 0=Mo offset
-
-    let cells = '';
-    const headers = DAY_ORDER.map(k => `<div class="nl-cal-header">${DAY_ABBR[k]}</div>`).join('');
-    // empty cells before first
-    for (let i = 0; i < startDow; i++) cells += '<div class="nl-day"></div>';
-    for (let day = 1; day <= lastDay.getDate(); day++) {
-      const date    = new Date(y, m, day);
-      const isPub   = pubDowSet.has(date.getDay()) && date >= today;
-      const iso     = fmtISO(date);
-      cells += isPub
-        ? `<div class="nl-day pub" data-date="${iso}">${day}</div>`
-        : `<div class="nl-day">${day}</div>`;
+  const headers = DAY_ORDER.map(k => `<div class="nl-cal-header">${DAY_ABBR[k]}</div>`).join('');
+  let cells = '';
+  for (let i = 0; i < startOff; i++) cells += '<div class="nl-day"></div>';
+  for (let day = 1; day <= daysInMon; day++) {
+    const d   = new Date(year, month, day);
+    const iso = fmtISO(d);
+    const isPub  = pubDowSet.has(d.getDay()) && d >= today;
+    const isSel  = isPub && iso === selectedDate;
+    const ni     = isPub ? (nextIssues || []).find(x => x.issue_date === iso) : null;
+    if (isPub) {
+      const cls = ['nl-day pub', isSel ? 'selected' : ''].filter(Boolean).join(' ');
+      cells += `<div class="${cls}" data-date="${iso}" data-adclose="${ni ? ni.ad_close_label || '' : ''}" data-fmtcloses="${ni && ni.format_ad_closes ? encodeURIComponent(JSON.stringify(ni.format_ad_closes)) : ''}">${day}</div>`;
+    } else {
+      cells += `<div class="nl-day">${day}</div>`;
     }
-    months.push(`
-      <div>
-        <div class="nl-cal-month-name">${MONTH_DE[m]} ${y}</div>
-        <div class="nl-cal-grid">${headers}${cells}</div>
-      </div>`);
   }
-  return `<div class="nl-cal-wrap"><div class="nl-cal-months" id="nl-cal-months">${months.join('')}</div></div>`;
+  return `<div id="nl-cal-inner"><div class="nl-cal-grid">${headers}${cells}</div></div>`;
 }
 
 function fmtISO(d) {
@@ -2268,113 +2269,122 @@ function getISOWeek(d) {
 }
 
 function initNewsletterModal(d) {
-  const pricing      = d.pricing  || {};
-  const sched        = d.schedule || {};
+  const pricing       = d.pricing  || {};
+  const sched         = d.schedule || {};
   const isFourCluster = pricing.pricing_model === 'four_cluster';
   const isKW          = pricing.booking_unit === 'kalenderwoche';
   const formats       = pricing.formats || [];
+  const pubDays       = sched.publication_days || [];
+  const nextIssues    = sched.next_issues || [];
 
-  let selectedDate = null; // ISO string for single_issue, or {von, bis, kw} for kalenderwoche
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const maxDate = new Date(today); maxDate.setMonth(maxDate.getMonth() + 12);
+
+  let calYear  = today.getFullYear();
+  let calMonth = today.getMonth();
+  let selectedDate = null;
   let selectedPS   = 'listenpreis';
 
   function getPrice(fidx) {
     const f = formats[fidx];
-    if (!f) return null;
-    if (f.auf_anfrage) return null;
-    if (isFourCluster) {
-      const ck = PREISSTUFE_TO_CLUSTER[selectedPS] || 'grundpreis';
-      return (f.cluster_prices || {})[ck];
-    }
+    if (!f || f.auf_anfrage) return null;
+    if (isFourCluster) return (f.cluster_prices || {})[PREISSTUFE_TO_CLUSTER[selectedPS] || 'grundpreis'];
     return f.price_net_eur;
   }
 
-  function updatePrices() {
-    document.querySelectorAll('.nl-price').forEach(el => {
-      const idx = parseInt(el.dataset.idx);
-      const p   = getPrice(idx);
-      el.textContent = p != null ? num(p) + ' EUR' : '—';
-    });
+  function fmtSelectedDate() {
+    if (!selectedDate) return '';
+    if (isKW) return `${LABELS.kw_prefix} ${selectedDate.kw}`;
+    return fmtDate(selectedDate);
   }
 
   function updateMerkenBtns() {
     document.querySelectorAll('.nl-merken-btn').forEach(btn => {
-      const label = selectedDate
-        ? LABELS.merken_mit_datum(formatSelectedDate())
-        : LABELS.merken;
-      btn.textContent = label;
+      btn.textContent = selectedDate ? LABELS.merken_mit_datum(fmtSelectedDate()) : LABELS.merken;
     });
   }
 
-  function formatSelectedDate() {
-    if (!selectedDate) return '';
-    if (isKW) return `KW ${selectedDate.kw}`;
-    return fmtDate(selectedDate);
+  function renderCalendar() {
+    const atMin = calYear === today.getFullYear() && calMonth === today.getMonth();
+    const atMax = calYear === maxDate.getFullYear() && calMonth === maxDate.getMonth();
+    const navHTML = `
+      <div class="nl-cal-nav">
+        <div class="nl-cal-nav-btns">
+          <button class="nl-cal-nav-btn" id="nl-prev" ${atMin ? 'disabled' : ''}>&#9664;</button>
+          <button class="nl-cal-nav-btn" id="nl-next" ${atMax ? 'disabled' : ''}>&#9654;</button>
+        </div>
+        <span class="nl-cal-nav-title">${_MONTH_DE[calMonth]} ${calYear}</span>
+      </div>`;
+    const innerHTML = buildNLCalMonth(pubDays, isKW, calYear, calMonth, today, selectedDate, nextIssues);
+    document.getElementById('nl-cal-body').innerHTML = navHTML + innerHTML;
+
+    const prevBtn = document.getElementById('nl-prev');
+    const nextBtn = document.getElementById('nl-next');
+    if (prevBtn) prevBtn.addEventListener('click', () => {
+      calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; }
+      renderCalendar();
+    });
+    if (nextBtn) nextBtn.addEventListener('click', () => {
+      calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; }
+      renderCalendar();
+    });
+
+    if (!isKW) {
+      document.querySelectorAll('#nl-cal-inner .nl-day.pub').forEach(cell => {
+        cell.addEventListener('click', () => {
+          selectedDate = cell.dataset.date === selectedDate ? null : cell.dataset.date;
+          renderCalendar();
+          updateMerkenBtns();
+        });
+      });
+    } else {
+      document.querySelectorAll('#nl-cal-inner .nl-kw-box:not(.past)').forEach(box => {
+        box.addEventListener('click', () => {
+          const wasSelected = selectedDate && selectedDate.von === box.dataset.kwdate;
+          selectedDate = wasSelected ? null : {von: box.dataset.kwdate, bis: box.dataset.kwend, kw: box.dataset.kw};
+          renderCalendar();
+          updateMerkenBtns();
+        });
+      });
+    }
   }
+
+  renderCalendar();
 
   // Preisstufe-Toggle (four_cluster only)
   if (isFourCluster) {
     const psBtns = document.querySelectorAll('#nl-preisstufe-btns .konfig-btn');
-    psBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        psBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        selectedPS = btn.dataset.ps;
-        updatePrices();
+    psBtns.forEach(btn => btn.addEventListener('click', () => {
+      psBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedPS = btn.dataset.ps;
+      document.querySelectorAll('.nl-price').forEach(el => {
+        const p = getPrice(parseInt(el.dataset.idx));
+        el.textContent = p != null ? num(p) + ' EUR' : '—';
       });
-    });
-  }
-
-  // Calendar selection — single_issue
-  if (!isKW) {
-    document.querySelectorAll('#nl-cal-months .nl-day.pub').forEach(cell => {
-      cell.addEventListener('click', () => {
-        const wasSelected = cell.classList.contains('selected');
-        document.querySelectorAll('#nl-cal-months .nl-day.pub').forEach(c => c.classList.remove('selected'));
-        if (!wasSelected) { cell.classList.add('selected'); selectedDate = cell.dataset.date; }
-        else               { selectedDate = null; }
-        updateMerkenBtns();
-      });
-    });
-  }
-
-  // Calendar selection — kalenderwoche
-  if (isKW) {
-    document.querySelectorAll('#nl-kw-rows .nl-kw-row').forEach(row => {
-      row.addEventListener('click', () => {
-        const wasSelected = row.classList.contains('selected');
-        document.querySelectorAll('#nl-kw-rows .nl-kw-row').forEach(r => r.classList.remove('selected'));
-        if (!wasSelected) {
-          row.classList.add('selected');
-          selectedDate = { von: row.dataset.kwdate, bis: row.dataset.kwend, kw: row.dataset.kw };
-        } else {
-          selectedDate = null;
-        }
-        updateMerkenBtns();
-      });
-    });
+    }));
   }
 
   // Merken-Buttons
   document.querySelectorAll('.nl-merken-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const fidx    = parseInt(btn.dataset.fidx);
-      const f       = formats[fidx] || {};
-      const price   = getPrice(fidx);
-      const psLabel = isFourCluster ? ` · ${PREISSTUFE_LABEL[selectedPS] || selectedPS}` : '';
+      const fidx     = parseInt(btn.dataset.fidx);
+      const f        = formats[fidx] || {};
+      const price    = getPrice(fidx);
+      const psLabel  = isFourCluster ? ` · ${PREISSTUFE_LABEL[selectedPS] || selectedPS}` : '';
       const priceStr = price != null ? ` · ${num(price)} EUR netto` : '';
-      const summary = `${f.format_name || '—'}${psLabel}${priceStr}`;
-
+      const summary  = `${f.format_name || '—'}${psLabel}${priceStr}`;
       if (selectedDate) {
         const dateLine = isKW
           ? `Kalenderwoche ${selectedDate.kw} (${fmtDate(selectedDate.von)} – ${fmtDate(selectedDate.bis)})`
           : fmtDate(selectedDate);
         showConfirmPopup(() => {
           alert(`Gemerkt: ${d.name}\n${summary}\nTermin: ${dateLine}\n(Speicher-Logik kommt in Etappe 5)`);
-        }, `${d.name}\n${summary}\nTermin: ${dateLine}\n${LABELS.verfuegbarkeit_hinweis}`);
+        });
       } else {
         showConfirmPopup(() => {
           alert(`Gemerkt (ohne Datum): ${d.name}\n${summary}\n(Speicher-Logik kommt in Etappe 5)`);
-        }, `${d.name}\n${summary}\n${LABELS.ohne_zeitraum}`);
+        });
       }
     });
   });

@@ -2557,14 +2557,6 @@ function buildDieZeitModalHTML(d) {
       <div class="modal-sub">${d.subtitle || ''}</div>
     </div>`;
 
-  const tabs = `
-    <div class="dz-tabs">
-      <button class="dz-tab active" data-tab="wochenzeitung">${LABELS.dz_wochenzeitung_tab}</button>
-      <button class="dz-tab" data-tab="regional">${LABELS.dz_regional_tab}</button>
-      <button class="dz-tab" data-tab="sonder">${LABELS.dz_sonder_tab}</button>
-    </div>`;
-
-  // --- Tab 1: Wochenzeitung ---
   const editorial = common.editorial_focus ? `
     <div class="modal-section">
       <div class="modal-section-title">${LABELS.redaktioneller_fokus}</div>
@@ -2613,70 +2605,15 @@ function buildDieZeitModalHTML(d) {
       <p style="font-size:13px;color:#888">Formate und Preise folgen in Welle 2B.</p>
     </div>`;
 
-  const wochenzeitungContent = editorial + themenwelten + zielgruppen + reachSection + calSection + formatePlaceholder;
-
-  // --- Tab 2: Regionalausgaben ---
-  const regionalCards = (d.regional_editions || []).map(re => `
-    <div class="dz-card" data-pid="${re.product_id}">
-      <div class="dz-card-name">${re.product_name}</div>
-      <div class="dz-card-sub">${LABELS.dz_regional_sub}</div>
-    </div>`).join('');
-
-  const regionalContent = `
-    <div class="modal-section">
-      <div class="dz-card-grid">${regionalCards || '<p style="color:#888;font-size:13px">Keine Regionalausgaben gefunden.</p>'}</div>
-    </div>`;
-
-  // --- Tab 3: Sonderveroeffentlichungen ---
-  const sonderItems = (d.all_speziale || []).map(sp => `
-    <div class="dz-card" data-pid="${sp.speziale_product_id}">
-      <div class="dz-card-name">${sp.product_name}</div>
-      <div class="dz-card-sub">${sp.cluster_display_name || ''}</div>
-    </div>`).join('');
-
-  const sonderContent = `
-    <div class="modal-section">
-      <div class="dz-card-grid">${sonderItems || '<p style="color:#888;font-size:13px">Keine Sonderveroeffentlichungen gefunden.</p>'}</div>
-    </div>`;
-
   const footer = `
     <div class="modal-section" style="background:var(--gray-bg)">
       <div style="font-size:12px;color:#888">${PREIS_HINWEIS}</div>
     </div>`;
 
-  return `${header}${tabs}
-    <div class="dz-tab-content active" data-tab-content="wochenzeitung">${wochenzeitungContent}</div>
-    <div class="dz-tab-content" data-tab-content="regional">${regionalContent}</div>
-    <div class="dz-tab-content" data-tab-content="sonder">${sonderContent}</div>
-    ${footer}`;
+  return header + editorial + themenwelten + zielgruppen + reachSection + calSection + formatePlaceholder + footer;
 }
 
 function initDieZeitModal(d) {
-  // Sub-Reiter
-  document.querySelectorAll('.dz-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.dz-tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.dz-tab-content').forEach(c => c.classList.remove('active'));
-      tab.classList.add('active');
-      document.querySelector(`[data-tab-content="${tab.dataset.tab}"]`).classList.add('active');
-    });
-  });
-
-  // Regional: Magazin-Modal oeffnen
-  document.querySelectorAll('[data-tab-content="regional"] .dz-card').forEach(card => {
-    card.addEventListener('click', () => {
-      openMagazinModal(card.dataset.pid, card.querySelector('.dz-card-name').textContent, LABELS.dz_regional_sub);
-    });
-  });
-
-  // Speziale: Platzhalter
-  document.querySelectorAll('[data-tab-content="sonder"] .dz-card').forEach(card => {
-    card.addEventListener('click', () => {
-      alert('Sonderveroeffentlichungen-Detail-Modal kommt in naechster Iteration.');
-    });
-  });
-
-  // Kalender
   initDieZeitCalendar(d.schedule || {});
 }
 

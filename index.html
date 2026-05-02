@@ -818,6 +818,7 @@ footer .footer-inner {
 .ml-print-hdr    { display: none; }
 .ml-print-sum    { display: none; }
 .ml-print-footer { display: none; }
+.ml-print-body   { display: none; }
 
 @media print {
   @page { margin: 15mm 18mm; }
@@ -826,7 +827,11 @@ footer .footer-inner {
     transform: none !important; box-shadow: none !important; }
   .ml-backdrop { display: none !important; }
   .ml-close-btn, .ml-footer-actions, .ml-footer, .ml-tier-bar,
-  .ml-panel-hdr, .ml-remove-btn { display: none !important; }
+  .ml-panel-hdr, .ml-remove-btn, .ml-print-sum { display: none !important; }
+
+  /* live Items ausgeblendet, Print-Body eingeblendet */
+  .ml-body { display: none !important; }
+  .ml-print-body { display: block !important; }
 
   /* Druckkopf */
   .ml-print-hdr {
@@ -838,27 +843,31 @@ footer .footer-inner {
   .ml-print-hdr-title { font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
   .ml-print-hdr-sub   { font-size: 12px; color: #555; margin-top: 4px; }
 
-  /* Body / Gruppen */
-  .ml-body { overflow: visible !important; }
-  .ml-group { page-break-inside: avoid; border-bottom: 1px solid #ddd; margin-bottom: 10px; padding-bottom: 6px; }
+  /* Gruppen */
+  .ml-print-group { page-break-inside: avoid; margin-bottom: 20px; }
   .ml-group-hdr { background: none !important; padding: 10px 0 6px; border-top: 1px solid #000; border-bottom: none !important; }
   .ml-group-name { font-size: 14px; font-weight: 700; }
   .ml-group-sub  { font-size: 11px; color: #666; }
-  .ml-item { padding: 5px 0; border-top: 1px solid #eee; }
-  .ml-item:hover { background: none !important; }
-  .ml-item-format { font-size: 13px; font-weight: 600; }
-  .ml-item-meta { font-size: 11px; color: #555; }
-  .ml-item-price { font-weight: 700; color: #000; }
-  .ml-locked-badge { display: none !important; }
 
-  /* Gesamtsumme */
-  .ml-print-sum {
-    display: flex !important; justify-content: space-between; align-items: center;
-    border-top: 2px solid #000; padding-top: 12px; margin-top: 16px;
-    font-size: 15px; font-weight: 700;
+  /* Item-Tabelle */
+  .ml-print-item-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
+  .ml-print-item-table thead th {
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
+    color: #666; padding: 3px 8px 6px; border-bottom: 1px solid #ccc;
   }
-  .ml-print-sum-label { letter-spacing: .03em; }
-  .ml-print-sum-value { font-variant-numeric: tabular-nums; }
+  .ml-pt-desc  { text-align: left; }
+  .ml-pt-price { text-align: right; white-space: nowrap; width: 19%; }
+  .ml-print-item-table tbody td { padding: 7px 8px; border-bottom: 1px solid #eee; vertical-align: top; }
+  .ml-print-item-table tbody tr:last-child td { border-bottom: none; }
+  .ml-pt-meta { font-size: 11px; color: #666; margin-top: 2px; }
+  .ml-pt-br   { font-size: 10px; color: #888; margin-top: 2px; }
+
+  /* Gesamtsummen-Tabelle */
+  .ml-print-totals { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 24px; }
+  .ml-print-totals td { padding: 5px 8px; }
+  .ml-print-totals tr:first-child td { border-top: 2px solid #000; padding-top: 12px; }
+  .ml-pt-endpreis td { font-weight: 700; font-size: 15px; padding-top: 8px; }
+  .ml-pt-savings td { padding-top: 6px; border-top: 1px solid #ddd; color: #444; }
 
   /* Druckfooter */
   .ml-print-footer {
@@ -1088,6 +1097,7 @@ footer .footer-inner {
     </select>
   </div>
   <div class="ml-body" id="ml-body"></div>
+  <div id="ml-print-body" class="ml-print-body"></div>
   <div class="ml-print-sum">
     <span class="ml-print-sum-label">Gesamtbudget netto</span>
     <span class="ml-print-sum-value" id="ml-print-sum-value"></span>
@@ -1235,13 +1245,14 @@ window.Merkliste = (() => {
   function _normalizePricing(pricing) {
     if (!pricing || typeof pricing !== 'object') {
       return {
-        list_price: null, list_price_label: null,
+        list_price: null, list_price_full: null, list_price_label: null,
         price_locked: false, locked_tier: null, locked_price: null, locked_label: null,
         currency: 'EUR',
       };
     }
     return {
       list_price:       pricing.list_price       ?? null,
+      list_price_full:  pricing.list_price_full  ?? pricing.list_price ?? null,
       list_price_label: pricing.list_price_label ?? null,
       price_locked:     pricing.price_locked      ? true : false,
       locked_tier:      pricing.locked_tier       ?? null,
@@ -3831,6 +3842,7 @@ function initDieZeitModal(d) {
         schedule:         sched,
         pricing: {
           list_price:       Math.round(price),
+          list_price_full:  Math.round(listPrice),
           list_price_label: `${num(Math.round(price))} EUR netto${brSuffix}`,
           price_locked:     false,
           locked_tier:      null,
@@ -4242,27 +4254,99 @@ document.getElementById('ml-reset-btn').addEventListener('click', () => {
 
 // PDF-Export
 document.getElementById('ml-pdf-btn').addEventListener('click', () => {
-  const today = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const today     = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const tierLabel = document.getElementById('ml-tier-select').selectedOptions[0]?.text || 'Listenpreis';
-  // Gesamtbudget berechnen
-  const items = Merkliste.getItems();
-  let total = 0;
-  let hasUnresolved = false;
+  const items     = Merkliste.getItems();
+
+  // Gruppen aufbauen
+  const groupMap = new Map();
   items.forEach(item => {
-    const p = item.pricing;
-    if (p.price_locked && p.locked_price != null)       total += p.locked_price;
-    else if (!p.price_locked && p.list_price != null)   total += p.list_price;
-    else                                                 hasUnresolved = true;
+    if (!groupMap.has(item.product_id)) {
+      groupMap.set(item.product_id, { product_name: item.product_name, product_subtitle: item.product_subtitle, items: [] });
+    }
+    groupMap.get(item.product_id).items.push(item);
   });
-  const sumStr = hasUnresolved
-    ? `${num(Math.round(total))} EUR + Positionen auf Anfrage`
-    : `${num(Math.round(total))} EUR`;
-  // Druckinhalte setzen
+
+  let totalListFull = 0;
+  let totalEndpreis = 0;
+  let hasUnresolved = false;
+
+  let groupsHtml = '';
+  groupMap.forEach(group => {
+    const rows = group.items.map(item => {
+      const p = item.pricing;
+      let listFull, endpreis, brSuffix = '';
+
+      if (p.price_locked) {
+        listFull = endpreis = p.locked_price;
+      } else {
+        listFull = p.list_price_full ?? p.list_price;
+        endpreis = p.list_price;
+        if (listFull != null && endpreis != null && listFull !== endpreis) {
+          const m = (p.list_price_label || '').match(/\(([^)]+)\)$/);
+          if (m) brSuffix = m[1];
+        }
+      }
+
+      if (endpreis != null) {
+        totalListFull += listFull ?? endpreis;
+        totalEndpreis += endpreis;
+      } else {
+        hasUnresolved = true;
+      }
+
+      const schedLabel = item.schedule?.label || item.schedule?.date || '';
+      const asLabel    = item.schedule?.ad_close_label ? `AS: ${item.schedule.ad_close_label}` : '';
+      const metaStr    = [schedLabel, asLabel].filter(Boolean).join(' · ');
+      const listCell   = listFull != null ? `${num(Math.round(listFull))} EUR` : 'auf Anfrage';
+      const endCell    = endpreis  != null ? `${num(Math.round(endpreis))} EUR` : 'auf Anfrage';
+
+      return `<tr>
+        <td class="ml-pt-desc">
+          <strong>${item.format_name || '&mdash;'}</strong>
+          ${metaStr ? `<div class="ml-pt-meta">${metaStr}</div>` : ''}
+        </td>
+        <td class="ml-pt-price">${listCell}</td>
+        <td class="ml-pt-price">${endCell}${brSuffix ? `<div class="ml-pt-br">${brSuffix}</div>` : ''}</td>
+      </tr>`;
+    }).join('');
+
+    groupsHtml += `<div class="ml-print-group">
+      <div class="ml-group-hdr">
+        <div class="ml-group-name">${group.product_name}</div>
+        ${group.product_subtitle ? `<div class="ml-group-sub">${group.product_subtitle}</div>` : ''}
+      </div>
+      <table class="ml-print-item-table">
+        <thead><tr>
+          <th class="ml-pt-desc">Position</th>
+          <th class="ml-pt-price">Listenpreis</th>
+          <th class="ml-pt-price">Endpreis</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  });
+
+  // Gesamtsummen
+  const savings      = Math.round(totalListFull - totalEndpreis);
+  const sfx          = hasUnresolved ? ' + Positionen auf Anfrage' : '';
+  const totalListStr = `${num(Math.round(totalListFull))} EUR${sfx}`;
+  const totalEndStr  = `${num(Math.round(totalEndpreis))} EUR${sfx}`;
+
+  const totalsHtml = `<table class="ml-print-totals">
+    <tr><td>Listenpreis Gesamt</td><td class="ml-pt-price">${totalListStr}</td></tr>
+    <tr class="ml-pt-endpreis"><td>Endpreis Gesamt</td><td class="ml-pt-price">${totalEndStr}</td></tr>
+    ${savings > 0 ? `<tr class="ml-pt-savings"><td>Ersparnis durch Branchenrabatt</td><td class="ml-pt-price">${num(savings)} EUR</td></tr>` : ''}
+  </table>`;
+
+  // Druckkopf + Footer befuellen
   document.getElementById('ml-print-date').textContent      = `Stand: ${today}`;
-  document.getElementById('ml-print-tier-line').textContent =
-    `Preisstufe: ${tierLabel} · alle Preise netto zzgl. MwSt.`;
-  document.getElementById('ml-print-sum-value').textContent = sumStr;
+  document.getElementById('ml-print-tier-line').textContent = `Preisstufe: ${tierLabel} · alle Preise netto zzgl. MwSt.`;
   document.getElementById('ml-print-footer-date').textContent = today;
+
+  // Print-Body injizieren
+  document.getElementById('ml-print-body').innerHTML = groupsHtml + totalsHtml;
+
   window.print();
 });
 

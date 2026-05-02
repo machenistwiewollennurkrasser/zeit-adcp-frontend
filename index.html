@@ -665,6 +665,21 @@ footer .footer-inner {
 .dz-sp-pill-date { font-size: 11px; color: #888; margin-top: 3px; }
 .dz-theme-pills { display: flex; flex-wrap: wrap; gap: 6px; }
 .dz-theme-pill { background: #eef2ff; border: 1px solid #c7d2fe; padding: 4px 10px; font-size: 12px; border-radius: 2px; }
+.dz-br-toggle { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.dz-br-btn { background: var(--gray-bg); color: var(--black); border: 1px solid #ccc; padding: 6px 12px; font-size: 12px; font-family: inherit; cursor: pointer; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.dz-br-btn.active { background: var(--black); color: var(--white); border-color: var(--black); }
+.dz-br-btn:hover:not(.active) { background: #e8e8e8; }
+.dz-format-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 4px; }
+.dz-format-table th { text-align: left; padding: 8px 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; border-bottom: 2px solid var(--black); font-weight: 700; white-space: nowrap; }
+.dz-format-table td { padding: 8px 10px; border-bottom: 1px solid #e8e8e8; vertical-align: middle; }
+.dz-format-table tr:last-child td { border-bottom: none; }
+.dz-price-cell { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dz-action-cell { text-align: right; white-space: nowrap; }
+.dz-format-size { font-size: 12px; color: #888; }
+.dz-merken-btn { background: var(--black); color: var(--white); border: none; padding: 6px 12px; font-size: 12px; font-family: inherit; cursor: pointer; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; }
+.dz-merken-btn.merken-active { background: var(--yellow); color: var(--black); }
+.dz-merken-btn:hover:not(.merken-active) { background: #333; }
+.dz-formate-hinweis { font-size: 12px; color: #888; margin-top: 12px; font-style: italic; }
 
 .dz-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; padding: 16px 0; }
 .dz-card { border: 1px solid var(--black); padding: 16px; cursor: pointer; background: var(--white); }
@@ -3625,25 +3640,166 @@ function buildDieZeitModalHTML(d) {
       <div id="dz-issue-detail" style="display:none"></div>
     </div>`;
 
-  const formatePlaceholder = `
-    <div class="modal-section" style="background:var(--gray-bg)">
-      <div class="modal-section-title">${LABELS.formate_und_preise}</div>
-      <p style="font-size:13px;color:#888">Formate und Preise folgen in Welle 2B.</p>
-    </div>`;
+  const idc     = d.industry_discount_clusters || [];
+  const formats = d.ad_formats || [];
+
+  const brBtns = idc.map(c => {
+    const n      = c.cluster_key.match(/^br(\d+)/)?.[1] || '';
+    const brKey  = `br${n}`;
+    const label  = `BR${n} ${Math.round(c.discount_pct_default)}%`;
+    return `<button class="dz-br-btn" data-br-key="${brKey}" title="${c.label_external}">${label}</button>`;
+  }).join('');
+
+  const formatRows = formats.map(fmt => {
+    const discMap = {};
+    (fmt.industry_discounts || []).forEach(disc => {
+      discMap[disc.cluster_key.split('_')[0]] = disc.price_net_eur;
+    });
+    const discAttr = JSON.stringify(discMap).replace(/"/g, '&quot;');
+    const size = (fmt.type_area_width_mm != null && fmt.type_area_height_mm != null)
+      ? `${fmt.type_area_width_mm} &times; ${fmt.type_area_height_mm} mm`
+      : '&mdash;';
+    return `<tr data-list-price="${fmt.price_net_eur}" data-discounts="${discAttr}">
+      <td><strong>${fmt.format_name}</strong></td>
+      <td><span class="dz-format-size">${size}</span></td>
+      <td class="dz-price-cell">${num(Math.round(fmt.price_net_eur))} EUR</td>
+      <td class="dz-action-cell"><button class="dz-merken-btn" data-format-name="${fmt.format_name}">${LABELS.merken}</button></td>
+    </tr>`;
+  }).join('');
+
+  const formateSection = formats.length ? `
+    <div class="modal-section">
+      <div class="modal-section-title">${LABELS.formate_und_preise} &middot; Standardformate</div>
+      <div id="dz-br-toggle" class="dz-br-toggle">
+        <button class="dz-br-btn active" data-br-key="listenpreis">Listenpreis</button>
+        ${brBtns}
+      </div>
+      <table class="dz-format-table">
+        <thead><tr>
+          <th>Format</th><th>Groesse</th>
+          <th style="text-align:right">Preis netto</th><th></th>
+        </tr></thead>
+        <tbody id="dz-format-tbody">${formatRows}</tbody>
+      </table>
+      <div class="dz-formate-hinweis">Sonderformate, Beilagen und Premium-Aufschlaege auf Anfrage.</div>
+    </div>` : '';
 
   const footer = `
     <div class="modal-section" style="background:var(--gray-bg)">
       <div style="font-size:12px;color:#888">${PREIS_HINWEIS}</div>
     </div>`;
 
-  return header + editorial + themenwelten + zielgruppen + reachSection + calSection + formatePlaceholder + footer;
+  return header + editorial + themenwelten + zielgruppen + reachSection + calSection + formateSection + footer;
 }
 
 function initDieZeitModal(d) {
-  initDieZeitCalendar(d.schedule || {});
+  const pid = d.product_id || '';
+  let   brKey = 'listenpreis';
+
+  function _getIss() {
+    const sel = document.querySelector('#dz-cal-body .dz-day.issue.selected');
+    if (!sel?.dataset.date) return null;
+    return (d.schedule?.issues || []).find(x => x.publication_date === sel.dataset.date) || null;
+  }
+
+  function _buildDZSchedule() {
+    const iss = _getIss();
+    if (!iss) return { type: 'none', date: null, label: null, ad_close_label: null };
+    return {
+      type:           'date',
+      date:           iss.publication_date,
+      label:          fmtDate(iss.publication_date),
+      ad_close_label: iss.booking_deadline_label || null,
+    };
+  }
+
+  function _syncDZBtns() {
+    const sched = _buildDZSchedule();
+    const datum = sched.date ? fmtDate(sched.date) : null;
+    document.querySelectorAll('.dz-merken-btn').forEach(btn => {
+      const fname = btn.dataset.formatName || '';
+      const fid   = `${fname}_${brKey}`;
+      const added = Merkliste.isAdded(pid, fid, sched.date);
+      btn.textContent = added ? '✓ Gemerkt' : (datum ? LABELS.merken_mit_datum(datum) : LABELS.merken);
+      btn.classList.toggle('merken-active', added);
+    });
+  }
+
+  function _updateDZPrices() {
+    document.querySelectorAll('#dz-format-tbody tr').forEach(row => {
+      const listPrice = parseFloat(row.dataset.listPrice);
+      const discounts = JSON.parse(row.dataset.discounts || '{}');
+      const price = brKey === 'listenpreis' ? listPrice : (discounts[brKey] ?? listPrice);
+      row.querySelector('.dz-price-cell').textContent = `${num(Math.round(price))} EUR`;
+    });
+  }
+
+  // BR-Toggle
+  document.querySelectorAll('#dz-br-toggle .dz-br-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#dz-br-toggle .dz-br-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      brKey = btn.dataset.brKey;
+      _updateDZPrices();
+      _syncDZBtns();
+    });
+  });
+
+  // Merken
+  document.querySelectorAll('.dz-merken-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const fname    = btn.dataset.formatName || '';
+      const fid      = `${fname}_${brKey}`;
+      const sched    = _buildDZSchedule();
+      const existing = Merkliste.getItems().find(x =>
+        x.product_id === pid && x.format_id === fid && (x.schedule?.date || null) === sched.date
+      );
+      if (existing) {
+        Merkliste.removeItem(existing.item_id);
+        mlShowToast(`"${fname}" entfernt.`, null, 2000);
+        _syncDZBtns();
+        return;
+      }
+      const row       = btn.closest('tr');
+      const listPrice = parseFloat(row.dataset.listPrice);
+      const discounts = JSON.parse(row.dataset.discounts || '{}');
+      const price     = brKey === 'listenpreis' ? listPrice : (discounts[brKey] ?? listPrice);
+      const brSuffix  = brKey !== 'listenpreis' ? ` (${brKey.toUpperCase()})` : '';
+      const item = {
+        product_id:       pid,
+        product_name:     d.name     || '',
+        product_subtitle: d.subtitle || '',
+        product_type:     d.product_type || 'wochenzeitung',
+        format_id:        fid,
+        format_name:      fname,
+        schedule:         sched,
+        pricing: {
+          list_price:       Math.round(price),
+          list_price_label: `${num(Math.round(price))} EUR netto${brSuffix}`,
+          price_locked:     false,
+          locked_tier:      null,
+          locked_price:     null,
+          locked_label:     null,
+        },
+      };
+      const id = Merkliste.addItem(item);
+      if (id !== null) {
+        const dateLabel = sched.date ? ` (${fmtDate(sched.date)})` : '';
+        mlShowToast(`"${fname}"${dateLabel} gemerkt.`, () => { Merkliste.removeItem(id); _syncDZBtns(); });
+      } else {
+        mlShowToast('Bereits in der Merkliste.', null, 2000);
+      }
+      _syncDZBtns();
+    });
+  });
+
+  if (_activeModalUnsub) _activeModalUnsub();
+  _activeModalUnsub = Merkliste.subscribe(() => _syncDZBtns());
+  initDieZeitCalendar(d.schedule || {}, () => _syncDZBtns());
+  _syncDZBtns();
 }
 
-function initDieZeitCalendar(sch) {
+function initDieZeitCalendar(sch, onDateChange) {
   const issues = sch.issues || [];
   if (!issues.length) return;
 
@@ -3726,6 +3882,7 @@ function initDieZeitCalendar(sch) {
         selectedDate = wasSel ? null : cell.dataset.date;
         renderCalendar();
         renderIssueDetail();
+        if (onDateChange) onDateChange(selectedDate);
       });
       cell.addEventListener('mouseenter', () => _showNLTooltip(cell, _dzTipHTML(cell)));
       cell.addEventListener('mouseleave', _hideNLTooltip);
@@ -3787,6 +3944,7 @@ function initDieZeitCalendar(sch) {
       if (selectedDate && filterThemes && !issueByDate[selectedDate]?.has_special_themes) {
         selectedDate = null;
         renderIssueDetail();
+        if (onDateChange) onDateChange(selectedDate);
       }
       renderCalendar();
     });

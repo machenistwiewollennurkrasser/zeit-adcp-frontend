@@ -1,5 +1,5 @@
 """
-ZEIT AdCP MCP Server - v1.5.5
+ZEIT AdCP MCP Server - v1.6.0
 
 MCP-konformer Server fuer ZEIT Advise Werbeinventar-Discovery.
 Implementiert Model Context Protocol (MCP) ueber JSON-RPC 2.0.
@@ -23,6 +23,9 @@ v1.5.5: Preisbezeichnung vereinheitlicht: alle Preise als
       format_candidates Unterstuetzung fuer DIE ZEIT Format-Uebersicht.
       Hilfsfunktionen fmt_price() und price_line() fuer konsistente
       Preisformatierung in allen Endpoints.
+v1.6.0: DIE ZEIT Wochenzeitung Detail-Endpoint: 56 Issues mit
+      booking_deadline_label/premium_deadline_label, linked_speziale,
+      special_theme_clusters, regional_editions, all_speziale.
 """
 
 from fastapi import FastAPI, Request, HTTPException
@@ -212,7 +215,7 @@ app = FastAPI(
         "MCP-konformer Server fuer ZEIT Advise Werbeinventar-Discovery. "
         "Holtzbrinck AI Exploration Program, San Francisco 2026."
     ),
-    version="1.5.5",
+    version="1.6.0",
     docs_url="/docs" if ENVIRONMENT == "development" else None,
 )
 
@@ -351,7 +354,7 @@ MCP_TOOLS = [
 async def root():
     return {
         "name": "ZEIT AdCP MCP Server",
-        "version": "1.5.5",
+        "version": "1.6.0",
         "protocol": "mcp",
         "protocol_version": "2024-11-05",
         "endpoints": {
@@ -401,7 +404,7 @@ def handle_initialize(rpc_request):
     return JSONRPCResponse(
         result={
             "protocolVersion": "2024-11-05",
-            "serverInfo": {"name": "ZEIT AdCP MCP Server", "version": "1.5.5"},
+            "serverInfo": {"name": "ZEIT AdCP MCP Server", "version": "1.6.0"},
             "capabilities": {"tools": {}}
         },
         id=rpc_request.id
@@ -1261,6 +1264,80 @@ def _build_pricing_podcast(p: dict) -> dict:
     }
 
 
+def _build_die_zeit_wochenzeitung(p: dict) -> dict:
+    """Reichert die 56 Issues mit Labels auf und baut Regional- und Speziale-Listen."""
+    ps = p.get("print_specifics", {})
+    r  = get_reach(p)
+
+    reach = {
+        "circulation_total": r.get("circulation_total"),
+        "subscribers_total": r.get("subscribers_total"),
+        "reader_total":      r.get("reader_total"),
+        "source":            r.get("source"),
+    }
+
+    issues_out = []
+    for iss in ps.get("issues", []):
+        bd    = iss.get("booking_deadline")
+        bt    = iss.get("booking_deadline_time_local", "10:00")
+        ppd   = iss.get("premium_placement_booking_deadline")
+        ppt   = iss.get("premium_placement_booking_deadline_time_local", "10:00")
+        bd_d  = _date.fromisoformat(bd)  if bd  else None
+        ppd_d = _date.fromisoformat(ppd) if ppd else None
+        issues_out.append({
+            "issue_number":               iss.get("issue_number_sequential"),
+            "publication_date":           iss.get("publication_date"),
+            "publication_weekday":        iss.get("publication_weekday"),
+            "is_special_publication_date": bool(iss.get("is_special_publication_date")),
+            "booking_deadline":           f"{bd}T{bt}:00" if bd else None,
+            "booking_deadline_label":     _fmt_ad_close_label(bd_d, bt)   if bd_d  else None,
+            "premium_deadline":           f"{ppd}T{ppt}:00" if ppd else None,
+            "premium_deadline_label":     _fmt_ad_close_label(ppd_d, ppt) if ppd_d else None,
+            "has_special_themes":         bool(iss.get("has_special_themes")),
+            "linked_speziale":            iss.get("linked_speziale") or [],
+            "issue_themes":               iss.get("issue_themes") or [],
+        })
+
+    schedule = {
+        "issues_per_year":      ps.get("issue_count_per_year"),
+        "issues_regular":       ps.get("issue_count_regular"),
+        "issues_special_dates": sum(1 for i in issues_out if i["is_special_publication_date"]),
+        "issues":               issues_out,
+    }
+
+    # Regionalausgaben alphabetisch sortiert nach ID
+    regional_editions = []
+    for rid in sorted(ZEIT_REGIONAL_IDS):
+        rp = _find_product(rid)
+        if rp:
+            regional_editions.append({
+                "product_id":   rid,
+                "product_name": rp.get("product_name", rid),
+            })
+
+    # Alle Speziale aus linked_speziale aller Issues dedupliziert
+    seen: dict = {}
+    for iss in issues_out:
+        for sp in iss.get("linked_speziale", []):
+            sid = sp.get("speziale_product_id")
+            if sid and sid not in seen:
+                seen[sid] = {
+                    "speziale_product_id":  sid,
+                    "product_name":         sp.get("theme_display_name", sid),
+                    "cluster_id":           sp.get("cluster_id"),
+                    "cluster_display_name": sp.get("cluster_display_name"),
+                }
+    all_speziale = list(seen.values())
+
+    return {
+        "reach":                  reach,
+        "schedule":               schedule,
+        "regional_editions":      regional_editions,
+        "all_speziale":           all_speziale,
+        "special_theme_clusters": ps.get("special_theme_clusters") or [],
+    }
+
+
 def _build_schedule_magazin(p: dict) -> Optional[dict]:
     issues = []
     for iss in get_issues(p):
@@ -1460,6 +1537,24 @@ async def product_detail(product_id: str):
         subtype  = _die_zeit_subtype(p) if top_type == "die_zeit" else None
         common   = _build_common(p)
 
+        # Wochenzeitung: eigener Zweig mit 56-Issues-Struktur
+        if top_type == "die_zeit" and subtype == "wochenzeitung":
+            wz = _build_die_zeit_wochenzeitung(p)
+            return {
+                "product_id":             p.get("product_id"),
+                "name":                   p.get("product_name"),
+                "subtitle":               _product_subtitle(p),
+                "product_type":           "wochenzeitung",
+                "die_zeit_subtype":       "wochenzeitung",
+                "common":                 common,
+                "reach":                  wz["reach"],
+                "schedule":               wz["schedule"],
+                "pricing":                None,
+                "regional_editions":      wz["regional_editions"],
+                "all_speziale":           wz["all_speziale"],
+                "special_theme_clusters": wz["special_theme_clusters"],
+            }
+
         if top_type in ("magazin", "die_zeit"):
             reach    = _build_reach_magazin(p)
             pricing  = _build_pricing_magazin(p)
@@ -1504,7 +1599,7 @@ async def health():
 
     return {
         "status": "ok",
-        "version": "1.5.5",
+        "version": "1.6.0",
         "timestamp": datetime.utcnow().isoformat() + "Z",
         "environment": ENVIRONMENT,
         "schema_version": "3.0",
@@ -1533,7 +1628,7 @@ async def adagents_discovery():
 async def startup_event():
     logger.info("=" * 60)
     logger.info("ZEIT AdCP MCP Server gestartet")
-    logger.info("Version: 1.5.5")
+    logger.info("Version: 1.6.0")
     logger.info(f"Environment: {ENVIRONMENT}")
     logger.info(f"Schema-Version: 3.0")
     logger.info(f"Produkte geladen: {len(product_index.products)}")

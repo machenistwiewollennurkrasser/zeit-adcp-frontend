@@ -3008,7 +3008,7 @@ function buildNewsletterModalHTML(d) {
       <td>${f.format_name || '—'}</td>
       <td>${priceCell}</td>
       <td style="font-size:13px;color:#666">${f.booking_unit || pricing.booking_unit || ''}</td>
-      <td><button class="btn-merken nl-merken-btn" data-fidx="${i}">${LABELS.merken}</button></td>
+      <td><button class="btn-merken nl-merken-btn" data-fidx="${i}" data-format-id="${f.format_name || ''}">${LABELS.merken}</button></td>
     </tr>`;
   }).join('');
   const formatsSection = formats.length ? `
@@ -3184,9 +3184,34 @@ function initNewsletterModal(d) {
     return fmtDate(selectedDate);
   }
 
-  function updateMerkenBtns() {
+  function _nlBuildSchedule() {
+    if (!selectedDate) return { type: 'none', date: null, label: null, ad_close_label: null };
+    if (!isKW) {
+      const ni = nextIssues.find(x => x.issue_date === selectedDate);
+      return {
+        type:           'date',
+        date:           selectedDate,
+        label:          fmtDate(selectedDate),
+        ad_close_label: ni ? (ni.ad_close_label || null) : null,
+      };
+    }
+    const ni  = nextIssues.find(x => x.kw_start === selectedDate.von);
+    return {
+      type:           'week_kw',
+      date:           selectedDate.von,
+      label:          `KW ${selectedDate.kw} (${fmtDate(selectedDate.von)} – ${fmtDate(selectedDate.bis)})`,
+      ad_close_label: ni ? (ni.ad_close_label || null) : null,
+    };
+  }
+
+  function _syncNLBtns() {
+    const sched = _nlBuildSchedule();
+    const datum = selectedDate ? fmtSelectedDate() : null;
     document.querySelectorAll('.nl-merken-btn').forEach(btn => {
-      btn.textContent = selectedDate ? LABELS.merken_mit_datum(fmtSelectedDate()) : LABELS.merken;
+      const fid   = btn.dataset.formatId || '';
+      const added = Merkliste.isAdded(productId, fid, sched.date);
+      btn.textContent = added ? '✓ Gemerkt' : (datum ? LABELS.merken_mit_datum(datum) : LABELS.merken);
+      btn.classList.toggle('merken-active', added);
     });
   }
 
@@ -3220,7 +3245,7 @@ function initNewsletterModal(d) {
         cell.addEventListener('click', () => {
           selectedDate = cell.dataset.date === selectedDate ? null : cell.dataset.date;
           renderCalendar();
-          updateMerkenBtns();
+          _syncNLBtns();
         });
         cell.addEventListener('mouseenter', () => _showNLTooltip(cell, _nlAdCloseHTML(cell)));
         cell.addEventListener('mouseleave', _hideNLTooltip);
@@ -3231,7 +3256,7 @@ function initNewsletterModal(d) {
           const wasSelected = selectedDate && selectedDate.von === box.dataset.kwdate;
           selectedDate = wasSelected ? null : {von: box.dataset.kwdate, bis: box.dataset.kwend, kw: box.dataset.kw};
           renderCalendar();
-          updateMerkenBtns();
+          _syncNLBtns();
         });
         box.addEventListener('mouseenter', () => _showNLTooltip(box, _nlAdCloseHTML(box)));
         box.addEventListener('mouseleave', _hideNLTooltip);
@@ -3258,26 +3283,56 @@ function initNewsletterModal(d) {
   // Merken-Buttons
   document.querySelectorAll('.nl-merken-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const fidx     = parseInt(btn.dataset.fidx);
-      const f        = formats[fidx] || {};
-      const price    = getPrice(fidx);
-      const psLabel  = isFourCluster ? ` · ${PREISSTUFE_LABEL[selectedPS] || selectedPS}` : '';
-      const priceStr = price != null ? ` · ${num(price)} EUR netto` : '';
-      const summary  = `${f.format_name || '—'}${psLabel}${priceStr}`;
-      if (selectedDate) {
-        const dateLine = isKW
-          ? `Kalenderwoche ${selectedDate.kw} (${fmtDate(selectedDate.von)} – ${fmtDate(selectedDate.bis)})`
-          : fmtDate(selectedDate);
-        showConfirmPopup(() => {
-          alert(`Gemerkt: ${d.name}\n${summary}\nTermin: ${dateLine}\n(Speicher-Logik kommt in Etappe 5)`);
-        });
+      const fidx  = parseInt(btn.dataset.fidx);
+      const f     = formats[fidx] || {};
+      const fid   = f.format_name || '';
+      const fname = f.format_name || '—';
+      const price = getPrice(fidx);
+      const sched = _nlBuildSchedule();
+      const already = Merkliste.isAdded(productId, fid, sched.date);
+
+      if (already) {
+        const existing = Merkliste.getItems().find(x =>
+          x.product_id === productId &&
+          x.format_id  === fid &&
+          (x.schedule?.date || null) === sched.date
+        );
+        if (existing) {
+          const snap = { ...existing, schedule: { ...existing.schedule }, pricing: { ...existing.pricing } };
+          Merkliste.removeItem(existing.item_id);
+          mlShowToast(`"${fname}" entfernt.`, () => { Merkliste.addItem(snap); _syncNLBtns(); });
+          _syncNLBtns();
+        }
       } else {
-        showConfirmPopup(() => {
-          alert(`Gemerkt (ohne Datum): ${d.name}\n${summary}\n(Speicher-Logik kommt in Etappe 5)`);
-        });
+        const item = {
+          product_id:       productId,
+          product_name:     d.name || name,
+          product_subtitle: d.subtitle || subtitle || '',
+          product_type:     d.product_type || '',
+          format_id:        fid,
+          format_name:      fname,
+          schedule:         sched,
+          pricing: {
+            list_price:       price,
+            list_price_label: price != null ? `${num(price)} EUR` : null,
+            price_locked:     false,
+          },
+        };
+        const id = Merkliste.addItem(item);
+        if (id !== null) {
+          mlShowToast(`"${fname}" gemerkt.`, () => { Merkliste.removeItem(id); _syncNLBtns(); });
+        } else {
+          mlShowToast('Bereits in der Merkliste.', null, 2000);
+        }
+        _syncNLBtns();
       }
     });
   });
+
+  // Live-Sync wenn Item im Side-Panel entfernt wird waehrend Modal offen
+  if (_activeModalUnsub) _activeModalUnsub();
+  _activeModalUnsub = Merkliste.subscribe(() => _syncNLBtns());
+  _syncNLBtns();
 }
 
 // ============================================================

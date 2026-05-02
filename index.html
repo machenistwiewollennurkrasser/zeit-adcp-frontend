@@ -338,11 +338,16 @@ header {
 }
 .issues-table td { padding: 10px 12px; border-bottom: 1px solid #eee; }
 .issues-table tr:last-child td { border-bottom: none; }
-.cluster-termin-table tbody tr { cursor: pointer; }
-.cluster-termin-table tbody tr:hover td { background: var(--yellow); }
+.cluster-termin-row { cursor: pointer; }
+.cluster-termin-row:hover td { background: var(--yellow); }
+.cluster-termin-expired { opacity: 0.4; cursor: not-allowed !important; }
 .cluster-termin-speziale { font-size: 12px; color: #666; }
 .cluster-termin-as { font-size: 12px; color: #888; }
+.termin-expired-badge { font-size: 10px; font-style: italic; color: #c00; }
 .spez-termin-selected td { background: var(--yellow); font-weight: 700; }
+.spez-termin-expired { opacity: 0.4; cursor: not-allowed !important; }
+.spez-back-link { font-size: 12px; color: #555; cursor: pointer; margin-bottom: 8px; display: inline-block; }
+.spez-back-link:hover { color: var(--black); text-decoration: underline; }
 .modal-actions {
   display: flex; gap: 16px; align-items: center;
   padding: 24px 40px; border-top: 1px solid var(--black); background: var(--gray-bg);
@@ -1392,6 +1397,36 @@ function openProductModal(item) {
 }
 
 // ============================================================
+// Speziale-Modal: State + Hilfsfunktionen (S1, S4)
+// ============================================================
+
+let _spezState = null;
+
+function _isTerminExpired(t) {
+  if (!t || !t.ad_close_date) return false;
+  return t.ad_close_date < new Date().toISOString().split('T')[0];
+}
+
+function _spezInitialIssueId(termine, preselect) {
+  const today = new Date().toISOString().split('T')[0];
+  if (preselect) {
+    const t = termine.find(x => x.issue_id === preselect);
+    if (t && !(t.ad_close_date && t.ad_close_date < today)) return preselect;
+  }
+  return (termine.find(x => !x.ad_close_date || x.ad_close_date >= today) || {}).issue_id || null;
+}
+
+function _spezUpdateMerkenBtns() {
+  if (!_spezState) return;
+  const t = _spezState.selectedIssueId
+    ? _spezState.termine.find(x => x.issue_id === _spezState.selectedIssueId) : null;
+  const datum = t ? fmtDate(t.publication_date) : null;
+  document.querySelectorAll('.spez-merken-btn').forEach(btn => {
+    btn.textContent = datum ? LABELS.merken_mit_datum(datum) : LABELS.merken;
+  });
+}
+
+// ============================================================
 // A3: Cluster-Uebersichts-Modal (Sonderveroeffentlichungen)
 // ============================================================
 
@@ -1408,17 +1443,21 @@ async function openClusterModal(cluster_id, name) {
 
   try {
     const d = await fetch(`/clusters/sonderveroeffentlichungen/${cluster_id}`).then(r => r.json());
+    const today = new Date().toISOString().split('T')[0];
     const rows = (d.termine || []).map(t => {
-      const pid = t.speziale_product_id;
-      const iid = t.issue_id || '';
-      return `<tr class="cluster-termin-row" onclick="openSpezialeModal('${pid}','${iid}')">
+      const expired = t.ad_close_date && t.ad_close_date < today;
+      const cls = expired ? 'cluster-termin-expired' : 'cluster-termin-row';
+      const titleAttr = expired ? 'title="Anzeigenschluss erreicht"' : '';
+      const pidAttr   = expired ? '' : `data-pid="${t.speziale_product_id}" data-iid="${t.issue_id || ''}"`;
+      return `<tr class="${cls}" ${pidAttr} ${titleAttr}>
         <td>${t.publication_date_label || t.publication_date || '&mdash;'}</td>
         <td>${t.theme_display_name || '&mdash;'}</td>
         <td class="cluster-termin-speziale">${t.speziale_product_name || '&mdash;'}</td>
         <td style="text-align:center">${t.in_zeit_issue_number ? 'Nr.&nbsp;' + t.in_zeit_issue_number : '&mdash;'}</td>
-        <td class="cluster-termin-as">${t.ad_close_label || '&mdash;'}</td>
+        <td class="cluster-termin-as">${t.ad_close_label || '&mdash;'}${expired ? ' <span class="termin-expired-badge">Abgelaufen</span>' : ''}</td>
       </tr>`;
     }).join('');
+
     mb.innerHTML = `
       <div class="modal-header">
         <div class="modal-name">${name}</div>
@@ -1436,8 +1475,17 @@ async function openClusterModal(cluster_id, name) {
       <div class="modal-section" style="padding:12px 40px;font-size:12px;color:#888">
         ${PREIS_HINWEIS} &middot; Termin anklicken fuer Details und Formate.
       </div>`;
+
+    mb.querySelectorAll('.cluster-termin-row[data-pid]').forEach(tr => {
+      tr.addEventListener('click', () => {
+        openSpezialeModal(tr.dataset.pid, tr.dataset.iid, {
+          fromCluster: { cluster_id, cluster_display_name: name }
+        });
+      });
+    });
   } catch(e) {
-    mb.querySelector('.modal-section').innerHTML = `<p style="color:red">${LABELS.fehler_laden}</p>`;
+    const sec = mb.querySelector('.modal-section');
+    if (sec) sec.innerHTML = `<p style="color:red">${LABELS.fehler_laden}</p>`;
   }
 }
 
@@ -1445,7 +1493,8 @@ async function openClusterModal(cluster_id, name) {
 // A4: Speziale Detail-Modal
 // ============================================================
 
-async function openSpezialeModal(product_id, preselect_issue_id) {
+async function openSpezialeModal(product_id, preselect_issue_id, opts = {}) {
+  const fromCluster = opts.fromCluster || null;
   const mb = document.getElementById('modal-body');
   mb.innerHTML = `
     <div class="modal-header">
@@ -1458,37 +1507,62 @@ async function openSpezialeModal(product_id, preselect_issue_id) {
 
   try {
     const d = await fetch(`/products/detail/${product_id}`).then(r => r.json());
-    const name     = d.name     || product_id;
+    const name    = d.name    || product_id;
     const subtitle = d.subtitle || 'Sonderveroeffentlichung in DIE ZEIT';
-    const cluster  = d.cluster  || {};
-    const reach    = d.reach    || {};
-    const termine  = d.termine  || [];
-    const formats  = d.ad_formats || [];
+    const cluster = d.cluster || {};
+    const reach   = d.reach   || {};
+    const termine = d.termine || [];
+    const formats = d.ad_formats || [];
+
+    // S4: abgelaufenen Preselect ueberspringen, naechsten verfuegbaren waehlen
+    const initialId = _spezInitialIssueId(termine, preselect_issue_id);
+    _spezState = { productId: product_id, termine, formats, selectedIssueId: initialId, fromCluster };
 
     const reachRows = [
       ['Verbreitete Auflage', reach.circulation_total ? num(reach.circulation_total) : null],
-      ['Reichweite', reach.reader_total ? num(reach.reader_total) : null],
-      ['Quelle', reach.source],
+      ['Reichweite',          reach.reader_total      ? num(reach.reader_total)      : null],
+      ['Quelle',              reach.source],
     ].filter(([,v]) => v).map(([k,v]) => `<tr><td class="k">${k}</td><td class="v">${v}</td></tr>`).join('');
 
+    // S4: abgelaufene Zeilen ausgrauen, nicht-abgelaufene als klickbar markieren
+    const today = new Date().toISOString().split('T')[0];
     const termineRows = termine.map(t => {
-      const sel = preselect_issue_id && t.issue_id === preselect_issue_id;
-      return `<tr class="${sel ? 'spez-termin-selected' : ''}" id="spez-t-${t.issue_id}">
+      const expired = t.ad_close_date && t.ad_close_date < today;
+      const sel = t.issue_id === initialId;
+      const cls = sel ? 'spez-termin-selected' : (expired ? 'spez-termin-expired' : '');
+      return `<tr class="${cls}" data-issue-id="${t.issue_id}"
+        ${expired ? 'title="Anzeigenschluss erreicht"' : ''}>
         <td>${t.publication_date_label || t.publication_date || '&mdash;'}</td>
         <td>${t.theme_display_name || '&mdash;'}</td>
         <td style="text-align:center">${t.in_zeit_issue_number ? 'Nr.&nbsp;' + t.in_zeit_issue_number : '&mdash;'}</td>
-        <td class="cluster-termin-as">${t.ad_close_label || '&mdash;'}</td>
+        <td class="cluster-termin-as">${t.ad_close_label || '&mdash;'}${expired ? ' <span class="termin-expired-badge">Abgelaufen</span>' : ''}</td>
       </tr>`;
     }).join('');
 
+    // S3: Merken-Buttons mit initialem Datum
+    const initT = initialId ? termine.find(x => x.issue_id === initialId) : null;
+    const initDatum = initT ? fmtDate(initT.publication_date) : null;
     const formatRows = formats.map(f => {
-      const pr = f.auf_anfrage ? LABELS.auf_anfrage : (f.price_net_eur ? num(f.price_net_eur) + ' EUR ' + PREIS_SUFFIX_NETTO : '&mdash;');
-      return `<tr><td>${f.format_name || '&mdash;'}</td><td class="price-net">${pr}</td></tr>`;
+      const priceStr = f.auf_anfrage ? LABELS.auf_anfrage
+        : (f.price_net_eur ? `<span class="price-net">${num(f.price_net_eur)} EUR</span>` : '&mdash;');
+      const btnText = initDatum ? LABELS.merken_mit_datum(initDatum) : LABELS.merken;
+      return `<tr>
+        <td>${f.format_name || '&mdash;'}</td>
+        <td>${priceStr}</td>
+        <td style="font-size:11px;color:#888">${PREIS_SUFFIX_NETTO}</td>
+        <td><button class="btn-merken spez-merken-btn" data-format="${f.format_name || ''}">${btnText}</button></td>
+      </tr>`;
     }).join('');
 
     const clusterSub = cluster.cluster_display_name ? ` &middot; ${cluster.cluster_display_name}` : '';
+    // S2: Zurueck-Link nur wenn aus Cluster-Kontext
+    const backLink = fromCluster
+      ? `<div class="spez-back-link" id="spez-back">&#8592; Zurueck zu ${fromCluster.cluster_display_name}</div>`
+      : '';
+
     mb.innerHTML = `
       <div class="modal-header">
+        ${backLink}
         <div class="modal-name">${name}</div>
         <div class="modal-sub">${subtitle}${clusterSub}</div>
       </div>
@@ -1502,13 +1576,18 @@ async function openSpezialeModal(product_id, preselect_issue_id) {
           <thead><tr>
             <th>Erscheinungsdatum</th><th>Thema</th><th>ZEIT-Ausgabe</th><th>Anzeigenschluss</th>
           </tr></thead>
-          <tbody>${termineRows}</tbody>
+          <tbody id="spez-termine-tbody">${termineRows}</tbody>
         </table>
       </div>
       ${formatRows ? `<div class="modal-section">
         <div class="modal-section-title">${LABELS.formate_und_preise} &middot; Listenpreis netto</div>
         <table class="formats-table">
-          <thead><tr><th>Format</th><th>Preis</th></tr></thead>
+          <thead><tr>
+            <th style="min-width:200px">Format</th>
+            <th style="min-width:120px">Preis (netto)</th>
+            <th></th>
+            <th>Aktion</th>
+          </tr></thead>
           <tbody>${formatRows}</tbody>
         </table>
       </div>` : ''}
@@ -1516,12 +1595,57 @@ async function openSpezialeModal(product_id, preselect_issue_id) {
         ${PREIS_HINWEIS} &middot; Datenstand Januar 2026
       </div>`;
 
-    if (preselect_issue_id) {
-      const el = document.getElementById('spez-t-' + preselect_issue_id);
+    // S2: Zurueck-Link Event-Listener
+    const backBtn = mb.querySelector('#spez-back');
+    if (backBtn && fromCluster) {
+      backBtn.addEventListener('click', () =>
+        openClusterModal(fromCluster.cluster_id, fromCluster.cluster_display_name));
+    }
+
+    // S1: Termin-Auswahl per Klick (nur nicht-abgelaufene)
+    const tbody = document.getElementById('spez-termine-tbody');
+    if (tbody) {
+      tbody.querySelectorAll('tr[data-issue-id]').forEach(tr => {
+        const iid = tr.dataset.issueId;
+        const t = termine.find(x => x.issue_id === iid);
+        if (!t || _isTerminExpired(t)) return;
+        tr.style.cursor = 'pointer';
+        tr.addEventListener('click', () => {
+          tbody.querySelectorAll('tr').forEach(r => r.classList.remove('spez-termin-selected'));
+          tr.classList.add('spez-termin-selected');
+          _spezState.selectedIssueId = iid;
+          _spezUpdateMerkenBtns();
+        });
+      });
+    }
+
+    // S3: Merken-Button Event-Listener
+    mb.querySelectorAll('.spez-merken-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const formatName = btn.dataset.format || '—';
+        const sid = _spezState?.selectedIssueId;
+        if (sid) {
+          const t = _spezState.termine.find(x => x.issue_id === sid);
+          const datum = t ? fmtDate(t.publication_date) : null;
+          if (datum) {
+            alert(`Gemerkt: ${formatName} fuer ${datum} (Speicher-Logik kommt in Etappe 5)`);
+          } else {
+            showConfirmPopup(() => alert(`Gemerkt: ${formatName} (Speicher-Logik kommt in Etappe 5)`));
+          }
+        } else {
+          showConfirmPopup(() => alert(`Gemerkt: ${formatName} ohne Datum (Speicher-Logik kommt in Etappe 5)`));
+        }
+      });
+    });
+
+    // Scroll zum vorausgewaehlten Termin
+    if (initialId) {
+      const el = tbody?.querySelector(`tr[data-issue-id="${initialId}"]`);
       if (el) setTimeout(() => el.scrollIntoView({ block: 'center', behavior: 'smooth' }), 80);
     }
   } catch(e) {
-    mb.querySelector('.modal-section').innerHTML = `<p style="color:red">${LABELS.fehler_laden}</p>`;
+    const sec = mb.querySelector('.modal-section');
+    if (sec) sec.innerHTML = `<p style="color:red">${LABELS.fehler_laden}</p>`;
   }
 }
 

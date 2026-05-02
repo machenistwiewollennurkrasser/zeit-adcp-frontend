@@ -1985,7 +1985,7 @@ async function openSpezialeModal(product_id, preselect_issue_id, opts = {}) {
         <td>${f.format_name || '&mdash;'}</td>
         <td>${priceStr}</td>
         <td style="font-size:11px;color:#888">${PREIS_SUFFIX_NETTO}</td>
-        <td><button class="btn-merken spez-merken-btn" data-format="${f.format_name || ''}">${btnText}</button></td>
+        <td><button class="btn-merken spez-merken-btn" data-format="${f.format_name || ''}" data-format-id="${f.format_name || ''}" data-price="${f.price_net_eur != null ? f.price_net_eur : ''}">${btnText}</button></td>
       </tr>`;
     }).join('');
 
@@ -2037,6 +2037,19 @@ async function openSpezialeModal(product_id, preselect_issue_id, opts = {}) {
         openClusterModal(fromCluster.cluster_id, fromCluster.cluster_display_name));
     }
 
+    // Sync-Funktion: Button-Text und Active-State
+    function _syncSpezBtns() {
+      const sid    = _spezState?.selectedIssueId || null;
+      const termin = sid ? termine.find(x => x.issue_id === sid) : null;
+      const datum  = termin ? fmtDate(termin.publication_date) : null;
+      document.querySelectorAll('.spez-merken-btn').forEach(btn => {
+        const fid   = btn.dataset.formatId || '';
+        const added = Merkliste.isAdded(product_id, fid, termin ? termin.publication_date || null : null);
+        btn.textContent = added ? '✓ Gemerkt' : (datum ? LABELS.merken_mit_datum(datum) : LABELS.merken);
+        btn.classList.toggle('merken-active', added);
+      });
+    }
+
     // S1: Termin-Auswahl per Klick (nur nicht-abgelaufene)
     const tbody = document.getElementById('spez-termine-tbody');
     if (tbody) {
@@ -2049,29 +2062,80 @@ async function openSpezialeModal(product_id, preselect_issue_id, opts = {}) {
           tbody.querySelectorAll('tr').forEach(r => r.classList.remove('spez-termin-selected'));
           tr.classList.add('spez-termin-selected');
           _spezState.selectedIssueId = iid;
-          _spezUpdateMerkenBtns();
+          _syncSpezBtns();
         });
       });
     }
 
-    // S3: Merken-Button Event-Listener
+    // Merken-Buttons
     mb.querySelectorAll('.spez-merken-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        const formatName = btn.dataset.format || '—';
-        const sid = _spezState?.selectedIssueId;
-        if (sid) {
-          const t = _spezState.termine.find(x => x.issue_id === sid);
-          const datum = t ? fmtDate(t.publication_date) : null;
-          if (datum) {
-            alert(`Gemerkt: ${formatName} fuer ${datum} (Speicher-Logik kommt in Etappe 5)`);
-          } else {
-            showConfirmPopup(() => alert(`Gemerkt: ${formatName} (Speicher-Logik kommt in Etappe 5)`));
+        const fid   = btn.dataset.formatId || '';
+        const fname = btn.dataset.format   || '—';
+        const raw   = btn.dataset.price;
+        const price = raw !== '' && raw != null ? parseFloat(raw) : null;
+        const sid   = _spezState?.selectedIssueId || null;
+        const t     = sid ? termine.find(x => x.issue_id === sid) : null;
+        const schedDate = t ? (t.publication_date || null) : null;
+        const sched = t ? {
+          type:           'date',
+          date:           schedDate,
+          label:          fmtDate(t.publication_date),
+          ad_close_label: t.ad_close_label || null,
+        } : { type: 'none', date: null, label: null, ad_close_label: null };
+        const already = Merkliste.isAdded(product_id, fid, schedDate);
+
+        if (already) {
+          const existing = Merkliste.getItems().find(x =>
+            x.product_id === product_id &&
+            x.format_id  === fid &&
+            (x.schedule?.date || null) === schedDate
+          );
+          if (existing) {
+            const snap = {
+              ...existing,
+              schedule: { ...existing.schedule },
+              pricing:  { ...existing.pricing },
+              cluster:  { ...existing.cluster },
+            };
+            Merkliste.removeItem(existing.item_id);
+            mlShowToast(`"${fname}" entfernt.`, () => { Merkliste.addItem(snap); _syncSpezBtns(); });
+            _syncSpezBtns();
           }
         } else {
-          showConfirmPopup(() => alert(`Gemerkt: ${formatName} ohne Datum (Speicher-Logik kommt in Etappe 5)`));
+          const item = {
+            product_id:       product_id,
+            product_name:     d.name || '',
+            product_subtitle: d.subtitle || '',
+            product_type:     d.product_type || 'sonderveroeffentlichung',
+            format_id:        fid,
+            format_name:      fname,
+            schedule:         sched,
+            pricing: {
+              list_price:       price,
+              list_price_label: price != null ? `${num(price)} EUR` : null,
+              price_locked:     false,
+            },
+            cluster: {
+              cluster_id:           cluster.cluster_id           || null,
+              cluster_display_name: cluster.cluster_display_name || null,
+            },
+          };
+          const id = Merkliste.addItem(item);
+          if (id !== null) {
+            mlShowToast(`"${fname}" gemerkt.`, () => { Merkliste.removeItem(id); _syncSpezBtns(); });
+          } else {
+            mlShowToast('Bereits in der Merkliste.', null, 2000);
+          }
+          _syncSpezBtns();
         }
       });
     });
+
+    // Live-Sync wenn Item im Side-Panel entfernt wird waehrend Modal offen
+    if (_activeModalUnsub) _activeModalUnsub();
+    _activeModalUnsub = Merkliste.subscribe(() => _syncSpezBtns());
+    _syncSpezBtns();
 
     // Scroll zum vorausgewaehlten Termin
     if (initialId) {

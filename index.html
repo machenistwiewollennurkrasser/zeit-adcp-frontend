@@ -338,6 +338,11 @@ header {
 }
 .issues-table td { padding: 10px 12px; border-bottom: 1px solid #eee; }
 .issues-table tr:last-child td { border-bottom: none; }
+.cluster-termin-table tbody tr { cursor: pointer; }
+.cluster-termin-table tbody tr:hover td { background: var(--yellow); }
+.cluster-termin-speziale { font-size: 12px; color: #666; }
+.cluster-termin-as { font-size: 12px; color: #888; }
+.spez-termin-selected td { background: var(--yellow); font-weight: 700; }
 .modal-actions {
   display: flex; gap: 16px; align-items: center;
   padding: 24px 40px; border-top: 1px solid var(--black); background: var(--gray-bg);
@@ -1364,6 +1369,8 @@ const _MAGAZIN_TYPES = new Set(['magazin','sonderheft','beilage','submagazin','b
 function openProductModal(item) {
   if (item.product_type === 'wochenzeitung') {
     openDieZeitModal(item.product_id, item.name, item.subtitle);
+  } else if (item.product_type === 'cluster') {
+    openClusterModal(item.cluster_id, item.name);
   } else if (_MAGAZIN_TYPES.has(item.product_type)) {
     openMagazinModal(item.product_id, item.name, item.subtitle);
   } else if (item.product_type === 'podcast') {
@@ -1381,6 +1388,140 @@ function openProductModal(item) {
       </div>`;
     document.getElementById('modal').classList.remove('hidden');
     document.body.style.overflow = 'hidden';
+  }
+}
+
+// ============================================================
+// A3: Cluster-Uebersichts-Modal (Sonderveroeffentlichungen)
+// ============================================================
+
+async function openClusterModal(cluster_id, name) {
+  const mb = document.getElementById('modal-body');
+  mb.innerHTML = `
+    <div class="modal-header">
+      <div class="modal-name">${name}</div>
+      <div class="modal-sub">Sonderveroeffentlichungen</div>
+    </div>
+    <div class="modal-section"><p>${LABELS.laedt}</p></div>`;
+  document.getElementById('modal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+
+  try {
+    const d = await fetch(`/clusters/sonderveroeffentlichungen/${cluster_id}`).then(r => r.json());
+    const rows = (d.termine || []).map(t => {
+      const pid = t.speziale_product_id;
+      const iid = t.issue_id || '';
+      return `<tr class="cluster-termin-row" onclick="openSpezialeModal('${pid}','${iid}')">
+        <td>${t.publication_date_label || t.publication_date || '&mdash;'}</td>
+        <td>${t.theme_display_name || '&mdash;'}</td>
+        <td class="cluster-termin-speziale">${t.speziale_product_name || '&mdash;'}</td>
+        <td style="text-align:center">${t.in_zeit_issue_number ? 'Nr.&nbsp;' + t.in_zeit_issue_number : '&mdash;'}</td>
+        <td class="cluster-termin-as">${t.ad_close_label || '&mdash;'}</td>
+      </tr>`;
+    }).join('');
+    mb.innerHTML = `
+      <div class="modal-header">
+        <div class="modal-name">${name}</div>
+        <div class="modal-sub">Sonderveroeffentlichungen &middot; ${d.termine_count || 0} Termine in 2026</div>
+      </div>
+      <div class="modal-section">
+        <table class="issues-table cluster-termin-table">
+          <thead><tr>
+            <th>Erscheinungsdatum</th><th>Thema</th><th>Speziale</th>
+            <th>ZEIT-Ausgabe</th><th>Anzeigenschluss</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="modal-section" style="padding:12px 40px;font-size:12px;color:#888">
+        ${PREIS_HINWEIS} &middot; Termin anklicken fuer Details und Formate.
+      </div>`;
+  } catch(e) {
+    mb.querySelector('.modal-section').innerHTML = `<p style="color:red">${LABELS.fehler_laden}</p>`;
+  }
+}
+
+// ============================================================
+// A4: Speziale Detail-Modal
+// ============================================================
+
+async function openSpezialeModal(product_id, preselect_issue_id) {
+  const mb = document.getElementById('modal-body');
+  mb.innerHTML = `
+    <div class="modal-header">
+      <div class="modal-name">${product_id}</div>
+      <div class="modal-sub">Sonderveroeffentlichung in DIE ZEIT</div>
+    </div>
+    <div class="modal-section"><p>${LABELS.laedt}</p></div>`;
+  document.getElementById('modal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+
+  try {
+    const d = await fetch(`/products/detail/${product_id}`).then(r => r.json());
+    const name     = d.name     || product_id;
+    const subtitle = d.subtitle || 'Sonderveroeffentlichung in DIE ZEIT';
+    const cluster  = d.cluster  || {};
+    const reach    = d.reach    || {};
+    const termine  = d.termine  || [];
+    const formats  = d.ad_formats || [];
+
+    const reachRows = [
+      ['Verbreitete Auflage', reach.circulation_total ? num(reach.circulation_total) : null],
+      ['Reichweite', reach.reader_total ? num(reach.reader_total) : null],
+      ['Quelle', reach.source],
+    ].filter(([,v]) => v).map(([k,v]) => `<tr><td class="k">${k}</td><td class="v">${v}</td></tr>`).join('');
+
+    const termineRows = termine.map(t => {
+      const sel = preselect_issue_id && t.issue_id === preselect_issue_id;
+      return `<tr class="${sel ? 'spez-termin-selected' : ''}" id="spez-t-${t.issue_id}">
+        <td>${t.publication_date_label || t.publication_date || '&mdash;'}</td>
+        <td>${t.theme_display_name || '&mdash;'}</td>
+        <td style="text-align:center">${t.in_zeit_issue_number ? 'Nr.&nbsp;' + t.in_zeit_issue_number : '&mdash;'}</td>
+        <td class="cluster-termin-as">${t.ad_close_label || '&mdash;'}</td>
+      </tr>`;
+    }).join('');
+
+    const formatRows = formats.map(f => {
+      const pr = f.auf_anfrage ? LABELS.auf_anfrage : (f.price_net_eur ? num(f.price_net_eur) + ' EUR ' + PREIS_SUFFIX_NETTO : '&mdash;');
+      return `<tr><td>${f.format_name || '&mdash;'}</td><td class="price-net">${pr}</td></tr>`;
+    }).join('');
+
+    const clusterSub = cluster.cluster_display_name ? ` &middot; ${cluster.cluster_display_name}` : '';
+    mb.innerHTML = `
+      <div class="modal-header">
+        <div class="modal-name">${name}</div>
+        <div class="modal-sub">${subtitle}${clusterSub}</div>
+      </div>
+      ${reachRows ? `<div class="modal-section">
+        <div class="modal-section-title">Reichweite (geerbt von DIE ZEIT)</div>
+        <table class="kv-table">${reachRows}</table>
+      </div>` : ''}
+      <div class="modal-section">
+        <div class="modal-section-title">Erscheinungstermine 2026</div>
+        <table class="issues-table">
+          <thead><tr>
+            <th>Erscheinungsdatum</th><th>Thema</th><th>ZEIT-Ausgabe</th><th>Anzeigenschluss</th>
+          </tr></thead>
+          <tbody>${termineRows}</tbody>
+        </table>
+      </div>
+      ${formatRows ? `<div class="modal-section">
+        <div class="modal-section-title">${LABELS.formate_und_preise} &middot; Listenpreis netto</div>
+        <table class="formats-table">
+          <thead><tr><th>Format</th><th>Preis</th></tr></thead>
+          <tbody>${formatRows}</tbody>
+        </table>
+      </div>` : ''}
+      <div class="modal-section" style="padding:12px 40px;font-size:12px;color:#888">
+        ${PREIS_HINWEIS} &middot; Datenstand Januar 2026
+      </div>`;
+
+    if (preselect_issue_id) {
+      const el = document.getElementById('spez-t-' + preselect_issue_id);
+      if (el) setTimeout(() => el.scrollIntoView({ block: 'center', behavior: 'smooth' }), 80);
+    }
+  } catch(e) {
+    mb.querySelector('.modal-section').innerHTML = `<p style="color:red">${LABELS.fehler_laden}</p>`;
   }
 }
 

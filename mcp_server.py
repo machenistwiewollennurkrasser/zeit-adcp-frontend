@@ -1,5 +1,5 @@
 """
-ZEIT AdCP MCP Server - v1.6.0
+ZEIT AdCP MCP Server - v1.7.0
 
 MCP-konformer Server fuer ZEIT Advise Werbeinventar-Discovery.
 Implementiert Model Context Protocol (MCP) ueber JSON-RPC 2.0.
@@ -26,6 +26,11 @@ v1.5.5: Preisbezeichnung vereinheitlicht: alle Preise als
 v1.6.0: DIE ZEIT Wochenzeitung Detail-Endpoint: 56 Issues mit
       booking_deadline_label/premium_deadline_label, linked_speziale,
       special_theme_clusters, regional_editions, all_speziale.
+v1.7.0: Sonderveroeffentlichungen-Umbau: _build_svoe_clusters() liefert
+      9 Cluster-Karten im products_list. Neuer Endpoint
+      GET /clusters/sonderveroeffentlichungen/{id} mit allen Terminen.
+      product_detail-Zweig fuer sonderveroeffentlichung mit Terminen,
+      Reichweite und Ad-Formaten.
 """
 
 from fastapi import FastAPI, Request, HTTPException
@@ -215,7 +220,7 @@ app = FastAPI(
         "MCP-konformer Server fuer ZEIT Advise Werbeinventar-Discovery. "
         "Holtzbrinck AI Exploration Program, San Francisco 2026."
     ),
-    version="1.6.0",
+    version="1.7.0",
     docs_url="/docs" if ENVIRONMENT == "development" else None,
 )
 
@@ -354,7 +359,7 @@ MCP_TOOLS = [
 async def root():
     return {
         "name": "ZEIT AdCP MCP Server",
-        "version": "1.6.0",
+        "version": "1.7.0",
         "protocol": "mcp",
         "protocol_version": "2024-11-05",
         "endpoints": {
@@ -404,7 +409,7 @@ def handle_initialize(rpc_request):
     return JSONRPCResponse(
         result={
             "protocolVersion": "2024-11-05",
-            "serverInfo": {"name": "ZEIT AdCP MCP Server", "version": "1.6.0"},
+            "serverInfo": {"name": "ZEIT AdCP MCP Server", "version": "1.7.0"},
             "capabilities": {"tools": {}}
         },
         id=rpc_request.id
@@ -1000,9 +1005,44 @@ def _product_subtitle(p: dict) -> str:
     return pt.replace("_", " ").title() if pt else "Produkt"
 
 
+def _build_svoe_clusters() -> list:
+    """Gruppiert alle Sonderveroeffentlichungen nach topical_cluster und liefert 9 Cluster-Karten."""
+    clusters: dict[str, dict] = {}
+    for p in product_index.products:
+        if p.get("_category") != "sonderveroeffentlichung":
+            continue
+        tc = p.get("topical_cluster", {})
+        cid = tc.get("cluster_id", "")
+        cname = tc.get("cluster_display_name", "")
+        if not cid:
+            continue
+        issues = p.get("print_specifics", {}).get("issues", [])
+        termine = len(issues)
+        if cid not in clusters:
+            clusters[cid] = {
+                "cluster_id":           cid,
+                "cluster_display_name": cname,
+                "product_type":         "cluster",
+                "name":                 cname,
+                "speziale_count":       0,
+                "termine_count":        0,
+            }
+        clusters[cid]["speziale_count"] += 1
+        clusters[cid]["termine_count"]  += termine
+
+    result = []
+    for c in clusters.values():
+        sc = c["speziale_count"]
+        tc = c["termine_count"]
+        speziale_label = "Speziale" if sc == 1 else "Speziale"
+        c["subtitle"] = f"{sc} {speziale_label}, {tc} Termine in 2026"
+        result.append(c)
+    return sorted(result, key=lambda x: x["name"].lower())
+
+
 @app.get("/products/list")
 async def products_list():
-    wochenzeitung, regional, svoe, beilagen = [], [], [], []
+    wochenzeitung, regional, beilagen = [], [], []
     magazine, podcasts, newsletter = [], [], []
 
     for p in product_index.products:
@@ -1021,8 +1061,8 @@ async def products_list():
             wochenzeitung.append(item)
         elif pid in DIE_ZEIT_BEILAGEN_IDS:
             beilagen.append(item)
-        elif pid in DIE_ZEIT_SONDERVEROEFFENTLICHUNGEN_IDS:
-            svoe.append(item)
+        elif cat == "sonderveroeffentlichung":
+            pass  # wird durch _build_svoe_clusters() abgedeckt
         elif pt in ("magazin", "b2b_magazin", "kindermagazin", "submagazin", "sonderheft"):
             magazine.append(item)
         elif pt == "podcast":
@@ -1035,7 +1075,7 @@ async def products_list():
         "die_zeit": {
             "wochenzeitung":             s(wochenzeitung),
             "regional":                  s(regional),
-            "sonderveroeffentlichungen": s(svoe),
+            "sonderveroeffentlichungen": _build_svoe_clusters(),
             "beilagen":                  s(beilagen),
         },
         "magazine":   s(magazine),
@@ -1526,6 +1566,129 @@ def _check_completeness(p: dict, top_type: str, pricing: dict,
     return {"data_completeness": level, "missing_fields": missing}
 
 
+def _build_dz_speziale_lookup() -> dict:
+    """Baut Lookup (speziale_id, pub_date) -> DZ-Issue-Daten fuer Kreuzreferenz."""
+    dz = _find_product("die_zeit_2026")
+    lookup: dict = {}
+    if not dz:
+        return lookup
+    for dz_iss in dz.get("print_specifics", {}).get("issues", []):
+        for ls in (dz_iss.get("linked_speziale") or []):
+            key = (ls.get("speziale_product_id"), dz_iss.get("publication_date"))
+            lookup[key] = {
+                "in_zeit_issue_number": dz_iss.get("issue_number_sequential"),
+                "theme_display_name":   ls.get("theme_display_name"),
+                "ad_close_date":        ls.get("theme_specific_ad_close_date"),
+            }
+    return lookup
+
+
+def _speziale_iss_to_termin(iss: dict, pid: str, dz_data: dict) -> dict:
+    pub_date    = iss.get("publication_date")
+    ad_close_str = dz_data.get("ad_close_date") or iss.get("booking_deadline")
+    pub_d        = _date.fromisoformat(pub_date)    if pub_date    else None
+    ad_close_d   = _date.fromisoformat(ad_close_str) if ad_close_str else None
+    themes       = iss.get("issue_themes") or []
+    return {
+        "issue_id":              iss.get("issue_id"),
+        "publication_date":      pub_date,
+        "publication_date_label": (
+            f"{_DOW_ABBR_DE[pub_d.weekday()]} {pub_d.strftime('%d.%m.%Y')}" if pub_d else None
+        ),
+        "theme_display_name":    dz_data.get("theme_display_name") or (themes[0] if themes else None),
+        "in_zeit_issue_number":  dz_data.get("in_zeit_issue_number"),
+        "ad_close_date":         ad_close_str,
+        "ad_close_label":        _fmt_ad_close_label(ad_close_d, "10:00") if ad_close_d else None,
+    }
+
+
+def _build_cluster_termine(cluster_id: str) -> Optional[dict]:
+    """Alle Termine aller Speziale in einem Cluster, chronologisch sortiert."""
+    dz_lookup = _build_dz_speziale_lookup()
+    cluster_display_name = None
+    termine = []
+    for p in product_index.products:
+        if p.get("_category") != "sonderveroeffentlichung":
+            continue
+        tc = p.get("topical_cluster", {})
+        if tc.get("cluster_id") != cluster_id:
+            continue
+        if cluster_display_name is None:
+            cluster_display_name = tc.get("cluster_display_name")
+        pid   = p.get("product_id", "")
+        pname = p.get("product_name", "")
+        for iss in p.get("print_specifics", {}).get("issues", []):
+            pub_date = iss.get("publication_date")
+            dz_data  = dz_lookup.get((pid, pub_date), {})
+            t = _speziale_iss_to_termin(iss, pid, dz_data)
+            t["speziale_product_id"]   = pid
+            t["speziale_product_name"] = pname
+            termine.append(t)
+    if not termine:
+        return None
+    termine.sort(key=lambda x: x.get("publication_date") or "")
+    return {
+        "cluster_id":           cluster_id,
+        "cluster_display_name": cluster_display_name,
+        "termine_count":        len(termine),
+        "termine":              termine,
+    }
+
+
+def _build_speziale_detail(p: dict) -> dict:
+    """Terminkliste, Reichweite und Ad-Formate fuer ein Speziale-Produkt."""
+    pid      = p.get("product_id", "")
+    dz_lookup = _build_dz_speziale_lookup()
+    termine  = []
+    for iss in p.get("print_specifics", {}).get("issues", []):
+        pub_date = iss.get("publication_date")
+        dz_data  = dz_lookup.get((pid, pub_date), {})
+        termine.append(_speziale_iss_to_termin(iss, pid, dz_data))
+    termine.sort(key=lambda x: x.get("publication_date") or "")
+
+    r = get_reach(p)
+    reach = {
+        "circulation_total": r.get("circulation_total"),
+        "reader_total":      r.get("reader_total"),
+        "source":            r.get("source"),
+        "inherited_from":    r.get("inheritance", {}).get("source_product_id"),
+    }
+
+    ad_formats = []
+    for f in p.get("print_specifics", {}).get("ad_formats", []):
+        if f.get("mvp_in_scope") is False:
+            continue
+        ad_formats.append({
+            "format_name":   f.get("format_name"),
+            "price_net_eur": f.get("price_net_eur"),
+            "auf_anfrage":   bool(f.get("auf_anfrage", False)),
+        })
+
+    tc = p.get("topical_cluster", {})
+    return {
+        "termine":    termine,
+        "reach":      reach,
+        "ad_formats": ad_formats,
+        "cluster": {
+            "cluster_id":           tc.get("cluster_id"),
+            "cluster_display_name": tc.get("cluster_display_name"),
+        },
+    }
+
+
+# =====================================================
+# Cluster: /clusters/sonderveroeffentlichungen/{id}
+# =====================================================
+
+@app.get("/clusters/sonderveroeffentlichungen/{cluster_id}")
+async def cluster_detail(cluster_id: str):
+    result = _build_cluster_termine(cluster_id)
+    if result is None:
+        raise HTTPException(404, detail={"error": "Cluster nicht gefunden",
+                                         "cluster_id": cluster_id})
+    return result
+
+
 @app.get("/products/detail/{product_id}")
 async def product_detail(product_id: str):
     p = _find_product(product_id)
@@ -1553,6 +1716,22 @@ async def product_detail(product_id: str):
                 "regional_editions":      wz["regional_editions"],
                 "all_speziale":           wz["all_speziale"],
                 "special_theme_clusters": wz["special_theme_clusters"],
+            }
+
+        # Sonderveroeffentlichung: Terminkliste + Reichweite + Formate
+        if p.get("_category") == "sonderveroeffentlichung":
+            spez = _build_speziale_detail(p)
+            return {
+                "product_id":       p.get("product_id"),
+                "name":             p.get("product_name"),
+                "subtitle":         _product_subtitle(p),
+                "product_type":     "sonderveroeffentlichung",
+                "die_zeit_subtype": "sonderveroeffentlichung",
+                "common":           common,
+                "reach":            spez["reach"],
+                "ad_formats":       spez["ad_formats"],
+                "termine":          spez["termine"],
+                "cluster":          spez["cluster"],
             }
 
         if top_type in ("magazin", "die_zeit"):
@@ -1599,7 +1778,7 @@ async def health():
 
     return {
         "status": "ok",
-        "version": "1.6.0",
+        "version": "1.7.0",
         "timestamp": datetime.utcnow().isoformat() + "Z",
         "environment": ENVIRONMENT,
         "schema_version": "3.0",

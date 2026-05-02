@@ -2619,7 +2619,7 @@ function buildPodcastFixedSection(d) {
         <label style="font-size:12px;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:4px">${LABELS.folgen}</label>
         <input class="fs-folgen-input" type="number" min="1" value="1" data-idx="${idx}" data-prices='${JSON.stringify(cp)}'>
       </td>
-      <td><button class="btn-merken fs-merken-btn" data-idx="${idx}" data-slot="${slotLabel}">+ Merken</button></td>
+      <td><button class="btn-merken fs-merken-btn" data-idx="${idx}" data-slot="${slotLabel}" data-slot-key="${s.slot}">+ Merken</button></td>
     </tr>`;
   }).join('');
 
@@ -2833,6 +2833,7 @@ function initPodcastKonfigurator(d) {
 function initFixedSlotKonfigurator(d) {
   const pricing = d.pricing || {};
   const slots   = pricing.fixed_slots || [];
+  const pid     = d.product_id || '';
 
   function currentPs() {
     return document.querySelector('#fs-ps-group .fs-ps-btn.active')?.dataset.ps || 'listenpreis';
@@ -2850,11 +2851,24 @@ function initFixedSlotKonfigurator(d) {
     });
   }
 
+  function _syncFixedBtns() {
+    const ps    = currentPs();
+    const items = Merkliste.getItems();
+    document.querySelectorAll('.fs-merken-btn').forEach(btn => {
+      const slotKey = btn.dataset.slotKey || '';
+      const fid     = `${slotKey}_${ps}`;
+      const added   = items.some(x => x.product_id === pid && x.format_id === fid);
+      btn.textContent = added ? '✓ Gemerkt' : '+ Merken';
+      btn.classList.toggle('merken-active', added);
+    });
+  }
+
   document.querySelectorAll('#fs-ps-group .fs-ps-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('#fs-ps-group .fs-ps-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       updatePrices();
+      _syncFixedBtns();
     });
   });
 
@@ -2865,22 +2879,74 @@ function initFixedSlotKonfigurator(d) {
   document.querySelectorAll('.fs-merken-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const idx      = parseInt(btn.dataset.idx, 10);
-      const slotLabel = btn.dataset.slot || '—';
+      const slotKey  = btn.dataset.slotKey || '';
+      const slotName = btn.dataset.slot    || slotKey;
       const ps       = currentPs();
+      const fid      = `${slotKey}_${ps}`;
       const ck       = PREISSTUFE_TO_CLUSTER[ps] || 'grundpreis';
       const input    = document.querySelector(`.fs-folgen-input[data-idx="${idx}"]`);
       const cp       = JSON.parse(input?.dataset.prices || '{}');
       const base     = cp[ck] ?? (slots[idx]?.price_per_episode_eur ?? 0);
       const folgen   = parseInt(input?.value, 10) || 1;
+      const total    = base * folgen;
+
+      // Toggle: bereits gemerkt → entfernen
+      const existing = Merkliste.getItems().find(x => x.product_id === pid && x.format_id === fid);
+      if (existing) {
+        const snap = { ...existing, schedule: { ...existing.schedule }, pricing: { ...existing.pricing } };
+        Merkliste.removeItem(existing.item_id);
+        mlShowToast(`"${existing.format_name}" entfernt.`, () => { Merkliste.addItem(snap); _syncFixedBtns(); });
+        _syncFixedBtns();
+        return;
+      }
+
+      // Neu merken: Datepicker-Popup
+      const psLabel     = PREISSTUFE_LABEL[ps] || ps;
+      const lockedLabel = `${num(total)} EUR netto (${psLabel})`;
       showMerkenPopupPodcast({
         name: d.name || '',
         summary: [
-          `${slotLabel} | ${PREISSTUFE_LABEL[ps] || ps}`,
-          `${folgen} Folge${folgen !== 1 ? 'n' : ''} | Preis: ${num(base * folgen)} EUR`,
+          `${slotName} | ${psLabel}`,
+          `${folgen} Folge${folgen !== 1 ? 'n' : ''} | Preis: ${num(total)} EUR`,
         ].join('\n'),
+        onConfirm: ({ von, bis, ohne }) => {
+          const fname = `${slotName} · ${folgen} Folge${folgen !== 1 ? 'n' : ''}`;
+          const sched = ohne
+            ? { type: 'none',       date: null,      label: 'Ohne festen Zeitraum', ad_close_label: null }
+            : { type: 'date_range', date: von || null, label: `${fmtDate(von)} bis ${fmtDate(bis)}`, ad_close_label: null };
+          const item = {
+            product_id:       pid,
+            product_name:     d.name     || '',
+            product_subtitle: d.subtitle || '',
+            product_type:     d.product_type || 'podcast',
+            format_id:        fid,
+            format_name:      fname,
+            schedule:         sched,
+            pricing: {
+              list_price:       null,
+              list_price_label: null,
+              price_locked:     true,
+              locked_tier:      ps,
+              locked_price:     total,
+              locked_label:     lockedLabel,
+            },
+          };
+          const id = Merkliste.addItem(item);
+          if (id !== null) {
+            mlShowToast(`"${fname}" gemerkt.`, () => { Merkliste.removeItem(id); _syncFixedBtns(); });
+          } else {
+            mlShowToast('Bereits in der Merkliste.', null, 2000);
+          }
+          _syncFixedBtns();
+        },
       });
     });
   });
+
+  // Live-Sync wenn Item im Side-Panel entfernt wird waehrend Modal offen
+  if (_activeModalUnsub) _activeModalUnsub();
+  _activeModalUnsub = Merkliste.subscribe(() => _syncFixedBtns());
+  _syncFixedBtns();
 }
 
 function showMerkenPopupPodcast(config) {
@@ -2944,9 +3010,13 @@ function showMerkenPopupPodcast(config) {
     const von  = backdrop.querySelector('#mp-von').value;
     const bis  = backdrop.querySelector('#mp-bis').value;
     const ohne = backdrop.querySelector('#mp-ohne').checked;
-    const zeitraum = ohne ? 'ohne festen Zeitraum' : `${von} – ${bis}`;
     close();
-    alert(`Gemerkt: ${config.name}\n${config.summary}\nZeitraum: ${zeitraum}\n(Speicher-Logik kommt in Etappe 5)`);
+    if (config.onConfirm) {
+      config.onConfirm({ von, bis, ohne });
+    } else {
+      const zeitraum = ohne ? 'ohne festen Zeitraum' : `${von} – ${bis}`;
+      alert(`Gemerkt: ${config.name}\n${config.summary}\nZeitraum: ${zeitraum}\n(Speicher-Logik kommt in Etappe 5)`);
+    }
   });
 
   document.addEventListener('keydown', escHandler);

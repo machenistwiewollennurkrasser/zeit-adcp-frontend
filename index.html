@@ -80,15 +80,6 @@ header {
 .btn-merkliste:hover { background: #333; }
 
 /* SERVER STATUS */
-.server-status {
-  font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
-  padding: 4px 10px; border: 1px solid currentColor;
-  display: inline-flex; align-items: center; gap: 6px;
-}
-.server-status.ok { color: var(--green); }
-.server-status.err { color: var(--red); }
-.server-status.loading { color: var(--gray); }
-.status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
 /* TAB PANELS */
 .tab-panel { display: none; }
@@ -414,7 +405,8 @@ header {
   background: var(--white); border: 1px solid var(--black);
   padding: 32px 40px; max-width: 400px; width: 90%;
 }
-.confirm-popup-title { font-size: 20px; font-weight: 700; margin-bottom: 24px; line-height: 1.2; }
+.confirm-popup-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; line-height: 1.2; }
+.confirm-popup-hint  { font-size: 13px; color: #666; margin-bottom: 24px; }
 .confirm-popup-actions { display: flex; gap: 12px; }
 .confirm-popup-btn {
   border: 1px solid var(--black); background: none; padding: 10px 20px;
@@ -909,11 +901,7 @@ footer .footer-inner {
       <button class="tab-btn" data-tab="filter">Filter</button>
     </div>
     <div class="header-right">
-      <span id="server-status" class="server-status loading">
-        <span class="status-dot"></span>
-        <span id="status-text">Verbinde...</span>
-      </span>
-      <button class="btn-merkliste" id="merkliste-btn">MERKLISTE <span class="ml-badge empty" id="ml-badge">0</span></button>
+<button class="btn-merkliste" id="merkliste-btn">MERKLISTE <span class="ml-badge empty" id="ml-badge">0</span></button>
     </div>
   </div>
 </header>
@@ -1559,20 +1547,14 @@ let serverOk = false;
 let productsLoaded = 0;
 
 async function checkServer() {
-  const el = document.getElementById('server-status');
-  const txt = document.getElementById('status-text');
   try {
     const res = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(3000) });
     const data = await res.json();
     productsLoaded = data.products_total || data.products_loaded || 0;
     serverOk = true;
-    el.className = 'server-status ok';
-    txt.textContent = `${productsLoaded} Produkte geladen`;
     document.getElementById('search-btn').disabled = false;
   } catch (e) {
     serverOk = false;
-    el.className = 'server-status err';
-    txt.textContent = 'Server nicht erreichbar';
     document.getElementById('search-btn').disabled = true;
     document.getElementById('result-list').innerHTML =
       `<div class="results-error">⚠ Server nicht erreichbar.<br>Bitte starte: <code>python3 -m uvicorn mcp_server:app --port 8001</code></div>`;
@@ -2472,15 +2454,20 @@ function updateMerkenButtons(selectedIdx, issues) {
   });
 }
 
-function showConfirmPopup(onConfirm) {
+function showConfirmPopup(onConfirm, opts = {}) {
+  const title        = opts.title        || LABELS.confirm_no_date_titel;
+  const hint         = opts.hint         || null;
+  const labelConfirm = opts.labelConfirm || LABELS.confirm_ja;
+  const labelCancel  = opts.labelCancel  || LABELS.confirm_abbrechen;
   const backdrop = document.createElement('div');
   backdrop.className = 'confirm-popup-backdrop';
   backdrop.innerHTML = `
     <div class="confirm-popup" role="dialog">
-      <div class="confirm-popup-title">${LABELS.confirm_no_date_titel}</div>
+      <div class="confirm-popup-title">${title}</div>
+      ${hint ? `<div class="confirm-popup-hint">${hint}</div>` : ''}
       <div class="confirm-popup-actions">
-        <button class="confirm-popup-btn" id="cp-ja">${LABELS.confirm_ja}</button>
-        <button class="confirm-popup-btn" id="cp-abbrechen">${LABELS.confirm_abbrechen}</button>
+        <button class="confirm-popup-btn" id="cp-ja">${labelConfirm}</button>
+        <button class="confirm-popup-btn" id="cp-abbrechen">${labelCancel}</button>
       </div>
     </div>`;
   const escHandler = e => { if (e.key === 'Escape') close(); };
@@ -4216,6 +4203,9 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
+// Produkte beim Seitenladen direkt anzeigen
+loadProductList();
+
 // ============================================================
 // MERKLISTE PANEL (Schritte 2 + 3)
 // ============================================================
@@ -4249,7 +4239,12 @@ document.getElementById('ml-tier-select').addEventListener('change', e => {
 // Alle entfernen
 document.getElementById('ml-reset-btn').addEventListener('click', () => {
   if (!Merkliste.getItems().length) return;
-  showConfirmPopup(() => { Merkliste.clearAll(); });
+  showConfirmPopup(() => { Merkliste.clearAll(); }, {
+    title:        'Wirklich alle Eintraege entfernen?',
+    hint:         'Diese Aktion kann nicht rueckgaengig gemacht werden.',
+    labelConfirm: 'Ja, alle entfernen',
+    labelCancel:  'Abbrechen',
+  });
 });
 
 // PDF-Export

@@ -3881,6 +3881,7 @@ function initDieZeitCalendar(sch, onDateChange) {
   let calMonth     = fm - 1;
   let selectedDate = null;
   let filterThemes = false;
+  const _hasThemes = iss => iss && (iss.has_special_themes || (iss.issue_themes || []).length > 0);
 
   const MONTHS_DE = ['Januar','Februar','Maerz','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
   const WD_DE     = ['So','Mo','Di','Mi','Do','Fr','Sa'];
@@ -3909,12 +3910,12 @@ function initDieZeitCalendar(sch, onDateChange) {
       const iss = issueByDate[dateStr];
       if (!iss) { cells += `<div class="dz-day">${day}</div>`; continue; }
 
-      if (filterThemes && !iss.has_special_themes) {
+      const hasThemes  = _hasThemes(iss);
+      if (filterThemes && !hasThemes) {
         cells += `<div class="dz-day" style="opacity:.3">${day}</div>`;
         continue;
       }
       const isSel      = selectedDate === dateStr;
-      const hasThemes  = iss.has_special_themes;
       const isSpecPub  = iss.is_special_publication_date;
       const wkdAbbr    = isSpecPub ? WD_DE[new Date(calYear, calMonth, day).getDay()] : '';
       const wkdEl      = wkdAbbr ? `<span class="dz-day-wkd">${wkdAbbr}</span>` : '';
@@ -3923,6 +3924,7 @@ function initDieZeitCalendar(sch, onDateChange) {
         bd_label: iss.booking_deadline_label || null,
         pp_label: iss.premium_deadline_label || null,
         speziale: (iss.linked_speziale || []).map(sp => ({ name: sp.theme_display_name })),
+        themes:   iss.issue_themes || [],
       }));
       cells += `<div class="${cls}" data-date="${dateStr}" data-dztip="${tipData}">${wkdEl}${day}</div>`;
     }
@@ -3990,7 +3992,7 @@ function initDieZeitCalendar(sch, onDateChange) {
     }
 
     box.innerHTML = `
-      <div class="dz-issue-hdr">Ausgabe ${iss.issue_number} | ${wdLong}, ${fmtDate(iss.publication_date)}</div>
+      <div class="dz-issue-hdr">${iss.issue_number != null ? `Ausgabe ${iss.issue_number} &middot; ` : ''}${wdLong ? wdLong + ', ' : ''}${fmtDate(iss.publication_date)}</div>
       ${deadlines}${spezialeSec}${themesSec}`;
     box.style.display = 'block';
 
@@ -4003,7 +4005,7 @@ function initDieZeitCalendar(sch, onDateChange) {
   if (filterCb) {
     filterCb.addEventListener('change', () => {
       filterThemes = filterCb.checked;
-      if (selectedDate && filterThemes && !issueByDate[selectedDate]?.has_special_themes) {
+      if (selectedDate && filterThemes && !_hasThemes(issueByDate[selectedDate])) {
         selectedDate = null;
         renderIssueDetail();
         if (onDateChange) onDateChange(selectedDate);
@@ -4024,6 +4026,9 @@ function _dzTipHTML(cell) {
     if ((data.speziale || []).length > 0) {
       lines.push(`<div style="margin-top:4px;border-top:1px solid rgba(255,255,255,.25);padding-top:4px">Sonderthemen:</div>`);
       data.speziale.forEach(sp => lines.push(`<div>&#8226; ${sp.name}</div>`));
+    } else if ((data.themes || []).length > 0) {
+      lines.push(`<div style="margin-top:4px;border-top:1px solid rgba(255,255,255,.25);padding-top:4px">Themen-Schwerpunkt:</div>`);
+      data.themes.forEach(t => lines.push(`<div>&#8226; ${t}</div>`));
     }
     return lines.join('');
   } catch(e) { return ''; }

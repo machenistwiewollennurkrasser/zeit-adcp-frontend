@@ -1764,8 +1764,10 @@ async def product_detail(product_id: str):
         subtype  = _die_zeit_subtype(p) if top_type == "die_zeit" else None
         common   = _build_common(p)
 
-        # Wochenzeitung: eigener Zweig mit 56-Issues-Struktur
-        if top_type == "die_zeit" and subtype == "wochenzeitung":
+        # Wochenzeitung: eigener Zweig mit Kalender-Issues-Struktur
+        # Gilt auch fuer zeitmagazin_2026 (Kalender-Ansicht im Frontend)
+        is_wz = top_type == "die_zeit" and subtype == "wochenzeitung"
+        if is_wz or product_id == "zeitmagazin_2026":
             wz = _build_die_zeit_wochenzeitung(p)
             return {
                 "product_id":                  p.get("product_id"),
@@ -1777,7 +1779,7 @@ async def product_detail(product_id: str):
                 "reach":                       wz["reach"],
                 "schedule":                    wz["schedule"],
                 "pricing":                     None,
-                "regional_editions":           wz["regional_editions"],
+                "regional_editions":           wz["regional_editions"] if is_wz else [],
                 "all_speziale":                wz["all_speziale"],
                 "special_theme_clusters":      wz["special_theme_clusters"],
                 "ad_formats":                  wz["ad_formats"],

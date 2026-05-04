@@ -394,6 +394,8 @@ header {
 
 /* MODAL DETAIL – TERMIN-SELECTION */
 .issue-tile.selected { background: var(--yellow); border-width: 2px; }
+.issue-tile.expired { opacity: 0.4; cursor: not-allowed; }
+.issue-tile.expired:hover { background: var(--white); }
 
 /* BESTAETIGUNG-POPUP */
 .confirm-popup-backdrop {
@@ -1866,7 +1868,7 @@ function closeModal() {
 const _MAGAZIN_TYPES = new Set(['magazin','sonderheft','beilage','submagazin','b2b_magazin','kindermagazin']);
 
 function openProductModal(item) {
-  if (item.product_type === 'wochenzeitung') {
+  if (item.product_type === 'wochenzeitung' || item.product_id === 'zeitmagazin_2026') {
     openDieZeitModal(item.product_id, item.name, item.subtitle);
   } else if (item.product_type === 'cluster') {
     openClusterModal(item.cluster_id, item.name);
@@ -2259,6 +2261,7 @@ async function openMagazinModal(productId, name, subtitle) {
     }
 
     tileDivs.forEach((tile, idx) => {
+      if (tile.classList.contains('expired')) return;
       tile.style.cursor = 'pointer';
       tile.addEventListener('click', () => {
         if (selectedIssueIndex === idx) {
@@ -2417,16 +2420,20 @@ function buildMagazinModalHTML(d) {
     </div>` : '';
 
   const issues = sched.issues || [];
+  const todayStr = new Date().toISOString().split('T')[0];
   const tiles = issues.map(i => {
     const pub      = i.publication_date    || '';
     const adClose  = i.ad_close_date       || '';
     const matClose = i.material_close_date || '';
     const theme    = i.thematic_focus      || '';
-    const tip = [
-      adClose  ? `Anzeigenschluss: ${fmtDate(adClose)}`  : '',
-      matClose ? `DU-Schluss: ${fmtDate(matClose)}`       : '',
-    ].filter(Boolean).join(' | ');
-    return `<div class="issue-tile" title="${tip}">
+    const isExpired = adClose && adClose < todayStr;
+    const tip = isExpired
+      ? 'Anzeigenschluss bereits ueberschritten'
+      : [
+          adClose  ? `Anzeigenschluss: ${fmtDate(adClose)}`  : '',
+          matClose ? `DU-Schluss: ${fmtDate(matClose)}`       : '',
+        ].filter(Boolean).join(' | ');
+    return `<div class="issue-tile${isExpired ? ' expired' : ''}" title="${tip}">
       <div class="issue-tile-date">${fmtDate(pub)}</div>
       <div class="issue-tile-theme">${theme}</div>
     </div>`;
@@ -4133,19 +4140,25 @@ function makeAccordionSection(title, count, bodyFn) {
   return section;
 }
 
-function renderAccordion(data) {
+function renderAccordion(rawData) {
   const root = document.getElementById('accordion-root');
   root.innerHTML = '';
   root.className = 'accordion';
 
-  const dz = data.die_zeit || {};
+  // ZEITmagazin aus Magazine entfernen und zu Wochenzeitung verschieben
+  const zmItem   = (rawData.magazine || []).find(x => x.product_id === 'zeitmagazin_2026');
+  const magazine = (rawData.magazine || []).filter(x => x.product_id !== 'zeitmagazin_2026');
+  const dz       = rawData.die_zeit ? { ...rawData.die_zeit } : {};
+  if (zmItem) dz.wochenzeitung = [...(dz.wochenzeitung || []), zmItem];
+  const data = { ...rawData, magazine, die_zeit: dz };
+
   const dzAll = [
     ...(dz.wochenzeitung || []),
     ...(dz.regional || []),
     ...(dz.sonderveroeffentlichungen || []),
     ...(dz.beilagen || []),
   ];
-  root.appendChild(makeAccordionSection('DIE ZEIT', dzAll.length, inner => {
+  root.appendChild(makeAccordionSection('DIE ZEIT und ZEITmagazin', dzAll.length, inner => {
     [
       { key: 'wochenzeitung',             label: 'WOCHENZEITUNG' },
       { key: 'regional',                  label: 'REGIONALAUSGABEN' },

@@ -1865,10 +1865,11 @@ function closeModal() {
 // PRODUKT-MODAL (Akkordeon-Karten)
 // ============================================================
 
-const _MAGAZIN_TYPES = new Set(['magazin','sonderheft','beilage','submagazin','b2b_magazin','kindermagazin']);
+const _MAGAZIN_TYPES   = new Set(['magazin','sonderheft','beilage','submagazin','b2b_magazin','kindermagazin']);
+const _DZ_KALENDER_IDS = new Set(['zeitmagazin_2026','zeit_im_osten_2026','zeit_schweiz_2026','zeit_oesterreich_2026','christ_und_welt_2026']);
 
 function openProductModal(item) {
-  if (item.product_type === 'wochenzeitung' || item.product_id === 'zeitmagazin_2026') {
+  if (item.product_type === 'wochenzeitung' || _DZ_KALENDER_IDS.has(item.product_id)) {
     openDieZeitModal(item.product_id, item.name, item.subtitle);
   } else if (item.product_type === 'cluster') {
     openClusterModal(item.cluster_id, item.name);
@@ -3725,10 +3726,10 @@ function buildDieZeitModalHTML(d) {
   const formateSection = formats.length ? `
     <div class="modal-section">
       <div class="modal-section-title">${LABELS.formate_und_preise} &middot; Standardformate</div>
-      <div id="dz-br-toggle" class="dz-br-toggle">
+      ${idc.length > 0 ? `<div id="dz-br-toggle" class="dz-br-toggle">
         <button class="dz-br-btn active" data-br-key="listenpreis">Listenpreis</button>
         ${brBtns}
-      </div>
+      </div>` : ''}
       <table class="dz-format-table">
         <thead><tr>
           <th>Format</th><th>Groesse</th>

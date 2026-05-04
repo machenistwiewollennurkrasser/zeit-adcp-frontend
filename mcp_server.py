@@ -973,6 +973,11 @@ ZEIT_REGIONAL_IDS = {
     "zeit_im_osten_2026", "zeit_alpen_2026", "christ_und_welt_2026",
 }
 
+# Regionalausgaben mit vollstaendigem 56-Issue-Kalender -> Kalender-Modal wie die_zeit_2026
+_WOCHENZEITUNG_REGIONAL_IDS = {
+    "zeit_im_osten_2026", "zeit_schweiz_2026", "zeit_oesterreich_2026", "christ_und_welt_2026",
+}
+
 DIE_ZEIT_BEILAGEN_IDS = {
     "agenda_kultur_2026",
     "entdecken_2026",
@@ -1765,9 +1770,9 @@ async def product_detail(product_id: str):
         common   = _build_common(p)
 
         # Wochenzeitung: eigener Zweig mit Kalender-Issues-Struktur
-        # Gilt auch fuer zeitmagazin_2026 (Kalender-Ansicht im Frontend)
+        # Gilt auch fuer zeitmagazin_2026 und Regionalausgaben mit 56-Issues (Kalender-Ansicht)
         is_wz = top_type == "die_zeit" and subtype == "wochenzeitung"
-        if is_wz or product_id == "zeitmagazin_2026":
+        if is_wz or product_id == "zeitmagazin_2026" or product_id in _WOCHENZEITUNG_REGIONAL_IDS:
             wz = _build_die_zeit_wochenzeitung(p)
             return {
                 "product_id":                  p.get("product_id"),

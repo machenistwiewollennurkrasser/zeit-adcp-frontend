@@ -1,5 +1,5 @@
 """
-ZEIT AdCP MCP Server - v1.7.0
+ZEIT AdCP MCP Server - v1.7.1
 
 MCP-konformer Server fuer ZEIT Advise Werbeinventar-Discovery.
 Implementiert Model Context Protocol (MCP) ueber JSON-RPC 2.0.
@@ -31,12 +31,17 @@ v1.7.0: Sonderveroeffentlichungen-Umbau: _build_svoe_clusters() liefert
       GET /clusters/sonderveroeffentlichungen/{id} mit allen Terminen.
       product_detail-Zweig fuer sonderveroeffentlichung mit Terminen,
       Reichweite und Ad-Formaten.
+v1.7.1: HTTP Basic Auth via globale FastAPI-Dependency.
+      Konfiguration ueber Railway-Env-Vars BASIC_AUTH_USER/BASIC_AUTH_PASS.
+      Ohne Env-Vars: Auth deaktiviert (lokale Entwicklung).
 """
 
-from fastapi import FastAPI, Request, HTTPException
+import secrets
+from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel, Field
 from typing import Optional, Any, Literal, List, Dict, Union
 from pathlib import Path
@@ -94,6 +99,40 @@ PRODUCT_CATEGORIES = [
 
 # Einheitlicher Preis-Suffix fuer alle Ausgaben
 PREIS_SUFFIX = "EUR (Listenpreis, netto zzgl. MwSt.)"
+
+# =====================================================
+# Basic Auth
+# Env-Vars im Railway-Dashboard setzen:
+#   BASIC_AUTH_USER  (z.B. "zeitadvise")
+#   BASIC_AUTH_PASS  (z.B. "MF2026")
+# Wenn nicht gesetzt: Auth deaktiviert (lokale Entwicklung)
+# =====================================================
+
+_http_basic = HTTPBasic(auto_error=False)
+
+
+def verify_credentials(
+    credentials: Optional[HTTPBasicCredentials] = Depends(_http_basic),
+):
+    auth_user = os.getenv("BASIC_AUTH_USER")
+    auth_pass = os.getenv("BASIC_AUTH_PASS")
+    if not auth_user or not auth_pass:
+        logger.warning("Basic Auth deaktiviert – BASIC_AUTH_USER/PASS nicht gesetzt")
+        return
+    if credentials is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Zugangsdaten erforderlich",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    ok_user = secrets.compare_digest(credentials.username.encode(), auth_user.encode())
+    ok_pass = secrets.compare_digest(credentials.password.encode(), auth_pass.encode())
+    if not (ok_user and ok_pass):
+        raise HTTPException(
+            status_code=401,
+            detail="Falsche Zugangsdaten",
+            headers={"WWW-Authenticate": "Basic"},
+        )
 
 
 # =====================================================
@@ -220,8 +259,9 @@ app = FastAPI(
         "MCP-konformer Server fuer ZEIT Advise Werbeinventar-Discovery. "
         "Holtzbrinck AI Exploration Program, San Francisco 2026."
     ),
-    version="1.7.0",
+    version="1.7.1",
     docs_url="/docs" if ENVIRONMENT == "development" else None,
+    dependencies=[Depends(verify_credentials)],
 )
 
 limiter = Limiter(key_func=get_remote_address)

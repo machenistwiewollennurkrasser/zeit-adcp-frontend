@@ -764,16 +764,17 @@ footer .footer-inner {
 
 .ml-panel-hdr {
   display: flex; align-items: flex-start; justify-content: space-between;
-  padding: 24px 24px 16px; border-bottom: 2px solid var(--black); flex-shrink: 0;
+  padding: 24px 24px 16px;
+  background: var(--zeit-yellow); border-bottom: 1px solid var(--zeit-black); flex-shrink: 0;
 }
-.ml-panel-title { font-size: 20px; font-weight: 700; display: block; letter-spacing: -.01em; }
-.ml-panel-count { font-size: 12px; color: #888; margin-top: 3px; display: block; }
+.ml-panel-title { font-size: 20px; font-weight: 500; display: block; letter-spacing: -.01em; color: var(--zeit-black); }
+.ml-panel-count { font-size: 12px; color: rgba(26,26,26,0.6); margin-top: 3px; display: block; }
 .ml-close-btn {
-  background: none; border: 1px solid var(--black); width: 32px; height: 32px;
+  background: none; border: 1px solid var(--zeit-black); width: 32px; height: 32px;
   cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;
   flex-shrink: 0; margin-top: 2px;
 }
-.ml-close-btn:hover { background: var(--yellow); }
+.ml-close-btn:hover { background: rgba(0,0,0,0.12); }
 
 .ml-tier-bar {
   display: flex; align-items: center; gap: 12px;

@@ -4,11 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ZEIT Advise · AdCP Discovery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --yellow: #FFFF00;
+  /* Basis-Tokens: bisherige Variablen bleiben fuer Kompatibilitaet */
+  --yellow: #F5F500;
   --black: #000000;
   --white: #FFFFFF;
   --green: #00C853;
@@ -16,10 +20,31 @@
   --gray: #B0B0B0;
   --red: #D50000;
   --gray-bg: #F4F4F4;
+
+  /* ZEIT Advise Design-Tokens */
+  --zeit-yellow: #F5F500;
+  --zeit-yellow-soft: #FFF59E;
+  --zeit-black: #1A1A1A;
+  --zeit-grey-bg: #F8F8F8;
+  --zeit-grey-card: #EEEAE0;
+  --zeit-line: rgba(26, 26, 26, 0.15);
+  --zeit-white: #FFFFFF;
+
+  /* Radius */
+  --radius-pill: 999px;
+  --radius-card: 12px;
+  --radius-sm: 6px;
+
+  /* Borders */
+  --border-thin: 1px solid var(--zeit-line);
+  --border-strong: 1px solid var(--zeit-black);
+
+  /* Typografie */
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 html, body {
-  font-family: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif;
+  font-family: var(--font-sans);
   font-size: 16px;
   color: var(--black);
   background: var(--white);

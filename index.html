@@ -325,11 +325,12 @@ header {
 }
 .modal-close {
   position: absolute; top: 20px; right: 20px;
-  background: none; border: 1px solid var(--black); padding: 6px 12px;
-  font-family: inherit; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em;
-  cursor: pointer; transition: background 0.08s;
+  background: none; border: 1px solid var(--zeit-black); padding: 6px 16px;
+  border-radius: var(--radius-pill);
+  font-family: inherit; font-size: 12px;
+  cursor: pointer; transition: all 0.15s ease;
 }
-.modal-close:hover { background: var(--yellow); }
+.modal-close:hover { background: var(--zeit-yellow-soft); }
 .modal-header { padding: 32px 40px 24px; border-bottom: 1px solid var(--black); }
 .modal-badge { margin-bottom: 16px; }
 .modal-name { font-size: 40px; font-weight: 500; letter-spacing: -0.02em; line-height: 1; margin-bottom: 8px; }
@@ -477,14 +478,15 @@ header {
 .konfig-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; color: #555; }
 .konfig-btn-group { display: flex; flex-wrap: wrap; gap: 6px; }
 .konfig-btn {
-  border: 1px solid var(--black); background: var(--white); padding: 8px 14px;
-  font-family: inherit; font-size: 13px; cursor: pointer; transition: background 0.08s;
+  border: 1px solid var(--zeit-black); background: var(--zeit-white); padding: 8px 18px;
+  border-radius: var(--radius-pill);
+  font-family: inherit; font-size: 13px; cursor: pointer; transition: all 0.15s ease;
   display: inline-flex; align-items: center; gap: 4px;
 }
-.konfig-btn:hover:not(:disabled) { background: var(--yellow); }
-.konfig-btn.active { background: var(--black); color: var(--white); }
+.konfig-btn:hover:not(:disabled) { background: var(--zeit-yellow-soft); }
+.konfig-btn.active { background: var(--zeit-black); color: var(--zeit-white); border-color: var(--zeit-black); }
 .konfig-btn.active .info-icon { color: #aaa; border-color: #aaa; }
-.konfig-btn:disabled { opacity: 0.35; cursor: not-allowed; border-color: #ccc; background: #f5f5f5; pointer-events: auto; }
+.konfig-btn:disabled { opacity: 0.35; cursor: not-allowed; border-color: #ccc; background: var(--zeit-grey-bg); pointer-events: auto; }
 .konfig-btn:disabled:hover .info-tooltip { display: block; }
 .konfig-btn.warn { border-color: var(--orange); }
 .midroll-warn-banner {
@@ -510,22 +512,25 @@ header {
 .konfig-result-mbv.fail { background: #fce4e4; color: var(--red); }
 .konfig-result-empty { color: #888; font-style: italic; font-size: 13px; }
 .btn-konfiguration-merken {
-  background: var(--black); color: var(--white); border: none; padding: 14px 28px;
-  font-family: inherit; font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em;
-  cursor: pointer; font-weight: 700;
+  background: var(--zeit-black); color: var(--zeit-white);
+  border: 1px solid var(--zeit-black); padding: 12px 28px;
+  border-radius: var(--radius-pill);
+  font-family: inherit; font-size: 15px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s ease;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
 }
-.btn-konfiguration-merken:hover { background: #333; }
-.btn-konfiguration-merken.merken-active { background: var(--yellow); color: var(--black); border-color: var(--yellow); }
+.btn-konfiguration-merken:hover { background: var(--zeit-yellow); color: var(--zeit-black); }
+.btn-konfiguration-merken.merken-active { background: var(--zeit-yellow); color: var(--zeit-black); border-color: var(--zeit-black); }
 
 /* FIXED-SLOT */
 .fs-ps-group { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
 .fs-ps-btn {
-  border: 1px solid var(--black); background: var(--white); padding: 6px 12px;
-  font-family: inherit; font-size: 12px; cursor: pointer;
-  text-transform: uppercase; letter-spacing: 0.07em;
+  border: 1px solid var(--zeit-black); background: var(--zeit-white); padding: 6px 16px;
+  border-radius: var(--radius-pill);
+  font-family: inherit; font-size: 12px; cursor: pointer; transition: all 0.15s ease;
 }
-.fs-ps-btn:hover { background: var(--yellow); }
-.fs-ps-btn.active { background: var(--black); color: var(--white); }
+.fs-ps-btn:hover { background: var(--zeit-yellow-soft); }
+.fs-ps-btn.active { background: var(--zeit-black); color: var(--zeit-white); border-color: var(--zeit-black); }
 .fs-slot-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .fs-slot-table th {
   text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;

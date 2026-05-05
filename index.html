@@ -152,6 +152,7 @@ header {
   border: 1px solid var(--black); padding: 20px; min-height: 100px;
   cursor: pointer; background: var(--white); transition: background 0.08s;
   display: flex; flex-direction: column; justify-content: flex-end;
+  border-radius: var(--radius-card);
 }
 .product-card:hover { background: var(--zeit-yellow-soft); }
 .product-card-name { font-size: 18px; font-weight: 500; line-height: 1.2; margin-bottom: 6px; color: var(--zeit-black); }
@@ -716,7 +717,7 @@ footer .footer-inner {
 .dz-dl-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #888; font-weight: 600; min-width: 90px; flex-shrink: 0; }
 .dz-sek-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #555; margin: 14px 0 8px; }
 .dz-sp-pills { display: flex; flex-wrap: wrap; gap: 8px; }
-.dz-sp-pill { border: 1px solid var(--black); padding: 8px 14px; cursor: pointer; background: var(--white); min-width: 160px; }
+.dz-sp-pill { border: 1px solid var(--black); padding: 8px 14px; cursor: pointer; background: var(--white); min-width: 160px; border-radius: var(--radius-card); }
 .dz-sp-pill:hover { background: var(--zeit-yellow-soft); }
 .dz-sp-pill-name { font-size: 13px; font-weight: 500; }
 .dz-sp-pill-cluster { font-size: 11px; color: #666; font-style: italic; margin-top: 2px; }
@@ -740,7 +741,7 @@ footer .footer-inner {
 .dz-formate-hinweis { font-size: 12px; color: #888; margin-top: 12px; font-style: italic; }
 
 .dz-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; padding: 16px 0; }
-.dz-card { border: 1px solid var(--black); padding: 16px; cursor: pointer; background: var(--white); }
+.dz-card { border: 1px solid var(--black); padding: 16px; cursor: pointer; background: var(--white); border-radius: var(--radius-card); }
 .dz-card:hover { background: var(--zeit-yellow-soft); }
 .dz-card-name { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
 .dz-card-sub { font-size: 12px; color: #666; font-style: italic; }

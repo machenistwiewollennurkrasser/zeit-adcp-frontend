@@ -116,26 +116,27 @@ header {
 }
 
 /* AKKORDEON */
-.accordion { border-top: 1px solid var(--black); }
-.accordion-section { border-bottom: 1px solid var(--black); }
+.accordion { border-top: 1px solid var(--zeit-black); }
+.accordion-section { border-bottom: 1px solid var(--zeit-black); }
 .accordion-trigger {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 20px 0; cursor: pointer; user-select: none;
-  background: var(--white); transition: background 0.08s;
+  padding: 24px 0; cursor: pointer; user-select: none;
+  background: var(--zeit-white); transition: background 0.12s;
 }
-.accordion-trigger:hover { background: #f5f5f5; }
-.accordion-title { font-size: 28px; font-weight: 500; letter-spacing: -0.01em; }
-.accordion-count { font-size: 16px; color: #666; font-weight: 400; margin-left: 6px; }
-.accordion-arrow { font-size: 16px; flex-shrink: 0; }
+.accordion-trigger:hover { background: var(--zeit-grey-bg); }
+.accordion-title { font-size: 28px; font-weight: 500; letter-spacing: -0.01em; color: var(--zeit-black); }
+.accordion-count { font-size: 15px; color: rgba(26,26,26,0.45); font-weight: 400; margin-left: 8px; }
+.accordion-arrow { font-size: 18px; flex-shrink: 0; color: var(--zeit-black); }
 .accordion-body { overflow: hidden; max-height: 0; transition: max-height 0.25s ease; }
-.accordion-inner { padding: 8px 0 32px; }
+.accordion-inner { padding: 8px 0 40px; }
 
 /* SUB-SEKTIONEN (DIE ZEIT) */
-.sub-section { margin-bottom: 28px; }
+.sub-section { margin-bottom: 32px; }
 .sub-section:last-child { margin-bottom: 0; }
 .sub-title {
-  font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700;
-  padding-bottom: 10px; margin-bottom: 16px; border-bottom: 1px solid var(--black);
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700;
+  padding-bottom: 10px; margin-bottom: 16px;
+  border-bottom: 1px solid var(--zeit-black); color: rgba(26,26,26,0.5);
 }
 
 /* KARTEN-GRID */

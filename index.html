@@ -569,6 +569,26 @@ header {
 }
 .merken-btn-cancel:hover { background: var(--yellow); }
 
+/* ============================================================
+   PILL-BUTTONS (Design-System Etappe 2a)
+   ============================================================ */
+.pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 18px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--zeit-black);
+  background: var(--zeit-white); color: var(--zeit-black);
+  font-size: 13px; font-family: inherit;
+  cursor: pointer; white-space: nowrap;
+  transition: all 0.15s ease;
+}
+.pill:hover:not(.disabled):not(.active) { background: var(--zeit-yellow-soft); }
+.pill.active { background: var(--zeit-black); color: var(--zeit-white); border-color: var(--zeit-black); }
+.pill.disabled { opacity: 0.4; cursor: not-allowed; background: var(--zeit-grey-bg); pointer-events: none; }
+
+/* Side-Panel Tier-Pills */
+.ml-tier-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+
 /* FOOTER */
 footer { border-top: 1px solid var(--black); padding: 28px 0; }
 footer .footer-inner {
@@ -685,9 +705,9 @@ footer .footer-inner {
 .dz-theme-pills { display: flex; flex-wrap: wrap; gap: 6px; }
 .dz-theme-pill { background: #eef2ff; border: 1px solid #c7d2fe; padding: 4px 10px; font-size: 12px; border-radius: 2px; }
 .dz-br-toggle { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
-.dz-br-btn { background: var(--gray-bg); color: var(--black); border: 1px solid #ccc; padding: 6px 12px; font-size: 12px; font-family: inherit; cursor: pointer; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
-.dz-br-btn.active { background: var(--black); color: var(--white); border-color: var(--black); }
-.dz-br-btn:hover:not(.active) { background: #e8e8e8; }
+.dz-br-btn { display: inline-flex; align-items: center; padding: 8px 18px; border-radius: var(--radius-pill); border: 1px solid var(--zeit-black); background: var(--zeit-white); color: var(--zeit-black); font-size: 13px; font-family: inherit; cursor: pointer; white-space: nowrap; transition: all 0.15s ease; font-weight: 500; text-transform: none; letter-spacing: 0; }
+.dz-br-btn.active { background: var(--zeit-black); color: var(--zeit-white); border-color: var(--zeit-black); }
+.dz-br-btn:hover:not(.active) { background: var(--zeit-yellow-soft); }
 .dz-format-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 4px; }
 .dz-format-table th { text-align: left; padding: 8px 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; border-bottom: 2px solid var(--black); font-weight: 700; white-space: nowrap; }
 .dz-format-table td { padding: 8px 10px; border-bottom: 1px solid #e8e8e8; vertical-align: middle; }
@@ -1103,13 +1123,13 @@ footer .footer-inner {
   </div>
   <div class="ml-tier-bar">
     <span class="ml-tier-label">Preisstufe</span>
-    <select class="ml-tier-select" id="ml-tier-select">
-      <option value="listenpreis">Listenpreis (Standard)</option>
-      <option value="rabatt_1" disabled>Rabatt 1 (noch nicht verfuegbar)</option>
-      <option value="rabatt_2" disabled>Rabatt 2 (noch nicht verfuegbar)</option>
-      <option value="rabatt_3" disabled>Rabatt 3 (noch nicht verfuegbar)</option>
-      <option value="rabatt_4" disabled>Rabatt 4 (noch nicht verfuegbar)</option>
-    </select>
+    <div class="ml-tier-pills" id="ml-tier-pills">
+      <button class="pill active" data-tier="listenpreis">Listenpreis</button>
+      <button class="pill disabled" data-tier="branchenpreis_1" disabled title="Noch nicht verfuegbar">BR I</button>
+      <button class="pill disabled" data-tier="branchenpreis_2" disabled title="Noch nicht verfuegbar">BR II</button>
+      <button class="pill disabled" data-tier="branchenpreis_3" disabled title="Noch nicht verfuegbar">BR III</button>
+      <button class="pill disabled" data-tier="branchenpreis_4" disabled title="Noch nicht verfuegbar">BR IV</button>
+    </div>
   </div>
   <div class="ml-body" id="ml-body"></div>
   <div id="ml-print-body" class="ml-print-body"></div>
@@ -4275,9 +4295,13 @@ document.getElementById('ml-close-btn').addEventListener('click', mlClose);
 _mlBackdrop.addEventListener('click', mlClose);
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && _mlPanel.classList.contains('open')) mlClose(); });
 
-// Preisstufen-Toggle
-document.getElementById('ml-tier-select').addEventListener('change', e => {
-  Merkliste.setGlobalPriceTier(e.target.value);
+// Preisstufen-Toggle (Pill-Buttons)
+document.getElementById('ml-tier-pills').addEventListener('click', e => {
+  const btn = e.target.closest('[data-tier]');
+  if (!btn || btn.disabled || btn.classList.contains('disabled')) return;
+  document.querySelectorAll('#ml-tier-pills [data-tier]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  Merkliste.setGlobalPriceTier(btn.dataset.tier);
 });
 
 // Alle entfernen
@@ -4294,7 +4318,7 @@ document.getElementById('ml-reset-btn').addEventListener('click', () => {
 // PDF-Export
 document.getElementById('ml-pdf-btn').addEventListener('click', () => {
   const today     = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const tierLabel = document.getElementById('ml-tier-select').selectedOptions[0]?.text || 'Listenpreis';
+  const tierLabel = document.querySelector('#ml-tier-pills .pill.active')?.textContent?.trim() || 'Listenpreis';
   const items     = Merkliste.getItems();
 
   // Gruppen aufbauen

@@ -97,12 +97,15 @@ header {
 /* HEADER RECHTS */
 .header-right { display: flex; align-items: center; gap: 12px; justify-content: flex-end; }
 .btn-merkliste {
-  background: var(--black); color: var(--white); border: none;
-  padding: 10px 16px; font-family: inherit; font-size: 11px;
-  text-transform: uppercase; letter-spacing: 0.08em;
-  cursor: pointer; font-weight: 700; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--zeit-black); color: var(--zeit-white);
+  border: 1px solid var(--zeit-black); border-radius: var(--radius-pill);
+  padding: 8px 16px; font-family: inherit; font-size: 12px; font-weight: 500;
+  cursor: pointer; white-space: nowrap; transition: all 0.15s ease;
 }
-.btn-merkliste:hover { background: #333; }
+.btn-merkliste:hover { background: var(--zeit-yellow); color: var(--zeit-black); }
+.btn-merkliste:hover .ml-badge { background: var(--zeit-black); color: var(--zeit-white); }
+.btn-merkliste:hover .ml-badge.empty { background: rgba(0,0,0,0.2); color: var(--zeit-black); }
 
 /* SERVER STATUS */
 
@@ -383,7 +386,7 @@ header {
 
 /* MODAL DETAIL – TAG PILLS */
 .tag-pills { display: flex; flex-wrap: wrap; gap: 6px; }
-.tag-pill { border: 1px solid var(--black); padding: 3px 8px; font-size: 12px; letter-spacing: 0.04em; }
+.tag-pill { border: 1px solid var(--zeit-black); padding: 4px 12px; font-size: 12px; border-radius: var(--radius-pill); }
 
 /* MODAL DETAIL – REACH WARNING */
 .reach-warning { background: var(--yellow); border: 1px solid var(--black); padding: 8px 12px; font-size: 13px; margin-bottom: 12px; }
@@ -416,12 +419,15 @@ header {
 
 /* MODAL DETAIL – MERKEN BUTTON */
 .btn-merken {
-  border: 1px solid var(--black); background: none; padding: 5px 10px;
-  font-size: 11px; cursor: pointer; font-family: inherit;
-  text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap;
+  display: inline-flex; align-items: center;
+  border: 1px solid var(--zeit-black); background: none;
+  padding: 6px 14px; border-radius: var(--radius-pill);
+  font-size: 12px; cursor: pointer; font-family: inherit;
+  white-space: nowrap; transition: all 0.12s ease;
+  text-transform: none; letter-spacing: 0;
 }
-.btn-merken:hover { background: var(--yellow); }
-.btn-merken.merken-active { background: var(--yellow); color: var(--black); }
+.btn-merken:hover { background: var(--zeit-yellow-soft); }
+.btn-merken.merken-active { background: var(--zeit-yellow); color: var(--zeit-black); border-color: var(--zeit-black); }
 
 /* MODAL DETAIL – TERMIN-SELECTION */
 .issue-tile.selected { background: var(--yellow); border-width: 2px; }
@@ -721,9 +727,9 @@ footer .footer-inner {
 .dz-price-cell { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .dz-action-cell { text-align: right; white-space: nowrap; }
 .dz-format-size { font-size: 12px; color: #888; }
-.dz-merken-btn { border: 1px solid var(--black); background: none; padding: 5px 10px; font-size: 11px; cursor: pointer; font-family: inherit; text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
-.dz-merken-btn:hover { background: var(--yellow); }
-.dz-merken-btn.merken-active { background: var(--yellow); color: var(--black); }
+.dz-merken-btn { display: inline-flex; align-items: center; border: 1px solid var(--zeit-black); background: none; padding: 6px 14px; border-radius: var(--radius-pill); font-size: 12px; cursor: pointer; font-family: inherit; white-space: nowrap; transition: all 0.12s ease; text-transform: none; letter-spacing: 0; }
+.dz-merken-btn:hover { background: var(--zeit-yellow-soft); }
+.dz-merken-btn.merken-active { background: var(--zeit-yellow); color: var(--zeit-black); border-color: var(--zeit-black); }
 .dz-formate-hinweis { font-size: 12px; color: #888; margin-top: 12px; font-style: italic; }
 
 .dz-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; padding: 16px 0; }
@@ -737,12 +743,12 @@ footer .footer-inner {
    ============================================================ */
 .ml-badge {
   display: inline-flex; align-items: center; justify-content: center;
-  min-width: 18px; height: 18px; border-radius: 9px;
-  background: var(--yellow); color: var(--black); font-size: 10px; font-weight: 700;
-  padding: 0 5px; margin-left: 6px; vertical-align: middle;
-  transition: background 0.15s;
+  min-width: 20px; height: 20px; border-radius: 50%;
+  background: var(--zeit-yellow); color: var(--zeit-black); font-size: 11px; font-weight: 700;
+  padding: 0 5px; margin-left: 2px;
+  transition: background 0.15s, color 0.15s;
 }
-.ml-badge.empty { background: #555; color: #999; }
+.ml-badge.empty { background: rgba(255,255,255,0.25); color: rgba(255,255,255,0.7); }
 
 /* ============================================================
    MERKLISTE SIDE-PANEL

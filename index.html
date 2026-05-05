@@ -607,11 +607,13 @@ header {
 .ml-tier-pills { display: flex; flex-wrap: wrap; gap: 6px; }
 
 /* FOOTER */
-footer { border-top: 1px solid var(--black); padding: 28px 0; }
+footer { border-top: 1px solid var(--black); padding: 20px 0; }
 footer .footer-inner {
   max-width: 1200px; margin: 0 auto; padding: 0 40px;
-  font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; line-height: 1.6;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+  white-space: nowrap; overflow-x: auto;
 }
+@media (max-width: 768px) { footer .footer-inner { white-space: normal; } }
 
 /* RESPONSIVE */
 @media (max-width: 768px) {

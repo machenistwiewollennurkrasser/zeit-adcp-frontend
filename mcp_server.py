@@ -38,6 +38,7 @@ v1.8.0: Neuer Endpoint GET /products/radar: flache Liste aller Print-Issues
       mit Anzeigenschluss in 0-60 Tagen (ohne Newsletter/Podcast).
       DIE ZEIT und ZEITmagazin nur Issues mit issue_themes.
       Speziale nutzen dz_lookup-Prioritaet fuer Deadline (wie Termin-Render).
+v1.8.2: Radar-Eintraege enthalten jetzt fallback_themes (topical_tags, max 5).
 """
 
 import secrets
@@ -263,7 +264,7 @@ app = FastAPI(
         "MCP-konformer Server fuer ZEIT Advise Werbeinventar-Discovery. "
         "Holtzbrinck AI Exploration Program, San Francisco 2026."
     ),
-    version="1.8.1",
+    version="1.8.2",
     docs_url="/docs" if ENVIRONMENT == "development" else None,
     dependencies=[Depends(verify_credentials)],
 )
@@ -403,7 +404,7 @@ MCP_TOOLS = [
 async def root():
     return {
         "name": "ZEIT AdCP MCP Server",
-        "version": "1.8.1",
+        "version": "1.8.2",
         "protocol": "mcp",
         "protocol_version": "2024-11-05",
         "endpoints": {
@@ -453,7 +454,7 @@ def handle_initialize(rpc_request):
     return JSONRPCResponse(
         result={
             "protocolVersion": "2024-11-05",
-            "serverInfo": {"name": "ZEIT AdCP MCP Server", "version": "1.8.1"},
+            "serverInfo": {"name": "ZEIT AdCP MCP Server", "version": "1.8.2"},
             "capabilities": {"tools": {}}
         },
         id=rpc_request.id
@@ -1201,6 +1202,9 @@ async def products_radar():
             bt       = iss.get("booking_deadline_time_local", "10:00")
             bd_label = _fmt_ad_close_label(bd_d, bt)
 
+            mm              = p.get("matching_metadata", {})
+            fallback_themes = (mm.get("topical_tags") or [])[:5]
+
             entries.append({
                 "product_id":             pid,
                 "product_name":           pname,
@@ -1212,6 +1216,7 @@ async def products_radar():
                 "booking_deadline":       bd_str,
                 "booking_deadline_label": bd_label,
                 "issue_themes":           themes,
+                "fallback_themes":        fallback_themes,
                 "days_until_deadline":    (bd_d - today).days,
             })
 
@@ -1941,7 +1946,7 @@ async def health():
 
     return {
         "status": "ok",
-        "version": "1.8.1",
+        "version": "1.8.2",
         "timestamp": datetime.utcnow().isoformat() + "Z",
         "environment": ENVIRONMENT,
         "schema_version": "3.0",

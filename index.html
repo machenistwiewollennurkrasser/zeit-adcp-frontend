@@ -939,11 +939,13 @@ footer .footer-inner {
 
 /* Anzeigenschluss-Radar */
 .radar-wrapper {
-  background: var(--zeit-yellow-soft);
-  border-radius: 12px;
-  padding: 18px 20px 20px;
-  margin-bottom: 20px;
-  margin-top: 20px;
+  background: transparent;
+  border-radius: 0;
+  border-top: 2px solid #1A1A1A;
+  border-bottom: 2px solid #1A1A1A;
+  padding: 18px 0 24px;
+  margin-top: 24px;
+  margin-bottom: 24px;
 }
 .radar-header {
   display: flex;
@@ -1002,9 +1004,21 @@ footer .footer-inner {
   border-radius: 6px;
   padding: 8px 10px;
   margin-bottom: 12px;
+  min-height: 60px;
+  box-sizing: border-box;
 }
 .radar-theme-label { font-size: 10px; text-transform: uppercase; opacity: 0.6; margin-bottom: 3px; }
 .radar-theme-text { font-size: 13px; }
+.radar-theme-pills { display: flex; flex-wrap: wrap; gap: 4px; }
+.radar-theme-pill {
+  background: white;
+  border: 1px solid #1A1A1A;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1.3;
+}
+.radar-theme-empty { font-size: 12px; opacity: 0.5; font-style: italic; }
 .radar-time-pill {
   display: inline-block;
   padding: 4px 10px;
@@ -4424,9 +4438,9 @@ function findProductInCache(product_id) {
 
 function renderRadar(items) {
   const STAGES = [
-    { key: '7_tage',      label: '7 Tage',   dotColor: '#A32D2D', pillBg: '#FCEBEB', pillColor: '#A32D2D', stageItems: [] },
-    { key: '30_tage',     label: '30 Tage',  dotColor: '#BA7517', pillBg: '#FAEEDA', pillColor: '#854F0B', stageItems: [] },
-    { key: '30plus_tage', label: '30+ Tage', dotColor: '#1D9E75', pillBg: '#E1F5EE', pillColor: '#0F6E56', stageItems: [] },
+    { key: '7_tage',      label: '< 7 Tage',  dotColor: '#A32D2D', pillBg: '#FCEBEB', pillColor: '#A32D2D', stageItems: [] },
+    { key: '30_tage',     label: '< 30 Tage', dotColor: '#BA7517', pillBg: '#FAEEDA', pillColor: '#854F0B', stageItems: [] },
+    { key: '30plus_tage', label: '> 30 Tage', dotColor: '#1D9E75', pillBg: '#E1F5EE', pillColor: '#0F6E56', stageItems: [] },
   ];
 
   items.forEach(item => {
@@ -4453,7 +4467,7 @@ function renderRadar(items) {
   const header = document.createElement('div');
   header.className = 'radar-header';
   header.innerHTML =
-    `<span class="radar-header-left">&#x23F1; Anzeigenschluss-Radar</span>` +
+    `<span class="radar-header-left">&#x23F1; Baldige Anzeigenschl&uuml;sse</span>` +
     `<span class="radar-header-right">${items.length} Termine in Sicht</span>`;
   wrapper.appendChild(header);
 
@@ -4535,12 +4549,27 @@ function renderRadar(items) {
       metaEl.textContent = item.issue_number ? `Ausgabe ${item.issue_number} · ${etStr}` : etStr;
       tile.appendChild(metaEl);
 
-      if (item.issue_themes && item.issue_themes.length) {
+      {
         const themeBox = document.createElement('div');
         themeBox.className = 'radar-theme-box';
-        themeBox.innerHTML =
-          `<div class="radar-theme-label">Thema</div>` +
-          `<div class="radar-theme-text">${item.issue_themes.join(', ')}</div>`;
+        const hasIssueThemes    = item.issue_themes && item.issue_themes.length > 0;
+        const hasFallbackThemes = item.fallback_themes && item.fallback_themes.length > 0;
+        if (hasIssueThemes) {
+          themeBox.innerHTML =
+            `<div class="radar-theme-label">Thema</div>` +
+            `<div class="radar-theme-text">${item.issue_themes.join(', ')}</div>`;
+        } else if (hasFallbackThemes) {
+          const pillsHtml = item.fallback_themes
+            .map(t => `<span class="radar-theme-pill">${t}</span>`)
+            .join('');
+          themeBox.innerHTML =
+            `<div class="radar-theme-label">Themenwelten</div>` +
+            `<div class="radar-theme-pills">${pillsHtml}</div>`;
+        } else {
+          themeBox.innerHTML =
+            `<div class="radar-theme-label">Themenwelten</div>` +
+            `<div class="radar-theme-empty">Keine Themenwelten hinterlegt</div>`;
+        }
         tile.appendChild(themeBox);
       }
 
@@ -4584,14 +4613,34 @@ function renderRadar(items) {
       tile.appendChild(footer);
     }
 
-    tile.addEventListener('click', () => {
+    let _ptStart = null;
+    tile.addEventListener('pointerdown', e => {
+      _ptStart = { x: e.clientX, y: e.clientY };
+    });
+    tile.addEventListener('pointerup', e => {
+      if (!_ptStart) return;
+      if (e.target.closest('button')) { _ptStart = null; return; }
+      const dx = e.clientX - _ptStart.x;
+      const dy = e.clientY - _ptStart.y;
+      _ptStart = null;
       const si = stage.stageItems;
       if (!si.length) return;
-      const item = si[stageIdx[stage.key]];
-      const product = findProductInCache(item.product_id) ||
-        { product_id: item.product_id, name: item.product_name, product_type: item.product_type, subtitle: '' };
-      openProductModal(product);
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
+      if (absDx < 10) {
+        const item = si[stageIdx[stage.key]];
+        const product = findProductInCache(item.product_id) ||
+          { product_id: item.product_id, name: item.product_name, product_type: item.product_type, subtitle: '' };
+        openProductModal(product);
+      } else if (absDx > 60 && absDx > absDy * 2) {
+        if (dx < 0) {
+          if (stageIdx[stage.key] < stage.stageItems.length - 1) { stageIdx[stage.key]++; renderTile(); }
+        } else {
+          if (stageIdx[stage.key] > 0) { stageIdx[stage.key]--; renderTile(); }
+        }
+      }
     });
+    tile.addEventListener('pointercancel', () => { _ptStart = null; });
 
     renderTile();
     col.appendChild(tile);

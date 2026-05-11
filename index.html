@@ -984,7 +984,7 @@ footer .footer-inner {
   border: 1px solid #1A1A1A;
   border-radius: 12px;
   padding: 14px;
-  min-height: 220px;
+  min-height: 360px;
   display: flex;
   flex-direction: column;
   cursor: pointer;
@@ -993,23 +993,48 @@ footer .footer-inner {
 .radar-tile-top {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   margin-bottom: 8px;
+  min-height: 20px;
 }
 .radar-type-label { font-size: 11px; text-transform: uppercase; opacity: 0.6; letter-spacing: 0.5px; }
 .radar-tile-counter { font-size: 11px; opacity: 0.5; }
-.radar-product-name { font-size: 15px; font-weight: 500; line-height: 1.3; margin-bottom: 2px; }
-.radar-product-meta { font-size: 12px; opacity: 0.7; margin-bottom: 12px; }
+.radar-product-name {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.3;
+  margin-bottom: 2px;
+  min-height: 40px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.radar-product-meta {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-bottom: 12px;
+  min-height: 18px;
+}
 .radar-theme-box {
   background: #F8F8F8;
   border-radius: 6px;
   padding: 8px 10px;
   margin-bottom: 12px;
   min-height: 60px;
+  max-height: 60px;
+  overflow: hidden;
   box-sizing: border-box;
 }
 .radar-theme-label { font-size: 10px; text-transform: uppercase; opacity: 0.6; margin-bottom: 3px; }
 .radar-theme-text { font-size: 13px; }
-.radar-theme-pills { display: flex; flex-wrap: wrap; gap: 4px; }
+.radar-theme-pills-wrapper {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  overflow: hidden;
+  width: 100%;
+}
 .radar-theme-pill {
   background: white;
   border: 1px solid #1A1A1A;
@@ -1017,21 +1042,27 @@ footer .footer-inner {
   border-radius: 999px;
   font-size: 11px;
   line-height: 1.3;
+  flex-shrink: 0;
 }
 .radar-theme-empty { font-size: 12px; opacity: 0.5; font-style: italic; }
+.radar-time-pill-wrapper {
+  min-height: 28px;
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
 .radar-time-pill {
   display: inline-block;
   padding: 4px 10px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 500;
-  margin-bottom: 10px;
-  align-self: flex-start;
 }
 .radar-deadline-line {
   font-size: 12px;
   border-top: 0.5px solid rgba(26,26,26,0.15);
   padding-top: 8px;
+  min-height: 20px;
 }
 .radar-tile-footer {
   display: flex;
@@ -4488,7 +4519,13 @@ function renderRadar(items) {
 
   function fmtDeadline(label) {
     if (!label) return '';
-    return label.split(',')[0].replace(/\.\d{4}$/, '.');
+    const WEEKDAYS = {
+      'Mo': 'Montag', 'Di': 'Dienstag', 'Mi': 'Mittwoch',
+      'Do': 'Donnerstag', 'Fr': 'Freitag', 'Sa': 'Samstag', 'So': 'Sonntag'
+    };
+    const m = label.match(/^(Mo|Di|Mi|Do|Fr|Sa|So)\s+(\d{2}\.\d{2}\.\d{4})/);
+    if (!m) return label;
+    return `${WEEKDAYS[m[1]]}, ${m[2]}`;
   }
 
   STAGES.forEach(stage => {
@@ -4564,7 +4601,7 @@ function renderRadar(items) {
             .join('');
           themeBox.innerHTML =
             `<div class="radar-theme-label">Themenwelten</div>` +
-            `<div class="radar-theme-pills">${pillsHtml}</div>`;
+            `<div class="radar-theme-pills-wrapper">${pillsHtml}</div>`;
         } else {
           themeBox.innerHTML =
             `<div class="radar-theme-label">Themenwelten</div>` +
@@ -4573,26 +4610,34 @@ function renderRadar(items) {
         tile.appendChild(themeBox);
       }
 
-      const pillEl = document.createElement('div');
+      const pillWrap = document.createElement('div');
+      pillWrap.className = 'radar-time-pill-wrapper';
+      const pillEl = document.createElement('span');
       pillEl.className = 'radar-time-pill';
       pillEl.style.cssText = `background:${stage.pillBg};color:${stage.pillColor}`;
       pillEl.textContent = fmtDays(item.days_until_deadline);
-      tile.appendChild(pillEl);
+      pillWrap.appendChild(pillEl);
+      tile.appendChild(pillWrap);
 
       const dlEl = document.createElement('div');
       dlEl.className = 'radar-deadline-line';
-      dlEl.textContent = `AS ${fmtDeadline(item.booking_deadline_label)}`;
+      dlEl.textContent = `Anzeigenschluss ${fmtDeadline(item.booking_deadline_label)}`;
       tile.appendChild(dlEl);
 
       const footer = document.createElement('div');
       footer.className = 'radar-tile-footer';
 
+      const singleItem = si.length <= 1;
+
       const btnL = document.createElement('button');
-      btnL.className = 'radar-arrow-left' + (ci === 0 ? ' radar-arrow-disabled' : '');
+      btnL.className = 'radar-arrow-left' + (singleItem ? ' radar-arrow-disabled' : '');
       btnL.innerHTML = '&lsaquo;';
       btnL.addEventListener('click', e => {
         e.stopPropagation();
-        if (stageIdx[stage.key] > 0) { stageIdx[stage.key]--; renderTile(); }
+        if (singleItem) return;
+        const len = stage.stageItems.length;
+        stageIdx[stage.key] = (stageIdx[stage.key] - 1 + len) % len;
+        renderTile();
       });
 
       const hintEl = document.createElement('span');
@@ -4600,11 +4645,14 @@ function renderRadar(items) {
       hintEl.textContent = 'Details';
 
       const btnR = document.createElement('button');
-      btnR.className = 'radar-arrow-right' + (ci === si.length - 1 ? ' radar-arrow-disabled' : '');
+      btnR.className = 'radar-arrow-right' + (singleItem ? ' radar-arrow-disabled' : '');
       btnR.innerHTML = '&rsaquo;';
       btnR.addEventListener('click', e => {
         e.stopPropagation();
-        if (stageIdx[stage.key] < stage.stageItems.length - 1) { stageIdx[stage.key]++; renderTile(); }
+        if (singleItem) return;
+        const len = stage.stageItems.length;
+        stageIdx[stage.key] = (stageIdx[stage.key] + 1) % len;
+        renderTile();
       });
 
       footer.appendChild(btnL);
@@ -4633,11 +4681,14 @@ function renderRadar(items) {
           { product_id: item.product_id, name: item.product_name, product_type: item.product_type, subtitle: '' };
         openProductModal(product);
       } else if (absDx > 60 && absDx > absDy * 2) {
+        const len = stage.stageItems.length;
+        if (len <= 1) return;
         if (dx < 0) {
-          if (stageIdx[stage.key] < stage.stageItems.length - 1) { stageIdx[stage.key]++; renderTile(); }
+          stageIdx[stage.key] = (stageIdx[stage.key] + 1) % len;
         } else {
-          if (stageIdx[stage.key] > 0) { stageIdx[stage.key]--; renderTile(); }
+          stageIdx[stage.key] = (stageIdx[stage.key] - 1 + len) % len;
         }
+        renderTile();
       }
     });
     tile.addEventListener('pointercancel', () => { _ptStart = null; });

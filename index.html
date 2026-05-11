@@ -936,6 +936,132 @@ footer .footer-inner {
     border-top: 1px solid #ccc; font-size: 11px; color: #888; line-height: 1.6;
   }
 }
+
+/* Anzeigenschluss-Radar */
+.radar-wrapper {
+  background: var(--zeit-yellow-soft);
+  border-radius: 12px;
+  padding: 18px 20px 20px;
+  margin-bottom: 20px;
+  margin-top: 20px;
+}
+.radar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.radar-header-left { font-size: 15px; font-weight: 500; }
+.radar-header-right { font-size: 12px; }
+.radar-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 719px) {
+  .radar-grid { grid-template-columns: 1fr; }
+}
+.radar-column { display: flex; flex-direction: column; }
+.radar-stage-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+  margin-bottom: 8px;
+}
+.radar-stage-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.radar-stage-name { font-size: 13px; font-weight: 500; }
+.radar-stage-count { font-size: 11px; opacity: 0.6; }
+.radar-tile {
+  background: white;
+  border: 1px solid #1A1A1A;
+  border-radius: 12px;
+  padding: 14px;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  flex: 1;
+}
+.radar-tile-top {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.radar-type-label { font-size: 11px; text-transform: uppercase; opacity: 0.6; letter-spacing: 0.5px; }
+.radar-tile-counter { font-size: 11px; opacity: 0.5; }
+.radar-product-name { font-size: 15px; font-weight: 500; line-height: 1.3; margin-bottom: 2px; }
+.radar-product-meta { font-size: 12px; opacity: 0.7; margin-bottom: 12px; }
+.radar-theme-box {
+  background: #F8F8F8;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+}
+.radar-theme-label { font-size: 10px; text-transform: uppercase; opacity: 0.6; margin-bottom: 3px; }
+.radar-theme-text { font-size: 13px; }
+.radar-time-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  margin-bottom: 10px;
+  align-self: flex-start;
+}
+.radar-deadline-line {
+  font-size: 12px;
+  border-top: 0.5px solid rgba(26,26,26,0.15);
+  padding-top: 8px;
+}
+.radar-tile-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 0.5px solid rgba(26,26,26,0.15);
+}
+.radar-arrow-left,
+.radar-arrow-right {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+  background: #1A1A1A;
+  color: white;
+  border: 1px solid #1A1A1A;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+}
+.radar-arrow-left.radar-arrow-disabled,
+.radar-arrow-right.radar-arrow-disabled {
+  background: white;
+  color: #1A1A1A;
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.radar-tile-hint { font-size: 11px; opacity: 0.5; }
+.radar-empty {
+  font-size: 13px;
+  opacity: 0.5;
+  text-align: center;
+  padding: 40px 16px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 </style>
 </head>
 <body>
@@ -4159,6 +4285,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal()
 // ============================================================
 
 let productListCache = null;
+let radarCache = null;
 
 function makeProductCard(item) {
   const el = document.createElement('div');
@@ -4261,7 +4388,7 @@ function renderAccordion(rawData) {
 }
 
 async function loadProductList() {
-  if (productListCache) { renderAccordion(productListCache); return; }
+  if (productListCache) { renderAccordion(productListCache); loadRadar(); return; }
   const root = document.getElementById('accordion-root');
   root.className = '';
   root.innerHTML = '<div class="products-loading">Produkte werden geladen …</div>';
@@ -4270,9 +4397,222 @@ async function loadProductList() {
     if (!res.ok) throw new Error(`Status ${res.status}`);
     productListCache = await res.json();
     renderAccordion(productListCache);
+    loadRadar();
   } catch (e) {
     root.innerHTML = '<div class="products-error">Produkte konnten nicht geladen werden. Bitte Seite neu laden.</div>';
   }
+}
+
+// ============================================================
+// ANZEIGENSCHLUSS-RADAR
+// ============================================================
+
+function findProductInCache(product_id) {
+  if (!productListCache) return null;
+  const c = productListCache;
+  for (const key of ['magazine', 'podcasts', 'newsletter']) {
+    const found = (c[key] || []).find(p => p.product_id === product_id);
+    if (found) return found;
+  }
+  const dz = c.die_zeit || {};
+  for (const key of ['wochenzeitung', 'regional', 'sonderveroeffentlichungen', 'beilagen']) {
+    const found = (dz[key] || []).find(p => p.product_id === product_id);
+    if (found) return found;
+  }
+  return null;
+}
+
+function renderRadar(items) {
+  const STAGES = [
+    { key: '7_tage',      label: '7 Tage',   dotColor: '#A32D2D', pillBg: '#FCEBEB', pillColor: '#A32D2D', stageItems: [] },
+    { key: '30_tage',     label: '30 Tage',  dotColor: '#BA7517', pillBg: '#FAEEDA', pillColor: '#854F0B', stageItems: [] },
+    { key: '30plus_tage', label: '30+ Tage', dotColor: '#1D9E75', pillBg: '#E1F5EE', pillColor: '#0F6E56', stageItems: [] },
+  ];
+
+  items.forEach(item => {
+    const d = item.days_until_deadline;
+    if (d <= 7) STAGES[0].stageItems.push(item);
+    else if (d <= 30) STAGES[1].stageItems.push(item);
+    else STAGES[2].stageItems.push(item);
+  });
+
+  const stageIdx = { '7_tage': 0, '30_tage': 0, '30plus_tage': 0 };
+
+  let radarRoot = document.getElementById('radar-root');
+  if (!radarRoot) {
+    radarRoot = document.createElement('div');
+    radarRoot.id = 'radar-root';
+    const accordionRoot = document.getElementById('accordion-root');
+    accordionRoot.parentNode.insertBefore(radarRoot, accordionRoot);
+  }
+  radarRoot.innerHTML = '';
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'radar-wrapper';
+
+  const header = document.createElement('div');
+  header.className = 'radar-header';
+  header.innerHTML =
+    `<span class="radar-header-left">&#x23F1; Anzeigenschluss-Radar</span>` +
+    `<span class="radar-header-right">${items.length} Termine in Sicht</span>`;
+  wrapper.appendChild(header);
+
+  const grid = document.createElement('div');
+  grid.className = 'radar-grid';
+
+  function fmtDate(dateStr) {
+    if (!dateStr) return '';
+    const m = dateStr.match(/^\d{4}-(\d{2})-(\d{2})$/);
+    return m ? `${m[2]}.${m[1]}.` : dateStr;
+  }
+
+  function fmtDays(days) {
+    if (days === 0) return 'heute';
+    if (days === 1) return 'morgen';
+    return `in ${days} Tagen`;
+  }
+
+  function fmtDeadline(label) {
+    if (!label) return '';
+    return label.split(',')[0].replace(/\.\d{4}$/, '.');
+  }
+
+  STAGES.forEach(stage => {
+    const col = document.createElement('div');
+    col.className = 'radar-column';
+
+    const stageLabelEl = document.createElement('div');
+    stageLabelEl.className = 'radar-stage-label';
+    stageLabelEl.innerHTML =
+      `<div style="display:flex;align-items:center;gap:6px">` +
+        `<span class="radar-stage-dot" style="background:${stage.dotColor}"></span>` +
+        `<span class="radar-stage-name">${stage.label}</span>` +
+      `</div>` +
+      `<span class="radar-stage-count">${stage.stageItems.length} Termine</span>`;
+    col.appendChild(stageLabelEl);
+
+    const tile = document.createElement('div');
+    tile.className = 'radar-tile';
+
+    function renderTile() {
+      tile.innerHTML = '';
+      const si = stage.stageItems;
+      const ci = stageIdx[stage.key];
+
+      if (!si.length) {
+        const emptyEl = document.createElement('div');
+        emptyEl.className = 'radar-empty';
+        emptyEl.textContent = 'Keine Termine in diesem Zeitfenster';
+        tile.appendChild(emptyEl);
+
+        const footer = document.createElement('div');
+        footer.className = 'radar-tile-footer';
+        footer.innerHTML =
+          `<button class="radar-arrow-left radar-arrow-disabled">&lsaquo;</button>` +
+          `<span class="radar-tile-hint">Details</span>` +
+          `<button class="radar-arrow-right radar-arrow-disabled">&rsaquo;</button>`;
+        tile.appendChild(footer);
+        return;
+      }
+
+      const item = si[ci];
+
+      const topEl = document.createElement('div');
+      topEl.className = 'radar-tile-top';
+      topEl.innerHTML =
+        `<span class="radar-type-label">${item.product_type_label || ''}</span>` +
+        `<span class="radar-tile-counter">${ci + 1}&nbsp;/&nbsp;${si.length}</span>`;
+      tile.appendChild(topEl);
+
+      const nameEl = document.createElement('div');
+      nameEl.className = 'radar-product-name';
+      nameEl.textContent = item.product_name;
+      tile.appendChild(nameEl);
+
+      const metaEl = document.createElement('div');
+      metaEl.className = 'radar-product-meta';
+      const etStr = `ET ${fmtDate(item.publication_date)}`;
+      metaEl.textContent = item.issue_number ? `Ausgabe ${item.issue_number} · ${etStr}` : etStr;
+      tile.appendChild(metaEl);
+
+      if (item.issue_themes && item.issue_themes.length) {
+        const themeBox = document.createElement('div');
+        themeBox.className = 'radar-theme-box';
+        themeBox.innerHTML =
+          `<div class="radar-theme-label">Thema</div>` +
+          `<div class="radar-theme-text">${item.issue_themes.join(', ')}</div>`;
+        tile.appendChild(themeBox);
+      }
+
+      const pillEl = document.createElement('div');
+      pillEl.className = 'radar-time-pill';
+      pillEl.style.cssText = `background:${stage.pillBg};color:${stage.pillColor}`;
+      pillEl.textContent = fmtDays(item.days_until_deadline);
+      tile.appendChild(pillEl);
+
+      const dlEl = document.createElement('div');
+      dlEl.className = 'radar-deadline-line';
+      dlEl.textContent = `AS ${fmtDeadline(item.booking_deadline_label)}`;
+      tile.appendChild(dlEl);
+
+      const footer = document.createElement('div');
+      footer.className = 'radar-tile-footer';
+
+      const btnL = document.createElement('button');
+      btnL.className = 'radar-arrow-left' + (ci === 0 ? ' radar-arrow-disabled' : '');
+      btnL.innerHTML = '&lsaquo;';
+      btnL.addEventListener('click', e => {
+        e.stopPropagation();
+        if (stageIdx[stage.key] > 0) { stageIdx[stage.key]--; renderTile(); }
+      });
+
+      const hintEl = document.createElement('span');
+      hintEl.className = 'radar-tile-hint';
+      hintEl.textContent = 'Details';
+
+      const btnR = document.createElement('button');
+      btnR.className = 'radar-arrow-right' + (ci === si.length - 1 ? ' radar-arrow-disabled' : '');
+      btnR.innerHTML = '&rsaquo;';
+      btnR.addEventListener('click', e => {
+        e.stopPropagation();
+        if (stageIdx[stage.key] < stage.stageItems.length - 1) { stageIdx[stage.key]++; renderTile(); }
+      });
+
+      footer.appendChild(btnL);
+      footer.appendChild(hintEl);
+      footer.appendChild(btnR);
+      tile.appendChild(footer);
+    }
+
+    tile.addEventListener('click', () => {
+      const si = stage.stageItems;
+      if (!si.length) return;
+      const item = si[stageIdx[stage.key]];
+      const product = findProductInCache(item.product_id) ||
+        { product_id: item.product_id, name: item.product_name, product_type: item.product_type, subtitle: '' };
+      openProductModal(product);
+    });
+
+    renderTile();
+    col.appendChild(tile);
+    grid.appendChild(col);
+  });
+
+  wrapper.appendChild(grid);
+  radarRoot.appendChild(wrapper);
+}
+
+async function loadRadar() {
+  if (radarCache !== null) {
+    if (radarCache.length) renderRadar(radarCache);
+    return;
+  }
+  try {
+    const res = await fetch(`${API_BASE}/products/radar`);
+    if (!res.ok) return;
+    radarCache = await res.json();
+    if (radarCache.length) renderRadar(radarCache);
+  } catch (e) { /* leise scheitern */ }
 }
 
 // ============================================================

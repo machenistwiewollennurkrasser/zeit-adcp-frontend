@@ -263,7 +263,7 @@ app = FastAPI(
         "MCP-konformer Server fuer ZEIT Advise Werbeinventar-Discovery. "
         "Holtzbrinck AI Exploration Program, San Francisco 2026."
     ),
-    version="1.8.0",
+    version="1.8.1",
     docs_url="/docs" if ENVIRONMENT == "development" else None,
     dependencies=[Depends(verify_credentials)],
 )
@@ -1139,7 +1139,9 @@ async def products_list():
 
 _RADAR_PRINT_TYPES = {
     "wochenzeitung", "magazin", "b2b_magazin", "kindermagazin",
-    "submagazin", "sonderheft", "beilage",
+    "submagazin", "sonderheft",
+    # "beilage" ausgeschlossen: identische Deadlines wie DZ-Hauptausgabe,
+    # kein eigenstaendiger Sales-Termin
 }
 _RADAR_DZ_ZM_IDS = {"die_zeit_2026", "zeitmagazin_2026"}
 

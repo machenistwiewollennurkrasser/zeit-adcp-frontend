@@ -403,7 +403,7 @@ MCP_TOOLS = [
 async def root():
     return {
         "name": "ZEIT AdCP MCP Server",
-        "version": "1.7.0",
+        "version": "1.8.1",
         "protocol": "mcp",
         "protocol_version": "2024-11-05",
         "endpoints": {
@@ -453,7 +453,7 @@ def handle_initialize(rpc_request):
     return JSONRPCResponse(
         result={
             "protocolVersion": "2024-11-05",
-            "serverInfo": {"name": "ZEIT AdCP MCP Server", "version": "1.7.0"},
+            "serverInfo": {"name": "ZEIT AdCP MCP Server", "version": "1.8.1"},
             "capabilities": {"tools": {}}
         },
         id=rpc_request.id
@@ -1941,7 +1941,7 @@ async def health():
 
     return {
         "status": "ok",
-        "version": "1.7.0",
+        "version": "1.8.1",
         "timestamp": datetime.utcnow().isoformat() + "Z",
         "environment": ENVIRONMENT,
         "schema_version": "3.0",

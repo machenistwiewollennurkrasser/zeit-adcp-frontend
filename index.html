@@ -955,10 +955,7 @@ footer .footer-inner {
   align-items: baseline;
   justify-content: space-between;
   gap: 16px;
-  padding: 36px 0 14px;
-}
-.section-header--with-divider {
-  border-top: 2px solid #1A1A1A;
+  padding: 36px 0 18px;
 }
 .section-label {
   font-size: 11px;
@@ -986,9 +983,7 @@ footer .footer-inner {
 .radar-wrapper {
   background: transparent;
   border-radius: 0;
-  border-top: 2px solid #1A1A1A;
-  border-bottom: 2px solid #1A1A1A;
-  padding: 18px 0 24px;
+  padding: 0 0 8px;
   margin-top: 0;
   margin-bottom: 56px;
 }
@@ -1010,20 +1005,23 @@ footer .footer-inner {
 }
 .radar-column { display: flex; flex-direction: column; min-width: 0; }
 .radar-stage-label {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 4px;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
   margin-bottom: 8px;
+  align-self: flex-start;
 }
-.radar-stage-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.radar-stage-name { font-size: 13px; font-weight: 500; }
-.radar-stage-count { font-size: 11px; opacity: 0.6; }
+.radar-stage-text { font-size: 12px; font-weight: 500; }
+.radar-stage-sep { width: 1px; height: 11px; opacity: 0.3; }
+.radar-stage-count { font-size: 11px; }
+.radar-stage-7 { background: #FCEBEB; color: #A32D2D; }
+.radar-stage-7 .radar-stage-sep { background: #A32D2D; }
+.radar-stage-30 { background: #FAEEDA; color: #854F0B; }
+.radar-stage-30 .radar-stage-sep { background: #854F0B; }
+.radar-stage-30plus { background: #E1F5EE; color: #0F6E56; }
+.radar-stage-30plus .radar-stage-sep { background: #0F6E56; }
 .radar-tile {
   background: white;
   border: 1px solid #1A1A1A;
@@ -4458,7 +4456,7 @@ function renderAccordion(rawData) {
   const totalCount = dzAll.length + (data.magazine || []).length + (data.podcasts || []).length + (data.newsletter || []).length;
 
   const sectionHeader = document.createElement('div');
-  sectionHeader.className = 'section-header section-header--with-divider';
+  sectionHeader.className = 'section-header';
   sectionHeader.innerHTML =
     `<div>` +
       `<div class="section-label">VOLLST&Auml;NDIGE &Uuml;BERSICHT</div>` +
@@ -4537,9 +4535,9 @@ function findProductInCache(product_id) {
 
 function renderRadar(items) {
   const STAGES = [
-    { key: '7_tage',      label: '< 7 Tage',  dotColor: '#A32D2D', pillBg: '#FCEBEB', pillColor: '#A32D2D', stageItems: [] },
-    { key: '30_tage',     label: '< 30 Tage', dotColor: '#BA7517', pillBg: '#FAEEDA', pillColor: '#854F0B', stageItems: [] },
-    { key: '30plus_tage', label: '> 30 Tage', dotColor: '#1D9E75', pillBg: '#E1F5EE', pillColor: '#0F6E56', stageItems: [] },
+    { key: '7_tage',      cssClass: 'radar-stage-7',      label: '< 7 Tage',  pillBg: '#FCEBEB', pillColor: '#A32D2D', stageItems: [] },
+    { key: '30_tage',     cssClass: 'radar-stage-30',     label: '< 30 Tage', pillBg: '#FAEEDA', pillColor: '#854F0B', stageItems: [] },
+    { key: '30plus_tage', cssClass: 'radar-stage-30plus', label: '> 30 Tage', pillBg: '#E1F5EE', pillColor: '#0F6E56', stageItems: [] },
   ];
 
   items.forEach(item => {
@@ -4604,12 +4602,10 @@ function renderRadar(items) {
     col.className = 'radar-column';
 
     const stageLabelEl = document.createElement('div');
-    stageLabelEl.className = 'radar-stage-label';
+    stageLabelEl.className = `radar-stage-label ${stage.cssClass}`;
     stageLabelEl.innerHTML =
-      `<div style="display:flex;align-items:center;gap:6px">` +
-        `<span class="radar-stage-dot" style="background:${stage.dotColor}"></span>` +
-        `<span class="radar-stage-name">${stage.label}</span>` +
-      `</div>` +
+      `<span class="radar-stage-text">${stage.label}</span>` +
+      `<span class="radar-stage-sep"></span>` +
       `<span class="radar-stage-count">${stage.stageItems.length} Termine</span>`;
     col.appendChild(stageLabelEl);
 

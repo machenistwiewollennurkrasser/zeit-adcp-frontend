@@ -950,6 +950,13 @@ footer .footer-inner {
 }
 
 /* Anzeigenschluss-Radar */
+.section-box {
+  background: #F8F8F8;
+  padding: 28px 24px;
+}
+.section-box--radar     { margin-top: 32px; }
+.section-box--portfolio { margin-top: 24px; }
+.section-box .section-header { padding: 0 0 18px; }
 .section-header {
   display: flex;
   align-items: baseline;
@@ -983,9 +990,8 @@ footer .footer-inner {
 .radar-wrapper {
   background: transparent;
   border-radius: 0;
-  padding: 0 0 8px;
-  margin-top: 0;
-  margin-bottom: 56px;
+  padding: 0;
+  margin: 0;
 }
 .radar-header {
   display: flex;
@@ -1004,24 +1010,35 @@ footer .footer-inner {
   .radar-grid { grid-template-columns: minmax(0, 1fr); }
 }
 .radar-column { display: flex; flex-direction: column; min-width: 0; }
-.radar-stage-label {
-  display: inline-flex;
+.radar-stage-pill {
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
+  padding: 8px 18px;
   border-radius: 999px;
-  margin-bottom: 8px;
-  align-self: flex-start;
+  background: white;
+  border: 1px solid #1A1A1A;
+  margin-bottom: 10px;
 }
-.radar-stage-text { font-size: 12px; font-weight: 500; }
-.radar-stage-sep { width: 1px; height: 11px; opacity: 0.3; }
-.radar-stage-count { font-size: 11px; }
-.radar-stage-7 { background: #FCEBEB; color: #A32D2D; }
-.radar-stage-7 .radar-stage-sep { background: #A32D2D; }
-.radar-stage-30 { background: #FAEEDA; color: #854F0B; }
-.radar-stage-30 .radar-stage-sep { background: #854F0B; }
-.radar-stage-30plus { background: #E1F5EE; color: #0F6E56; }
-.radar-stage-30plus .radar-stage-sep { background: #0F6E56; }
+.radar-stage-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1A1A1A;
+}
+.radar-stage-badge {
+  background: white;
+  color: #1A1A1A;
+  border: 1px solid #1A1A1A;
+  border-radius: 999px;
+  padding: 0 7px;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 20px;
+  text-align: center;
+  line-height: 16px;
+}
 .radar-tile {
   background: white;
   border: 1px solid #1A1A1A;
@@ -1041,11 +1058,27 @@ footer .footer-inner {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   margin-bottom: 8px;
   min-height: 20px;
 }
-.radar-type-label { font-size: 11px; text-transform: uppercase; opacity: 0.6; letter-spacing: 0.5px; }
-.radar-tile-counter { font-size: 11px; opacity: 0.5; }
+.radar-tile-top .radar-tile-type {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(26,26,26,0.55);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
+}
+.radar-tile-top .radar-tile-counter {
+  font-size: 10px;
+  color: rgba(26,26,26,0.5);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 .radar-product-name {
   font-size: 15px;
   font-weight: 500;
@@ -4453,21 +4486,22 @@ function renderAccordion(rawData) {
     ...(dz.sonderveroeffentlichungen || []),
     ...(dz.beilagen || []),
   ];
-  const totalCount = dzAll.length + (data.magazine || []).length + (data.podcasts || []).length + (data.newsletter || []).length;
+  const box = document.createElement('div');
+  box.className = 'section-box section-box--portfolio';
+  root.appendChild(box);
 
   const sectionHeader = document.createElement('div');
   sectionHeader.className = 'section-header';
   sectionHeader.innerHTML =
     `<div>` +
-      `<div class="section-label">VOLLST&Auml;NDIGE &Uuml;BERSICHT</div>` +
-      `<div class="section-title">Gesamtkatalog</div>` +
-    `</div>` +
-    `<span class="section-counter">${totalCount} Werbetr&auml;ger in 4 Kategorien</span>`;
-  root.appendChild(sectionHeader);
+      `<div class="section-label">PORTFOLIO</div>` +
+      `<div class="section-title">Marken</div>` +
+    `</div>`;
+  box.appendChild(sectionHeader);
 
   const acc = document.createElement('div');
   acc.className = 'accordion';
-  root.appendChild(acc);
+  box.appendChild(acc);
 
   acc.appendChild(makeAccordionSection('DIE ZEIT und ZEITmagazin', dzAll.length, inner => {
     [
@@ -4535,9 +4569,9 @@ function findProductInCache(product_id) {
 
 function renderRadar(items) {
   const STAGES = [
-    { key: '7_tage',      cssClass: 'radar-stage-7',      label: '< 7 Tage',  pillBg: '#FCEBEB', pillColor: '#A32D2D', stageItems: [] },
-    { key: '30_tage',     cssClass: 'radar-stage-30',     label: '< 30 Tage', pillBg: '#FAEEDA', pillColor: '#854F0B', stageItems: [] },
-    { key: '30plus_tage', cssClass: 'radar-stage-30plus', label: '> 30 Tage', pillBg: '#E1F5EE', pillColor: '#0F6E56', stageItems: [] },
+    { key: '7_tage',      label: 'Weniger als 7 Tage',  pillBg: '#FCEBEB', pillColor: '#A32D2D', stageItems: [] },
+    { key: '30_tage',     label: 'Weniger als 30 Tage', pillBg: '#FAEEDA', pillColor: '#854F0B', stageItems: [] },
+    { key: '30plus_tage', label: 'Mehr als 30 Tage',    pillBg: '#E1F5EE', pillColor: '#0F6E56', stageItems: [] },
   ];
 
   items.forEach(item => {
@@ -4558,6 +4592,10 @@ function renderRadar(items) {
   }
   radarRoot.innerHTML = '';
 
+  const box = document.createElement('div');
+  box.className = 'section-box section-box--radar';
+  radarRoot.appendChild(box);
+
   const sectionHeader = document.createElement('div');
   sectionHeader.className = 'section-header';
   sectionHeader.innerHTML =
@@ -4566,7 +4604,7 @@ function renderRadar(items) {
       `<div class="section-title">Baldige Anzeigenschl&uuml;sse</div>` +
     `</div>` +
     `<span class="section-counter">${items.length} Termine in Sicht</span>`;
-  radarRoot.appendChild(sectionHeader);
+  box.appendChild(sectionHeader);
 
   const wrapper = document.createElement('div');
   wrapper.className = 'radar-wrapper';
@@ -4602,11 +4640,10 @@ function renderRadar(items) {
     col.className = 'radar-column';
 
     const stageLabelEl = document.createElement('div');
-    stageLabelEl.className = `radar-stage-label ${stage.cssClass}`;
+    stageLabelEl.className = 'radar-stage-pill';
     stageLabelEl.innerHTML =
       `<span class="radar-stage-text">${stage.label}</span>` +
-      `<span class="radar-stage-sep"></span>` +
-      `<span class="radar-stage-count">${stage.stageItems.length} Termine</span>`;
+      `<span class="radar-stage-badge">${stage.stageItems.length}</span>`;
     col.appendChild(stageLabelEl);
 
     const tile = document.createElement('div');
@@ -4638,7 +4675,7 @@ function renderRadar(items) {
       const topEl = document.createElement('div');
       topEl.className = 'radar-tile-top';
       topEl.innerHTML =
-        `<span class="radar-type-label">${item.product_type_label || ''}</span>` +
+        `<span class="radar-tile-type">${item.product_type_label || ''}</span>` +
         `<span class="radar-tile-counter">${ci + 1}&nbsp;/&nbsp;${si.length}</span>`;
       tile.appendChild(topEl);
 
@@ -4766,7 +4803,7 @@ function renderRadar(items) {
   });
 
   wrapper.appendChild(grid);
-  radarRoot.appendChild(wrapper);
+  box.appendChild(wrapper);
 }
 
 async function loadRadar() {

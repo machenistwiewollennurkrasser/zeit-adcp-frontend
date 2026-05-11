@@ -34,6 +34,10 @@ v1.7.0: Sonderveroeffentlichungen-Umbau: _build_svoe_clusters() liefert
 v1.7.1: HTTP Basic Auth via globale FastAPI-Dependency.
       Konfiguration ueber Railway-Env-Vars BASIC_AUTH_USER/BASIC_AUTH_PASS.
       Ohne Env-Vars: Auth deaktiviert (lokale Entwicklung).
+v1.8.0: Neuer Endpoint GET /products/radar: flache Liste aller Print-Issues
+      mit Anzeigenschluss in 0-60 Tagen (ohne Newsletter/Podcast).
+      DIE ZEIT und ZEITmagazin nur Issues mit issue_themes.
+      Speziale nutzen dz_lookup-Prioritaet fuer Deadline (wie Termin-Render).
 """
 
 import secrets
@@ -259,7 +263,7 @@ app = FastAPI(
         "MCP-konformer Server fuer ZEIT Advise Werbeinventar-Discovery. "
         "Holtzbrinck AI Exploration Program, San Francisco 2026."
     ),
-    version="1.7.1",
+    version="1.8.0",
     docs_url="/docs" if ENVIRONMENT == "development" else None,
     dependencies=[Depends(verify_credentials)],
 )
@@ -1127,6 +1131,90 @@ async def products_list():
         "podcasts":   s(podcasts),
         "newsletter": s(newsletter),
     }
+
+
+# =====================================================
+# Radar: /products/radar
+# =====================================================
+
+_RADAR_PRINT_TYPES = {
+    "wochenzeitung", "magazin", "b2b_magazin", "kindermagazin",
+    "submagazin", "sonderheft", "beilage",
+}
+_RADAR_DZ_ZM_IDS = {"die_zeit_2026", "zeitmagazin_2026"}
+
+
+@app.get("/products/radar")
+async def products_radar():
+    """Anzeigenschluss-Radar: Print-Issues mit Deadline 0-60 Tage ab heute."""
+    today  = _date.today()
+    cutoff = today + timedelta(days=60)
+    dz_lookup = _build_dz_speziale_lookup()
+    entries: list[dict] = []
+
+    for p in product_index.products:
+        pt  = p.get("product_type", "")
+        pid = p.get("product_id", "")
+        cat = p.get("_category", "")
+
+        if pt in ("newsletter", "podcast"):
+            continue
+        if pt not in _RADAR_PRINT_TYPES and cat != "sonderveroeffentlichung":
+            continue
+
+        is_dz_or_zm = pid in _RADAR_DZ_ZM_IDS
+        is_speziale = cat == "sonderveroeffentlichung"
+        pname = p.get("product_name", "")
+
+        for iss in p.get("print_specifics", {}).get("issues", []):
+            if is_speziale:
+                pub_date = iss.get("publication_date")
+                dz_data  = dz_lookup.get((pid, pub_date), {})
+                bd_raw   = dz_data.get("ad_close_date") or iss.get("booking_deadline")
+            else:
+                bd_raw = iss.get("booking_deadline")
+
+            if not bd_raw:
+                continue
+            bd_str = bd_raw[:10]
+            try:
+                bd_d = _date.fromisoformat(bd_str)
+            except ValueError:
+                continue
+
+            if bd_d < today or bd_d > cutoff:
+                continue
+
+            themes = iss.get("issue_themes") or []
+            if is_dz_or_zm and not themes:
+                continue
+
+            if is_dz_or_zm and themes:
+                type_label = "Themen-Schwerpunkt"
+            elif is_speziale:
+                type_label = "Sonderveroeffentlichung"
+            else:
+                type_label = "Magazin"
+
+            bt       = iss.get("booking_deadline_time_local", "10:00")
+            bd_label = _fmt_ad_close_label(bd_d, bt)
+
+            entries.append({
+                "product_id":             pid,
+                "product_name":           pname,
+                "product_type":           pt,
+                "product_type_label":     type_label,
+                "issue_id":               iss.get("issue_id"),
+                "issue_number":           iss.get("issue_number_sequential"),
+                "publication_date":       iss.get("publication_date"),
+                "booking_deadline":       bd_str,
+                "booking_deadline_label": bd_label,
+                "issue_themes":           themes,
+                "days_until_deadline":    (bd_d - today).days,
+            })
+
+    entries.sort(key=lambda x: x["booking_deadline"])
+    return entries
 
 
 # =====================================================

@@ -95,7 +95,19 @@ header {
 .tab-btn:hover:not(.active) { border-bottom-color: #888; }
 
 /* HEADER RECHTS */
-.header-right { display: flex; align-items: center; gap: 12px; justify-content: flex-end; }
+.header-right { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.btn-filter {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--zeit-white); color: var(--zeit-black);
+  border: 1px solid var(--zeit-black); border-radius: var(--radius-pill);
+  padding: 8px 16px; font-family: inherit; font-size: 12px; font-weight: 500;
+  cursor: pointer; white-space: nowrap; transition: all 0.15s ease;
+}
+.btn-filter:hover { background: var(--zeit-yellow-soft); }
+.btn-filter.active {
+  background: var(--zeit-black); color: var(--zeit-white);
+}
+.btn-filter.active:hover { background: var(--zeit-black); }
 .btn-merkliste {
   display: inline-flex; align-items: center; gap: 4px;
   background: var(--zeit-black); color: var(--zeit-white);
@@ -123,12 +135,12 @@ header {
 .accordion-section { border-bottom: 1px solid var(--zeit-black); }
 .accordion-trigger {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 24px 0; cursor: pointer; user-select: none;
+  padding: 14px 0; cursor: pointer; user-select: none;
   background: var(--zeit-white); transition: background 0.12s;
 }
 .accordion-trigger:hover { background: var(--zeit-grey-bg); }
-.accordion-title { font-size: 28px; font-weight: 500; letter-spacing: -0.01em; color: var(--zeit-black); }
-.accordion-count { font-size: 15px; color: rgba(26,26,26,0.45); font-weight: 400; margin-left: 8px; }
+.accordion-title { font-size: 20px; font-weight: 500; letter-spacing: -0.01em; color: var(--zeit-black); }
+.accordion-count { font-size: 12px; color: rgba(26,26,26,0.45); font-weight: 400; margin-left: 10px; }
 .accordion-arrow { font-size: 18px; flex-shrink: 0; color: var(--zeit-black); }
 .accordion-body { overflow: hidden; max-height: 0; transition: max-height 0.25s ease; }
 .accordion-inner { padding: 8px 0 40px; }
@@ -938,14 +950,47 @@ footer .footer-inner {
 }
 
 /* Anzeigenschluss-Radar */
+.section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 36px 0 14px;
+}
+.section-header--with-divider {
+  border-top: 2px solid #1A1A1A;
+}
+.section-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: #1A1A1A;
+  opacity: 0.55;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+.section-title {
+  font-size: 30px;
+  font-weight: 500;
+  color: #1A1A1A;
+  letter-spacing: -0.015em;
+  line-height: 1.1;
+}
+.section-counter {
+  font-size: 12px;
+  color: #1A1A1A;
+  opacity: 0.55;
+  white-space: nowrap;
+}
+
 .radar-wrapper {
   background: transparent;
   border-radius: 0;
   border-top: 2px solid #1A1A1A;
   border-bottom: 2px solid #1A1A1A;
   padding: 18px 0 24px;
-  margin-top: 24px;
-  margin-bottom: 24px;
+  margin-top: 0;
+  margin-bottom: 56px;
 }
 .radar-header {
   display: flex;
@@ -957,13 +1002,13 @@ footer .footer-inner {
 .radar-header-right { font-size: 12px; }
 .radar-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
   gap: 12px;
 }
 @media (max-width: 719px) {
-  .radar-grid { grid-template-columns: 1fr; }
+  .radar-grid { grid-template-columns: minmax(0, 1fr); }
 }
-.radar-column { display: flex; flex-direction: column; }
+.radar-column { display: flex; flex-direction: column; min-width: 0; }
 .radar-stage-label {
   display: flex;
   align-items: center;
@@ -989,6 +1034,10 @@ footer .footer-inner {
   flex-direction: column;
   cursor: pointer;
   flex: 1;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  min-width: 0;
 }
 .radar-tile-top {
   display: flex;
@@ -1034,6 +1083,8 @@ footer .footer-inner {
   gap: 4px;
   overflow: hidden;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 .radar-theme-pill {
   background: white;
@@ -1136,11 +1187,9 @@ footer .footer-inner {
       </svg>
       <div class="header-logo-subtitle">Media Finder</div>
     </div>
-    <div class="header-tabs">
-      <button class="tab-btn active" data-tab="produkte">Produkte</button>
-      <button class="tab-btn" data-tab="filter">Filter</button>
-    </div>
+    <div class="header-middle"></div>
     <div class="header-right">
+<button class="btn-filter" id="filter-toggle-btn">FILTER</button>
 <button class="btn-merkliste" id="merkliste-btn">MERKLISTE <span class="ml-badge empty" id="ml-badge">0</span></button>
     </div>
   </div>
@@ -4348,14 +4397,15 @@ function makeGrid(items) {
   return grid;
 }
 
-function makeAccordionSection(title, count, bodyFn) {
+function makeAccordionSection(title, count, bodyFn, openByDefault) {
   const section = document.createElement('div');
   section.className = 'accordion-section';
 
   const trigger = document.createElement('div');
   trigger.className = 'accordion-trigger';
-  trigger.innerHTML = `<span class="accordion-title">${title}<span class="accordion-count">(${count})</span></span>
-    <span class="accordion-arrow">&#9662;</span>`;
+  const arrowChar = openByDefault ? '&#9652;' : '&#9662;';
+  trigger.innerHTML = `<span class="accordion-title">${title}<span class="accordion-count">${count} Produkte</span></span>
+    <span class="accordion-arrow">${arrowChar}</span>`;
 
   const body = document.createElement('div');
   body.className = 'accordion-body';
@@ -4363,6 +4413,8 @@ function makeAccordionSection(title, count, bodyFn) {
   inner.className = 'accordion-inner';
   bodyFn(inner);
   body.appendChild(inner);
+
+  if (openByDefault) body.style.maxHeight = 'none';
 
   trigger.addEventListener('click', () => {
     const isOpen = body.style.maxHeight && body.style.maxHeight !== '0px';
@@ -4388,7 +4440,7 @@ function makeAccordionSection(title, count, bodyFn) {
 function renderAccordion(rawData) {
   const root = document.getElementById('accordion-root');
   root.innerHTML = '';
-  root.className = 'accordion';
+  root.className = '';
 
   // ZEITmagazin aus Magazine entfernen und zu Wochenzeitung verschieben
   const zmItem   = (rawData.magazine || []).find(x => x.product_id === 'zeitmagazin_2026');
@@ -4403,7 +4455,23 @@ function renderAccordion(rawData) {
     ...(dz.sonderveroeffentlichungen || []),
     ...(dz.beilagen || []),
   ];
-  root.appendChild(makeAccordionSection('DIE ZEIT und ZEITmagazin', dzAll.length, inner => {
+  const totalCount = dzAll.length + (data.magazine || []).length + (data.podcasts || []).length + (data.newsletter || []).length;
+
+  const sectionHeader = document.createElement('div');
+  sectionHeader.className = 'section-header section-header--with-divider';
+  sectionHeader.innerHTML =
+    `<div>` +
+      `<div class="section-label">VOLLST&Auml;NDIGE &Uuml;BERSICHT</div>` +
+      `<div class="section-title">Gesamtkatalog</div>` +
+    `</div>` +
+    `<span class="section-counter">${totalCount} Werbetr&auml;ger in 4 Kategorien</span>`;
+  root.appendChild(sectionHeader);
+
+  const acc = document.createElement('div');
+  acc.className = 'accordion';
+  root.appendChild(acc);
+
+  acc.appendChild(makeAccordionSection('DIE ZEIT und ZEITmagazin', dzAll.length, inner => {
     [
       { key: 'wochenzeitung',             label: 'WOCHENZEITUNG' },
       { key: 'regional',                  label: 'REGIONALAUSGABEN' },
@@ -4421,14 +4489,14 @@ function renderAccordion(rawData) {
   }));
 
   [
-    { key: 'magazine',   label: 'MAGAZINE' },
-    { key: 'podcasts',   label: 'PODCASTS' },
-    { key: 'newsletter', label: 'NEWSLETTER' },
-  ].forEach(({ key, label }) => {
+    { key: 'magazine',   label: 'MAGAZINE',   open: true  },
+    { key: 'podcasts',   label: 'PODCASTS',   open: false },
+    { key: 'newsletter', label: 'NEWSLETTER', open: false },
+  ].forEach(({ key, label, open }) => {
     const items = data[key] || [];
-    root.appendChild(makeAccordionSection(label, items.length, inner => {
+    acc.appendChild(makeAccordionSection(label, items.length, inner => {
       inner.appendChild(makeGrid(items));
-    }));
+    }, open));
   });
 }
 
@@ -4492,15 +4560,18 @@ function renderRadar(items) {
   }
   radarRoot.innerHTML = '';
 
+  const sectionHeader = document.createElement('div');
+  sectionHeader.className = 'section-header';
+  sectionHeader.innerHTML =
+    `<div>` +
+      `<div class="section-label">SALES-RADAR</div>` +
+      `<div class="section-title">Baldige Anzeigenschl&uuml;sse</div>` +
+    `</div>` +
+    `<span class="section-counter">${items.length} Termine in Sicht</span>`;
+  radarRoot.appendChild(sectionHeader);
+
   const wrapper = document.createElement('div');
   wrapper.className = 'radar-wrapper';
-
-  const header = document.createElement('div');
-  header.className = 'radar-header';
-  header.innerHTML =
-    `<span class="radar-header-left">&#x23F1; Baldige Anzeigenschl&uuml;sse</span>` +
-    `<span class="radar-header-right">${items.length} Termine in Sicht</span>`;
-  wrapper.appendChild(header);
 
   const grid = document.createElement('div');
   grid.className = 'radar-grid';
@@ -4719,14 +4790,15 @@ async function loadRadar() {
 // TAB-LOGIK
 // ============================================================
 
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
-    btn.classList.add('active');
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-    if (btn.dataset.tab === 'produkte') loadProductList();
-  });
+document.getElementById('filter-toggle-btn').addEventListener('click', () => {
+  const tabProdukte = document.getElementById('tab-produkte');
+  const tabFilter   = document.getElementById('tab-filter');
+  const filterBtn   = document.getElementById('filter-toggle-btn');
+  const showFilter  = !tabFilter.classList.contains('active');
+  tabFilter.classList.toggle('active',   showFilter);
+  tabProdukte.classList.toggle('active', !showFilter);
+  filterBtn.classList.toggle('active',   showFilter);
+  if (!showFilter) loadProductList();
 });
 
 // Produkte beim Seitenladen direkt anzeigen

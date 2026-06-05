@@ -47,6 +47,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from typing import Optional, Any, Literal, List, Dict, Union
 from pathlib import Path
@@ -288,6 +289,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Statische Assets (z.B. Logos, Bilder) unter /static/ ausliefern
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # =====================================================
 # Produktdaten laden

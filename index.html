@@ -958,6 +958,145 @@ footer .footer-inner {
   }
 }
 
+/* HOME-TOPBAR */
+.header-home {
+  background: #F5F500;
+  border-bottom: 1.5px solid #1A1A1A;
+}
+.header-home-inner {
+  max-width: 1200px; margin: 0 auto;
+  padding: 14px 40px;
+  display: flex; align-items: center;
+}
+.header-home-l1 {
+  font-size: 14px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; color: #1A1A1A; line-height: 1;
+}
+.header-home-l2 {
+  font-size: 9px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.18em; color: #1A1A1A; opacity: 0.5;
+  margin-top: 4px; line-height: 1;
+}
+@media (max-width: 700px) {
+  .header-home-inner { padding: 12px 20px; }
+}
+
+/* KATALOG-TOPBAR Zusatz: Back-Button + Titel links */
+.header-katalog-left {
+  display: flex; align-items: center; gap: 10px;
+}
+.header-back-btn {
+  background: none; border: none; font-size: 20px;
+  color: #1A1A1A; cursor: pointer; padding: 0 6px 0 0;
+  line-height: 1; font-family: inherit;
+}
+.header-back-btn:hover { opacity: 0.6; }
+.header-katalog-title {
+  font-size: 14px; font-weight: 700; color: #1A1A1A;
+}
+.header-katalog .header-logo-wrap { cursor: pointer; }
+.header-katalog .header-middle {
+  display: flex; justify-content: center; align-items: center;
+}
+
+/* HOME-VIEW */
+.view-home {
+  max-width: 1200px; margin: 0 auto;
+  padding: 18px 40px 60px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+@media (max-width: 700px) {
+  .view-home { padding: 16px 20px 40px; }
+}
+.home-section {
+  background: #F8F8F8;
+}
+.home-section-radar {
+  padding: 18px 20px;
+}
+.home-section-tools {
+  padding: 22px 20px;
+}
+.home-section-label {
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.18em; color: #1A1A1A; opacity: 0.45;
+  margin-bottom: 6px;
+}
+.home-section-title {
+  font-size: 16px; font-weight: 700; color: #1A1A1A;
+  margin: 0 0 14px; line-height: 1.2;
+}
+
+/* Bestehendes Radar-Rendering im Home-Kontext: Doppelung unterdruecken */
+#view-home #radar-root .section-box--radar {
+  background: transparent;
+  padding: 0;
+  margin: 0;
+}
+#view-home #radar-root .section-box--radar .section-header {
+  display: none;
+}
+
+/* APP-GRID */
+.home-app-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (max-width: 720px) {
+  .home-app-grid { grid-template-columns: minmax(0, 1fr); }
+}
+.home-app-card {
+  background: #fff;
+  border: 1.5px solid #1A1A1A;
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex; flex-direction: column;
+  transition: background 0.12s;
+}
+.home-app-card:hover { background: #FFF59E; }
+.home-app-card.home-app-card-placeholder {
+  border: 1.5px dashed rgba(26,26,26,0.3);
+  cursor: default;
+}
+.home-app-card.home-app-card-placeholder:hover { background: #fff; }
+.home-app-card.home-app-disabled { cursor: default; }
+.home-app-icon {
+  aspect-ratio: 1 / 1;
+  display: flex; align-items: center; justify-content: center;
+  border-bottom: 1.5px solid #1A1A1A;
+  overflow: hidden;
+}
+.home-app-icon-black  { background: #1A1A1A; }
+.home-app-icon-yellow { background: #F5F500; }
+.home-app-icon-placeholder {
+  background: #F8F8F8;
+  border: 1.5px dashed rgba(26,26,26,0.3);
+  border-bottom: 1.5px dashed rgba(26,26,26,0.3);
+}
+.home-app-icon img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.home-app-icon svg { width: 44%; height: 44%; }
+.home-app-icon-logo-placeholder {
+  color: #F5F500; text-align: center;
+  font-weight: 700; letter-spacing: 0.18em;
+  font-size: 14px; line-height: 1.15;
+  padding: 8px;
+}
+.home-app-label {
+  padding: 12px 14px 14px;
+}
+.home-app-name {
+  font-size: 11px; font-weight: 700; color: #1A1A1A;
+  margin-bottom: 2px;
+}
+.home-app-sub {
+  font-size: 10px; color: #1A1A1A; opacity: 0.5;
+}
+.home-app-card-placeholder .home-app-name,
+.home-app-card-placeholder .home-app-sub { opacity: 0.3; }
+</style>
+
 /* Anzeigenschluss-Radar */
 .section-box {
   background: #F8F8F8;
@@ -1202,8 +1341,22 @@ footer .footer-inner {
 </head>
 <body>
 
-<header>
+<header id="header-home">
+  <div class="header-home-inner">
+    <div>
+      <div class="header-home-l1">ZEIT Advise</div>
+      <div class="header-home-l2">Advise Suite</div>
+    </div>
+  </div>
+</header>
+
+<header id="header-katalog" class="header-katalog" style="display:none">
   <div class="header-inner">
+    <div class="header-katalog-left">
+      <button type="button" class="header-back-btn" id="header-back-btn" aria-label="Zur&uuml;ck zur Startseite">&larr;</button>
+      <span class="header-katalog-title">Produktkatalog</span>
+    </div>
+    <div class="header-middle" id="header-logo-katalog">
     <div class="header-logo-wrap">
       <svg width="130" viewBox="0 0 203 29" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block">
         <g clip-path="url(#clip0_3110_9537)">
@@ -1227,7 +1380,7 @@ footer .footer-inner {
       </svg>
       <div class="header-logo-subtitle">Media Finder</div>
     </div>
-    <div class="header-middle"></div>
+    </div>
     <div class="header-right">
 <button class="btn-filter" id="filter-toggle-btn">FILTER</button>
 <button class="btn-merkliste" id="merkliste-btn">MERKLISTE <span class="ml-badge empty" id="ml-badge">0</span></button>
@@ -1235,7 +1388,99 @@ footer .footer-inner {
   </div>
 </header>
 
-<main>
+<main id="view-home" class="view-home">
+
+  <section class="home-section home-section-radar">
+    <div class="home-section-label">SALES-RADAR</div>
+    <h2 class="home-section-title">Baldige Anzeigenschl&uuml;sse</h2>
+    <div id="radar-root"></div>
+  </section>
+
+  <section class="home-section home-section-tools">
+    <div class="home-section-label">TOOLS</div>
+    <h2 class="home-section-title">Apps</h2>
+    <div class="home-app-grid">
+
+      <div class="home-app-card" data-app="katalog">
+        <div class="home-app-icon home-app-icon-black">
+          <div class="home-app-icon-logo-placeholder">MEDIA<br>FINDER</div>
+        </div>
+        <div class="home-app-label">
+          <div class="home-app-name">Produktkatalog</div>
+          <div class="home-app-sub">DIE ZEIT, Magazine, Newsletter &hellip;</div>
+        </div>
+      </div>
+
+      <div class="home-app-card home-app-disabled">
+        <div class="home-app-icon home-app-icon-black">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#F5F500" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="6" width="18" height="13" rx="1"/>
+            <path d="M3 7l9 7 9-7"/>
+          </svg>
+        </div>
+        <div class="home-app-label">
+          <div class="home-app-name">Mailing Master</div>
+          <div class="home-app-sub">Kampagnen-Mailings</div>
+        </div>
+      </div>
+
+      <div class="home-app-card home-app-disabled">
+        <div class="home-app-icon home-app-icon-yellow">
+          <svg viewBox="0 0 24 24" fill="#1A1A1A">
+            <path d="M12 2l2.4 7.4H22l-6 4.4 2.4 7.4-6-4.4-6 4.4 2.4-7.4-6-4.4h7.6L12 2z"/>
+          </svg>
+        </div>
+        <div class="home-app-label">
+          <div class="home-app-name">Sales Quiz</div>
+          <div class="home-app-sub">Produkt-Wissen testen</div>
+        </div>
+      </div>
+
+      <div class="home-app-card home-app-disabled">
+        <div class="home-app-icon home-app-icon-black">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#F5F500" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5" y="3" width="14" height="18" rx="1"/>
+            <text x="12" y="16" fill="#F5F500" stroke="none" text-anchor="middle" font-size="9" font-weight="700" font-family="sans-serif">&euro;</text>
+          </svg>
+        </div>
+        <div class="home-app-label">
+          <div class="home-app-name">Stellenmarkt</div>
+          <div class="home-app-sub">Preiskalkulator</div>
+        </div>
+      </div>
+
+      <div class="home-app-card home-app-disabled">
+        <div class="home-app-icon home-app-icon-yellow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="13" height="16" rx="1"/>
+            <rect x="7" y="6" width="13" height="16" rx="1"/>
+          </svg>
+        </div>
+        <div class="home-app-label">
+          <div class="home-app-name">Beilagen Buddy</div>
+          <div class="home-app-sub">Beilage planen</div>
+        </div>
+      </div>
+
+      <div class="home-app-card home-app-card-placeholder">
+        <div class="home-app-icon home-app-icon-placeholder">
+          <svg viewBox="0 0 24 24" stroke="rgba(26,26,26,0.3)" stroke-width="1.5" fill="none" stroke-linecap="round">
+            <line x1="12" y1="6" x2="12" y2="18"/>
+            <line x1="6" y1="12" x2="18" y2="12"/>
+          </svg>
+        </div>
+        <div class="home-app-label">
+          <div class="home-app-name">Neue App</div>
+          <div class="home-app-sub">Demn&auml;chst</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<main id="view-katalog" style="display:none">
 
   <div id="tab-produkte" class="tab-panel active">
     <div class="container">
@@ -5122,6 +5367,33 @@ function _mlSyncModalButtons() {
   // wird von den einzelnen Modals nach addItem aufgerufen -- hier nur Badge-Refresh
   _mlUpdateBadge(Merkliste.getItems());
 }
+
+// ============================================================
+// VIEW-NAVIGATION (Home / Produktkatalog)
+// ============================================================
+
+function showView(name) {
+  const home    = document.getElementById('view-home');
+  const katalog = document.getElementById('view-katalog');
+  const hHome    = document.getElementById('header-home');
+  const hKatalog = document.getElementById('header-katalog');
+  const isHome = name === 'home';
+  home.style.display     = isHome ? ''     : 'none';
+  katalog.style.display  = isHome ? 'none' : '';
+  hHome.style.display    = isHome ? ''     : 'none';
+  hKatalog.style.display = isHome ? 'none' : '';
+  window.scrollTo(0, 0);
+}
+
+document.querySelectorAll('.home-app-card[data-app]').forEach(card => {
+  card.addEventListener('click', () => {
+    const app = card.dataset.app;
+    if (app === 'katalog') showView('katalog');
+  });
+});
+
+document.getElementById('header-back-btn').addEventListener('click', () => showView('home'));
+document.getElementById('header-logo-katalog').addEventListener('click', () => showView('home'));
 
 // ============================================================
 // INIT

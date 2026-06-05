@@ -1040,8 +1040,9 @@ footer .footer-inner {
 /* APP-GRID */
 .home-app-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+  max-width: 400px;
 }
 @media (max-width: 720px) {
   .home-app-grid { grid-template-columns: minmax(0, 1fr); }
@@ -1070,6 +1071,10 @@ footer .footer-inner {
 }
 .home-app-icon-black  { background: #1A1A1A; }
 .home-app-icon-yellow { background: #F5F500; }
+.home-app-icon-katalog {
+  background: #F8F8F8;
+  border-bottom: none;
+}
 .home-app-icon-placeholder {
   background: #F8F8F8;
   border: 1.5px dashed rgba(26,26,26,0.3);
@@ -1401,8 +1406,8 @@ footer .footer-inner {
     <div class="home-app-grid">
 
       <div class="home-app-card" data-app="katalog">
-        <div class="home-app-icon home-app-icon-black">
-          <img src="/static/Logo_Mediafinder.png" alt="Mediafinder" style="width:100%;height:100%;object-fit:cover;display:block;">
+        <div class="home-app-icon home-app-icon-katalog">
+          <img src="/static/Logo_Mediafinder.png" alt="Mediafinder" style="width:100%;height:100%;object-fit:contain;display:block;background:#F8F8F8;padding:8px;">
         </div>
         <div class="home-app-label">
           <div class="home-app-name">Produktkatalog</div>
@@ -1410,6 +1415,7 @@ footer .footer-inner {
         </div>
       </div>
 
+      <!-- INAKTIV - spaeter wieder aktivieren
       <div class="home-app-card home-app-disabled">
         <div class="home-app-icon home-app-icon-black">
           <svg viewBox="0 0 24 24" fill="none" stroke="#F5F500" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1460,6 +1466,7 @@ footer .footer-inner {
           <div class="home-app-sub">Beilage planen</div>
         </div>
       </div>
+      -->
 
       <div class="home-app-card home-app-card-placeholder">
         <div class="home-app-icon home-app-icon-placeholder">

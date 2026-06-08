@@ -2677,21 +2677,34 @@ function renderResults(results, query) {
 
 let _searchResultMatchScore = null;
 
-function openSearchResultModal(idx) {
+async function openSearchResultModal(idx) {
   const r = currentResults[idx];
   if (!r) return;
-  const p = r.product || {};
+
   // Match-Score aus API-Response (Feld heisst match_score, nicht score)
   _searchResultMatchScore = (r.match_score !== undefined && r.match_score !== null)
     ? r.match_score
     : (r.score !== undefined && r.score !== null ? r.score : null);
 
-  const item = {
-    product_id:   p.product_id,
-    name:         p.product_name || p.name || '—',
-    subtitle:     p.subtitle || p.description_short || '',
-    product_type: p.product_type,
-  };
+  // Die /mcp/get_products-Antwort enthaelt KEIN product_type-Feld.
+  // Wir holen das vollstaendige Item (mit product_type) aus productListCache,
+  // damit openProductModal korrekt nach Magazin / Wochenzeitung / Newsletter /
+  // Podcast / Sonderveroeffentlichung / Beilage dispatchen kann.
+  let item = findProductInCache(r.product_id);
+  if (!item && !productListCache) {
+    // Cache noch nicht da -> erst laden, dann nochmal suchen
+    await loadProductList();
+    item = findProductInCache(r.product_id);
+  }
+  if (!item) {
+    // Fallback: minimaler Datensatz, openProductModal landet im Placeholder
+    item = {
+      product_id:   r.product_id,
+      name:         r.name || '—',
+      subtitle:     '',
+      product_type: '',
+    };
+  }
 
   // Score-Badge nachtraeglich in den modal-header haengen,
   // sobald dieser im DOM erscheint (typed Modals fetchen async).

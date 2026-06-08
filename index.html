@@ -1101,60 +1101,101 @@ footer .footer-inner {
 .home-app-card-placeholder .home-app-name,
 .home-app-card-placeholder .home-app-sub { opacity: 0.3; }
 
-/* KW-Kalender (Kampagnenzeitraum) */
-.filter-kw-block {
-  border: 1px solid var(--black);
-  border-bottom: none;
-  padding: 20px;
-}
-.kw-calendar { display: flex; flex-direction: column; gap: 6px; }
-.kw-quarter-row {
-  display: flex;
-  align-items: stretch;
-  gap: 10px;
-}
-.kw-quarter-label {
-  width: 130px;
-  flex-shrink: 0;
+/* Filter-Sub-Sections (z.B. Werbungtreibender: Branche + Zielgruppe) */
+.filter-sub-label {
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: rgba(26,26,26,0.55);
+  letter-spacing: 0.05em;
   font-weight: 700;
-  display: flex; align-items: center;
+  color: rgba(26,26,26,0.55);
+  margin-top: 14px;
+  margin-bottom: 8px;
 }
-.kw-buttons-row {
+.filter-group .filter-sub-label:first-child { margin-top: 0; }
+
+/* Kampagnenzeitraum: Monats-Navigator (kompakt, eine Spalte) */
+.kw-month-nav {
   display: flex;
-  gap: 3px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.kw-month-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1A1A1A;
+  text-align: center;
   flex: 1;
-  min-width: 0;
+}
+.kw-month-prev,
+.kw-month-next {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--zeit-black);
+  color: var(--zeit-white);
+  border: 1px solid var(--zeit-black);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+  font-family: inherit;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.kw-month-prev.kw-disabled,
+.kw-month-next.kw-disabled {
+  background: var(--zeit-white);
+  color: rgba(26,26,26,0.35);
+  cursor: not-allowed;
+}
+.kw-month-toggle {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+.kw-month-toggle input[type="checkbox"] {
+  width: 14px; height: 14px; border: 1px solid var(--black);
+  appearance: none; cursor: pointer;
+  background: var(--white); position: relative;
+}
+.kw-month-toggle input[type="checkbox"]:checked { background: var(--black); }
+.kw-month-toggle input[type="checkbox"]:checked::after {
+  content: "✓"; position: absolute; color: var(--white); font-size: 10px;
+  line-height: 14px; left: 1px; top: 0;
+}
+.kw-month-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 .kw-btn {
-  flex: 1 1 0;
-  min-width: 0;
   background: white;
   border: 1px solid var(--black);
-  padding: 5px 2px;
+  padding: 6px 10px;
   cursor: pointer;
   font-family: inherit;
-  text-align: center;
-  line-height: 1.15;
+  text-align: left;
+  line-height: 1.2;
   border-radius: 4px;
   user-select: none;
   transition: background 0.08s;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
 }
 .kw-btn:hover { background: var(--zeit-yellow-soft); }
 .kw-btn .kw-btn-num {
-  display: block;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 500;
   color: #1A1A1A;
 }
 .kw-btn .kw-btn-date {
-  display: block;
-  font-size: 10px;
+  font-size: 11px;
   color: rgba(26,26,26,0.55);
-  margin-top: 1px;
   white-space: nowrap;
 }
 .kw-btn.kw-btn-in-range {
@@ -1167,7 +1208,7 @@ footer .footer-inner {
 .kw-btn.kw-btn-endpoint .kw-btn-num { color: var(--zeit-white); }
 .kw-btn.kw-btn-endpoint .kw-btn-date { color: rgba(255,255,255,0.7); }
 .kw-selection-display {
-  margin-top: 14px;
+  margin-top: 12px;
   font-size: 12px;
   color: #1A1A1A;
   min-height: 18px;
@@ -1175,10 +1216,6 @@ footer .footer-inner {
 .kw-selection-display.kw-empty {
   opacity: 0.5;
   font-style: italic;
-}
-@media (max-width: 720px) {
-  .kw-quarter-row { flex-direction: column; gap: 4px; }
-  .kw-quarter-label { width: auto; }
 }
 
 /* Anzeigenschluss-Radar */
@@ -1576,22 +1613,7 @@ footer .footer-inner {
   <div id="tab-filter" class="tab-panel">
   <div class="container">
 
-    <section class="search-section">
-      <div class="search-bar">
-        <input type="text" id="query-input"
-          placeholder='Was suchen Sie? z.B. "Reise 30.000 EUR Print" oder "B2B Geschäftsführer DACH"'
-          autocomplete="off">
-        <button id="search-btn" type="button">Suchen</button>
-      </div>
-    </section>
-
     <section class="filter-section">
-
-      <div class="filter-kw-block">
-        <span class="filter-group-label">Kampagnenzeitraum</span>
-        <div class="kw-calendar" id="kw-calendar"></div>
-        <div class="kw-selection-display kw-empty" id="kw-selection-display">Kein Zeitraum gew&auml;hlt</div>
-      </div>
 
       <div class="filter-grid">
 
@@ -1599,14 +1621,54 @@ footer .footer-inner {
           <span class="filter-group-label">Kanal</span>
           <div class="checkbox-list">
             <label class="checkbox-item">
-              <input type="checkbox" id="f-print" checked> Print
+              <input type="checkbox" data-channel="wochenzeitung"> DIE ZEIT
             </label>
             <label class="checkbox-item">
-              <input type="checkbox" id="f-newsletter"> Newsletter
+              <input type="checkbox" data-channel="magazin"> Alle Magazine
             </label>
             <label class="checkbox-item">
-              <input type="checkbox" id="f-podcast"> Podcast
+              <input type="checkbox" data-channel="newsletter"> Alle Newsletter
             </label>
+            <label class="checkbox-item">
+              <input type="checkbox" data-channel="podcast"> Alle Podcasts
+            </label>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <span class="filter-group-label">Werbungtreibender</span>
+          <div class="filter-sub-label">Branche</div>
+          <div class="checkbox-list">
+            <label class="checkbox-item"><input type="checkbox" data-branche="reise"> Reise / Tourismus</label>
+            <label class="checkbox-item"><input type="checkbox" data-branche="kultur stiftung"> Kultur / NPO</label>
+            <label class="checkbox-item"><input type="checkbox" data-branche="buchverlag"> Buchverlag / Medien</label>
+            <label class="checkbox-item"><input type="checkbox" data-branche="b2b"> B2B / Consulting</label>
+            <label class="checkbox-item"><input type="checkbox" data-branche="finanz"> Finanzdienstleister</label>
+            <label class="checkbox-item"><input type="checkbox" data-branche="hochschule"> Hochschule / Bildung</label>
+            <label class="checkbox-item"><input type="checkbox" data-branche="automobil"> Automobil</label>
+            <label class="checkbox-item"><input type="checkbox" data-branche="mode"> Mode / Lifestyle</label>
+          </div>
+          <div class="filter-sub-label">Zielgruppe</div>
+          <div class="checkbox-list">
+            <label class="checkbox-item"><input type="checkbox" data-audience="fuehrungskraefte entscheider"> Führungskräfte / Entscheider</label>
+            <label class="checkbox-item"><input type="checkbox" data-audience="unternehmer selbststaendige"> Unternehmer / Mittelstand</label>
+            <label class="checkbox-item"><input type="checkbox" data-audience="premium luxus"> Premium / Luxus</label>
+            <label class="checkbox-item"><input type="checkbox" data-audience="kulturinteressierte kunstsammler"> Kulturinteressierte / Kunstsammler</label>
+            <label class="checkbox-item"><input type="checkbox" data-audience="studierende abiturient"> Studierende / Abiturienten</label>
+            <label class="checkbox-item"><input type="checkbox" data-audience="familien"> Familien</label>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <span class="filter-group-label">Thema / Kontext</span>
+          <div class="checkbox-list">
+            <label class="checkbox-item"><input type="checkbox" data-theme="kultur kunst"> Kultur / Kunst</label>
+            <label class="checkbox-item"><input type="checkbox" data-theme="wirtschaft digital"> Wirtschaft / Digitalisierung</label>
+            <label class="checkbox-item"><input type="checkbox" data-theme="reise"> Reise</label>
+            <label class="checkbox-item"><input type="checkbox" data-theme="bildung wissenschaft"> Bildung / Wissenschaft</label>
+            <label class="checkbox-item"><input type="checkbox" data-theme="nachhaltigkeit"> Nachhaltigkeit</label>
+            <label class="checkbox-item"><input type="checkbox" data-theme="geschichte"> Geschichte</label>
+            <label class="checkbox-item"><input type="checkbox" data-theme="gesundheit"> Gesundheit</label>
           </div>
         </div>
 
@@ -1634,46 +1696,17 @@ footer .footer-inner {
         </div>
 
         <div class="filter-group">
-          <span class="filter-group-label">Branche</span>
-          <div class="checkbox-list">
-            <label class="checkbox-item"><input type="checkbox" data-branche="reisen_tourismus"> Reise</label>
-            <label class="checkbox-item"><input type="checkbox" data-branche="kulturinstitutionen"> Kultur</label>
-            <label class="checkbox-item"><input type="checkbox" data-branche="kunstmarkt"> Kunstmarkt</label>
-            <label class="checkbox-item"><input type="checkbox" data-branche="buchverlage"> Buchverlag / NPO</label>
-            <label class="checkbox-item"><input type="checkbox" data-branche="b2b_dienstleister"> B2B / Consulting</label>
-            <label class="checkbox-item"><input type="checkbox" data-branche="finanzdienstleister"> Finanzdienstleister</label>
-            <label class="checkbox-item"><input type="checkbox" data-branche="hochschulen_universitaeten"> Hochschule / Bildung</label>
-            <label class="checkbox-item"><input type="checkbox" data-branche="premium_automobil"> Automobil</label>
-            <label class="checkbox-item"><input type="checkbox" data-branche="mode_fashion"> Mode</label>
+          <span class="filter-group-label">Kampagnenzeitraum</span>
+          <div class="kw-month-nav">
+            <button type="button" class="kw-month-prev" id="kw-month-prev" aria-label="Vorheriger Monat">&lsaquo;</button>
+            <span class="kw-month-title" id="kw-month-title">&nbsp;</span>
+            <button type="button" class="kw-month-next" id="kw-month-next" aria-label="N&auml;chster Monat">&rsaquo;</button>
           </div>
-        </div>
-
-        <div class="filter-group">
-          <span class="filter-group-label">Zielgruppe</span>
-          <div class="checkbox-list">
-            <label class="checkbox-item"><input type="checkbox" data-audience="qualitaetsbewusste_konsumenten"> Premium / Qualitätsbewusst</label>
-            <label class="checkbox-item"><input type="checkbox" data-audience="fuehrungskraefte"> Führungskräfte</label>
-            <label class="checkbox-item"><input type="checkbox" data-audience="selbststaendige_und_unternehmer"> Unternehmer / Mittelstand</label>
-            <label class="checkbox-item"><input type="checkbox" data-audience="kulturinteressierte"> Kulturinteressierte</label>
-            <label class="checkbox-item"><input type="checkbox" data-audience="luxusaffin"> Luxus</label>
-            <label class="checkbox-item"><input type="checkbox" data-audience="kunstsammler"> Kunstsammler</label>
-            <label class="checkbox-item"><input type="checkbox" data-audience="student"> Studierende / Abiturienten</label>
-            <label class="checkbox-item"><input type="checkbox" data-audience="familien"> Familien</label>
-          </div>
-        </div>
-
-        <div class="filter-group">
-          <span class="filter-group-label">Thema / Kontext</span>
-          <div class="checkbox-list">
-            <label class="checkbox-item"><input type="checkbox" data-theme="kultur"> Kultur</label>
-            <label class="checkbox-item"><input type="checkbox" data-theme="kunst"> Kunst</label>
-            <label class="checkbox-item"><input type="checkbox" data-theme="wirtschaft"> Wirtschaft</label>
-            <label class="checkbox-item"><input type="checkbox" data-theme="digitalisierung"> Digitalisierung</label>
-            <label class="checkbox-item"><input type="checkbox" data-theme="reise"> Reise</label>
-            <label class="checkbox-item"><input type="checkbox" data-theme="bildung"> Bildung</label>
-            <label class="checkbox-item"><input type="checkbox" data-theme="nachhaltigkeit"> Nachhaltigkeit</label>
-            <label class="checkbox-item"><input type="checkbox" data-theme="geschichte"> Geschichte</label>
-          </div>
+          <label class="kw-month-toggle">
+            <input type="checkbox" id="kw-month-all"> Gesamter Monat
+          </label>
+          <div class="kw-month-buttons" id="kw-month-buttons"></div>
+          <div class="kw-selection-display kw-empty" id="kw-selection-display">Kein Zeitraum gew&auml;hlt</div>
         </div>
 
       </div>
@@ -1696,7 +1729,7 @@ footer .footer-inner {
         </div>
       </div>
       <div class="result-list" id="result-list">
-        <div class="results-empty">Suche eingeben oder Filter anwenden, um Produkte zu finden.</div>
+        <div class="results-empty">Filter waehlen und auf &bdquo;Filter anwenden&rdquo; klicken, um Produkte zu finden.</div>
       </div>
     </section>
 
@@ -2216,10 +2249,8 @@ async function checkServer() {
     const data = await res.json();
     productsLoaded = data.products_total || data.products_loaded || 0;
     serverOk = true;
-    document.getElementById('search-btn').disabled = false;
   } catch (e) {
     serverOk = false;
-    document.getElementById('search-btn').disabled = true;
     document.getElementById('result-list').innerHTML =
       `<div class="results-error">⚠ Server nicht erreichbar.<br>Bitte starte: <code>python3 -m uvicorn mcp_server:app --port 8001</code></div>`;
   }
@@ -2230,118 +2261,104 @@ async function checkServer() {
 // ============================================================
 
 function buildBrief() {
-  const query = document.getElementById('query-input').value.trim();
+  // Brief-String aus Filtern (kein Freitext mehr)
+  // Reihenfolge: Kanal, Branche, Zielgruppe, Thema, Format, Budget, KW.
+  // Werte sind als Brief-Keywords ausgewaehlt, die matching.py kennt
+  // (CHANNEL_HINTS, INDUSTRY_KEYWORDS, AUDIENCE_KEYWORDS, topical_candidates).
 
-  // Filter-Werte sammeln
-  const channels = [];
-  if (document.getElementById('f-print').checked)      channels.push("Print");
-  if (document.getElementById('f-newsletter').checked) channels.push("Newsletter");
-  if (document.getElementById('f-podcast').checked)    channels.push("Podcast");
+  const channelKw  = [...document.querySelectorAll('[data-channel]:checked')]
+    .map(el => el.dataset.channel).join(" ");
+  const brancheKw  = [...document.querySelectorAll('[data-branche]:checked')]
+    .map(el => el.dataset.branche).join(" ");
+  const audienceKw = [...document.querySelectorAll('[data-audience]:checked')]
+    .map(el => el.dataset.audience).join(" ");
+  const themeKw    = [...document.querySelectorAll('[data-theme]:checked')]
+    .map(el => el.dataset.theme).join(" ");
+  const formats    = [...document.querySelectorAll('.format-chip.active')]
+    .map(el => el.dataset.fmt);
+  const budget     = parseInt(document.getElementById('f-budget').value) || 0;
 
-  const branches  = [...document.querySelectorAll('[data-branche]:checked')].map(el => el.parentElement.textContent.trim());
-  const audiences = [...document.querySelectorAll('[data-audience]:checked')].map(el => el.parentElement.textContent.trim());
-  const themes    = [...document.querySelectorAll('[data-theme]:checked')].map(el => el.parentElement.textContent.trim());
-  const formats   = [...document.querySelectorAll('.format-chip.active')].map(el => el.dataset.fmt);
-  const budget    = parseInt(document.getElementById('f-budget').value) || 0;
-
-  // Pseudo-Brief bauen (Variante B - ausformuliert)
-  const sentence = [];
-
-  // Kanal: weglassen wenn alle drei oder keiner gesetzt
-  if (channels.length > 0 && channels.length < 3) {
-    sentence.push("Suche " + channels.map(c => c + "-Werbung").join(" und "));
+  const parts = [];
+  if (channelKw)                     parts.push(channelKw);
+  if (brancheKw)                     parts.push(brancheKw);
+  if (audienceKw)                    parts.push(audienceKw);
+  if (themeKw)                       parts.push(themeKw);
+  if (formats.length)                parts.push(formats.join(" "));
+  if (budget > 0 && budget < 100000) parts.push("Budget " + budget + " EUR");
+  if (kwFrom !== null && kwTo !== null) {
+    const lo = Math.min(kwFrom, kwTo);
+    const hi = Math.max(kwFrom, kwTo);
+    parts.push("KW " + lo + " bis KW " + hi);
   }
 
-  if (themes.length)                 sentence.push("im Themenfeld " + themes.join(", "));
-  if (audiences.length)              sentence.push("fuer die Zielgruppe " + audiences.join(", "));
-  if (branches.length)               sentence.push("aus der Branche " + branches.join(", "));
-  if (budget > 0 && budget < 100000) sentence.push("mit einem Budget von " + budget + " EUR");
-  if (formats.length)                sentence.push("im Format " + formats.join(", "));
-
-  const pseudoBrief = sentence.length ? sentence.join(" ") + "." : "";
-
-  // Freitext und Pseudo-Brief kombinieren
-  if (query && pseudoBrief) return query + " " + pseudoBrief;
-  if (query)                return query;
-  if (pseudoBrief)          return pseudoBrief;
-  return "alle Produkte";
+  return parts.length ? parts.join(" ") : "alle Produkte";
 }
 
 // ============================================================
-// KW-KALENDER (Kampagnenzeitraum)
+// KAMPAGNENZEITRAUM (Monats-Navigator)
 // ============================================================
 
 let kwFrom = null;
 let kwTo   = null;
-let kwSelectingMode = false;     // true nach 1. Klick, wartet auf 2. Klick
-let kwMouseDownKw   = null;      // gesetzt zwischen mousedown und mouseup
-
-const KW_QUARTERS = [
-  { label: 'Q1 — Jan bis Mär',  from: 1,  to: 13 },
-  { label: 'Q2 — Apr bis Jun',  from: 14, to: 26 },
-  { label: 'Q3 — Jul bis Sep',  from: 27, to: 39 },
-  { label: 'Q4 — Okt bis Dez',  from: 40, to: 52 },
+const KW_MONTHS_DE = [
+  'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+  'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
 ];
 
-// KW 1 2026 beginnt am 29.12.2025 (ISO 8601). Jede KW = 7 Tage spaeter.
-function kwMonday2026(week) {
-  const base = new Date(2025, 11, 29);  // 29.12.2025
-  const d = new Date(base);
-  d.setDate(base.getDate() + (week - 1) * 7);
-  return d;
-}
-function kwFmtDDMM(d) {
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  return dd + '.' + mm;
-}
-function kwFmtFull(d) {
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yy = d.getFullYear();
-  return dd + '.' + mm + '.' + yy;
-}
-function kwDateRange(week) {
-  const mon = kwMonday2026(week);
-  const sun = new Date(mon);
-  sun.setDate(mon.getDate() + 6);
-  return kwFmtDDMM(mon) + '–' + kwFmtDDMM(sun);
+const _kwNow = new Date();
+const kwNowMonth = new Date(_kwNow.getFullYear(), _kwNow.getMonth(), 1);
+let kwDisplayMonth = new Date(kwNowMonth.getTime());  // 1. des aktuellen Monats
+
+// ISO-Kalenderwoche fuer einen Date-Wert (Mo-basiert).
+function kwOfDate(d) {
+  const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = tmp.getUTCDay() || 7;
+  tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+  return Math.ceil(((tmp - yearStart) / 86400000 + 1) / 7);
 }
 
-function buildKwCalendar() {
-  const container = document.getElementById('kw-calendar');
-  if (!container) return;
-  container.innerHTML = '';
-  KW_QUARTERS.forEach(q => {
-    const row = document.createElement('div');
-    row.className = 'kw-quarter-row';
-    const lbl = document.createElement('div');
-    lbl.className = 'kw-quarter-label';
-    lbl.textContent = q.label;
-    row.appendChild(lbl);
-    const btnRow = document.createElement('div');
-    btnRow.className = 'kw-buttons-row';
-    for (let kw = q.from; kw <= q.to; kw++) {
-      const b = document.createElement('button');
-      b.className = 'kw-btn';
-      b.type = 'button';
-      b.dataset.kw = String(kw);
-      b.innerHTML =
-        '<span class="kw-btn-num">KW ' + kw + '</span>' +
-        '<span class="kw-btn-date">' + kwDateRange(kw) + '</span>';
-      btnRow.appendChild(b);
-    }
-    row.appendChild(btnRow);
-    container.appendChild(row);
-  });
-  attachKwEvents();
-  updateKwHighlight();
-  updateKwDisplay();
+// Montag der ISO-Woche, in der das gegebene Datum liegt.
+function kwMondayOfDate(d) {
+  const day = d.getDay() || 7;  // 1..7 (Mo..So)
+  const mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - (day - 1));
+  return mon;
+}
+
+function kwFmtDDMM(d) {
+  return String(d.getDate()).padStart(2, '0') + '.' +
+         String(d.getMonth() + 1).padStart(2, '0');
+}
+function kwFmtFull(d) {
+  return kwFmtDDMM(d) + '.' + d.getFullYear();
+}
+
+// Liefert die Liste { kw, monday, sunday } fuer alle KWs, deren Montag im
+// angegebenen Monat liegt.
+function kwsInMonth(monthDate) {
+  const year = monthDate.getFullYear();
+  const month = monthDate.getMonth();
+  // Erster Montag dieses Monats: starte ab Montag der KW, in der der 1. liegt
+  const firstOfMonth = new Date(year, month, 1);
+  let mon = kwMondayOfDate(firstOfMonth);
+  if (mon.getMonth() !== month) {
+    // Montag liegt im Vormonat - naechsten Montag nehmen
+    mon = new Date(mon);
+    mon.setDate(mon.getDate() + 7);
+  }
+  const result = [];
+  while (mon.getMonth() === month) {
+    const sun = new Date(mon);
+    sun.setDate(mon.getDate() + 6);
+    result.push({ kw: kwOfDate(mon), monday: new Date(mon), sunday: sun });
+    mon = new Date(mon);
+    mon.setDate(mon.getDate() + 7);
+  }
+  return result;
 }
 
 function updateKwHighlight() {
-  const buttons = document.querySelectorAll('#kw-calendar .kw-btn');
-  buttons.forEach(b => {
+  document.querySelectorAll('#kw-month-buttons .kw-btn').forEach(b => {
     const kw = parseInt(b.dataset.kw, 10);
     b.classList.remove('kw-btn-in-range', 'kw-btn-endpoint');
     if (kwFrom === null || kwTo === null) return;
@@ -2350,6 +2367,7 @@ function updateKwHighlight() {
     if (kw === lo || kw === hi) b.classList.add('kw-btn-endpoint');
     else if (kw > lo && kw < hi) b.classList.add('kw-btn-in-range');
   });
+  syncMonthAllCheckbox();
 }
 
 function updateKwDisplay() {
@@ -2362,81 +2380,161 @@ function updateKwDisplay() {
   }
   const lo = Math.min(kwFrom, kwTo);
   const hi = Math.max(kwFrom, kwTo);
+  // Wir brauchen Mo der KW lo und So der KW hi im richtigen Jahr.
+  // Annahme aus Layout: Auswahl liegt im sichtbaren Jahr (ISO).
+  // Wir nutzen die schon berechneten Buttons-Cache: KW->Datum-Map.
+  const lookup = kwGlobalDateLookup();
+  const startMon = lookup[lo] ? lookup[lo].monday : null;
+  const endSun   = lookup[hi] ? lookup[hi].sunday : null;
   const nWeeks = hi - lo + 1;
-  const start = kwMonday2026(lo);
-  const endSun = new Date(kwMonday2026(hi));
-  endSun.setDate(endSun.getDate() + 6);
   el.classList.remove('kw-empty');
+  if (!startMon || !endSun) {
+    el.textContent = (lo === hi)
+      ? 'KW ' + lo + ' (' + nWeeks + ' Woche)'
+      : 'KW ' + lo + ' – KW ' + hi + ' (' + nWeeks + ' Wochen)';
+    return;
+  }
   if (lo === hi) {
     el.textContent = 'KW ' + lo + ' (' + nWeeks + ' Woche, ' +
-      kwFmtFull(start) + ' – ' + kwFmtFull(endSun) + ')';
+      kwFmtFull(startMon) + ' – ' + kwFmtFull(endSun) + ')';
   } else {
     el.textContent = 'KW ' + lo + ' – KW ' + hi + ' (' + nWeeks + ' Wochen, ' +
-      kwFmtFull(start) + ' – ' + kwFmtFull(endSun) + ')';
+      kwFmtFull(startMon) + ' – ' + kwFmtFull(endSun) + ')';
   }
 }
 
-function kwHandleClick(kw) {
-  // Bereits aktiver Range UND nicht im Selecting-Mode: Klick auf Endpunkt = reset
-  if (kwFrom !== null && kwTo !== null && !kwSelectingMode) {
-    const lo = Math.min(kwFrom, kwTo);
-    const hi = Math.max(kwFrom, kwTo);
-    if (kw === lo || kw === hi) {
-      kwFrom = null; kwTo = null; kwSelectingMode = false;
-      return;
-    }
-    // Neue Selektion starten
-    kwFrom = kw; kwTo = kw; kwSelectingMode = true;
-    return;
-  }
-  if (kwFrom === null) {
-    // Erster Klick
-    kwFrom = kw; kwTo = kw; kwSelectingMode = true;
-    return;
-  }
-  // Selecting-Mode: zweiter Klick legt Endpunkt fest
-  const lo = Math.min(kwFrom, kw);
-  const hi = Math.max(kwFrom, kw);
-  kwFrom = lo; kwTo = hi; kwSelectingMode = false;
-}
-
-function attachKwEvents() {
-  const buttons = document.querySelectorAll('#kw-calendar .kw-btn');
-  buttons.forEach(b => {
-    b.addEventListener('mousedown', e => {
-      e.preventDefault();
-      kwMouseDownKw = parseInt(b.dataset.kw, 10);
-      kwHandleClick(kwMouseDownKw);
-      updateKwHighlight();
-      updateKwDisplay();
+// KW -> { monday, sunday }-Map fuer alle Monate des aktuellen und naechsten
+// Jahres. Reichend fuer die Anzeige.
+let _kwLookupCache = null;
+let _kwLookupYear  = null;
+function kwGlobalDateLookup() {
+  const year = kwDisplayMonth.getFullYear();
+  if (_kwLookupCache && _kwLookupYear === year) return _kwLookupCache;
+  const lookup = {};
+  // Wir scannen 24 Monate ab Januar dieses Jahres (deckt alles ab).
+  for (let m = 0; m < 24; m++) {
+    const monthDate = new Date(year, m, 1);
+    kwsInMonth(monthDate).forEach(o => {
+      if (!(o.kw in lookup)) lookup[o.kw] = { monday: o.monday, sunday: o.sunday };
     });
-    b.addEventListener('mouseenter', () => {
-      if (kwMouseDownKw === null || !kwSelectingMode) return;
-      const kw = parseInt(b.dataset.kw, 10);
-      kwFrom = Math.min(kwMouseDownKw, kw);
-      kwTo   = Math.max(kwMouseDownKw, kw);
-      updateKwHighlight();
-      updateKwDisplay();
-    });
-  });
-  document.addEventListener('mouseup', () => {
-    if (kwMouseDownKw === null) return;
-    // Wenn beim Drag ueber mehrere KWs gegangen wurde, Auswahl finalisieren
-    if (kwFrom !== null && kwTo !== null && kwFrom !== kwTo) {
-      kwSelectingMode = false;
-    }
-    kwMouseDownKw = null;
-  });
+  }
+  _kwLookupCache = lookup;
+  _kwLookupYear  = year;
+  return lookup;
 }
 
-function resetKwSelection() {
-  kwFrom = null; kwTo = null;
-  kwSelectingMode = false; kwMouseDownKw = null;
+function renderKwMonth() {
+  const titleEl  = document.getElementById('kw-month-title');
+  const btnsEl   = document.getElementById('kw-month-buttons');
+  const prevBtn  = document.getElementById('kw-month-prev');
+  const nextBtn  = document.getElementById('kw-month-next');
+  if (!titleEl || !btnsEl) return;
+
+  titleEl.textContent = KW_MONTHS_DE[kwDisplayMonth.getMonth()] + ' ' + kwDisplayMonth.getFullYear();
+
+  // Prev-Disabled wenn Display-Monat <= aktueller Monat
+  const isAtOrBeforeNow = kwDisplayMonth.getTime() <= kwNowMonth.getTime();
+  prevBtn.classList.toggle('kw-disabled', isAtOrBeforeNow);
+  prevBtn.disabled = isAtOrBeforeNow;
+
+  // KW-Buttons
+  btnsEl.innerHTML = '';
+  const list = kwsInMonth(kwDisplayMonth);
+  list.forEach(o => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'kw-btn';
+    b.dataset.kw = String(o.kw);
+    b.innerHTML =
+      '<span class="kw-btn-num">KW ' + o.kw + '</span>' +
+      '<span class="kw-btn-date">' + kwFmtDDMM(o.monday) + '–' + kwFmtDDMM(o.sunday) + '</span>';
+    b.addEventListener('click', () => kwHandleBtnClick(o.kw));
+    btnsEl.appendChild(b);
+  });
+
   updateKwHighlight();
   updateKwDisplay();
 }
 
-buildKwCalendar();
+function syncMonthAllCheckbox() {
+  const cb = document.getElementById('kw-month-all');
+  if (!cb) return;
+  const list = kwsInMonth(kwDisplayMonth);
+  if (!list.length || kwFrom === null || kwTo === null) { cb.checked = false; return; }
+  const lo = Math.min(kwFrom, kwTo);
+  const hi = Math.max(kwFrom, kwTo);
+  const firstKw = list[0].kw;
+  const lastKw  = list[list.length - 1].kw;
+  cb.checked = (lo === firstKw && hi === lastKw);
+}
+
+function kwHandleBtnClick(kw) {
+  // Klick auf Start-KW im fertigen Range: reset
+  if (kwFrom !== null && kwTo !== null) {
+    const lo = Math.min(kwFrom, kwTo);
+    if (kw === lo) {
+      kwFrom = null; kwTo = null;
+      updateKwHighlight(); updateKwDisplay();
+      return;
+    }
+    // Klick auf andere KW startet neue Selektion
+    kwFrom = kw; kwTo = null;
+    updateKwHighlight(); updateKwDisplay();
+    return;
+  }
+  if (kwFrom === null) {
+    kwFrom = kw;
+    updateKwHighlight(); updateKwDisplay();
+    return;
+  }
+  // kwFrom gesetzt, kwTo noch nicht: zweiter Klick legt Endpunkt
+  kwTo = kw;
+  if (kwTo < kwFrom) { const tmp = kwFrom; kwFrom = kwTo; kwTo = tmp; }
+  updateKwHighlight(); updateKwDisplay();
+}
+
+function kwHandleMonthAllToggle(checked) {
+  const list = kwsInMonth(kwDisplayMonth);
+  if (!list.length) return;
+  if (checked) {
+    kwFrom = list[0].kw;
+    kwTo   = list[list.length - 1].kw;
+  } else {
+    // Nur zuruecksetzen, wenn die aktuelle Range exakt diesem Monat entspricht
+    if (kwFrom === list[0].kw && kwTo === list[list.length - 1].kw) {
+      kwFrom = null; kwTo = null;
+    }
+  }
+  updateKwHighlight();
+  updateKwDisplay();
+}
+
+function kwMonthShift(delta) {
+  const next = new Date(kwDisplayMonth.getFullYear(), kwDisplayMonth.getMonth() + delta, 1);
+  // Prev blockiert, wenn next < aktueller Monat
+  if (delta < 0 && next.getTime() < kwNowMonth.getTime()) return;
+  kwDisplayMonth = next;
+  renderKwMonth();
+}
+
+function resetKwSelection() {
+  kwFrom = null; kwTo = null;
+  kwDisplayMonth = new Date(kwNowMonth.getTime());
+  _kwLookupCache = null;
+  const cb = document.getElementById('kw-month-all');
+  if (cb) cb.checked = false;
+  renderKwMonth();
+}
+
+(function initKwMonthNav() {
+  const prevBtn = document.getElementById('kw-month-prev');
+  const nextBtn = document.getElementById('kw-month-next');
+  const allCb   = document.getElementById('kw-month-all');
+  if (prevBtn) prevBtn.addEventListener('click', () => kwMonthShift(-1));
+  if (nextBtn) nextBtn.addEventListener('click', () => kwMonthShift(+1));
+  if (allCb)   allCb.addEventListener('change', e => kwHandleMonthAllToggle(e.target.checked));
+  renderKwMonth();
+})();
 
 // ============================================================
 // SEARCH
@@ -2447,11 +2545,7 @@ let currentResults = [];
 async function runSearch() {
   if (!serverOk) { await checkServer(); if (!serverOk) return; }
 
-  let brief = buildBrief();
-  // Kampagnenzeitraum als KW-Range im Brief (matching.py erkennt das Muster)
-  if (kwFrom !== null && kwTo !== null) {
-    brief += " KW " + kwFrom + " bis KW " + kwTo;
-  }
+  const brief = buildBrief();
   const sortVal = document.getElementById('sort-select').value;
   const budgetMax = parseInt(document.getElementById('f-budget').value) || 0;
   const formats = [...document.querySelectorAll('.format-chip.active')].map(el => el.dataset.fmt);
@@ -2491,7 +2585,7 @@ async function runSearch() {
     // score: Reihenfolge vom Server behalten
 
     currentResults = results;
-    renderResults(results, document.getElementById('query-input').value.trim());
+    renderResults(results, '');
 
   } catch (e) {
     document.getElementById('result-list').innerHTML =
@@ -4876,26 +4970,17 @@ function _dzTipHTML(cell) {
 // EVENT LISTENERS
 // ============================================================
 
-document.getElementById('search-btn').addEventListener('click', runSearch);
 document.getElementById('filter-btn').addEventListener('click', runSearch);
 
 document.getElementById('reset-btn').addEventListener('click', () => {
-  document.getElementById('query-input').value = '';
-  document.querySelectorAll('[data-branche],[data-audience],[data-theme]').forEach(el => el.checked = false);
-  document.getElementById('f-print').checked = true;
-  document.getElementById('f-newsletter').checked = false;
-  document.getElementById('f-podcast').checked = false;
+  document.querySelectorAll('[data-channel],[data-branche],[data-audience],[data-theme]').forEach(el => el.checked = false);
   document.querySelectorAll('.format-chip').forEach(el => el.classList.remove('active'));
   document.getElementById('f-budget').value = 100000;
   document.getElementById('budget-display').textContent = 'Alle';
   resetKwSelection();
-  document.getElementById('result-list').innerHTML = '<div class="results-empty">Suche eingeben oder Filter anwenden, um Produkte zu finden.</div>';
+  document.getElementById('result-list').innerHTML = '<div class="results-empty">Filter waehlen und auf "Filter anwenden" klicken, um Produkte zu finden.</div>';
   document.getElementById('results-count').innerHTML = '';
   currentResults = [];
-});
-
-document.getElementById('query-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') runSearch();
 });
 
 document.getElementById('sort-select').addEventListener('change', () => {
@@ -4905,7 +4990,7 @@ document.getElementById('sort-select').addEventListener('change', () => {
     if (sortVal === 'price_asc') sorted.sort((a, b) => (a.best_format?.price_net_eur||0) - (b.best_format?.price_net_eur||0));
     else if (sortVal === 'price_desc') sorted.sort((a, b) => (b.best_format?.price_net_eur||0) - (a.best_format?.price_net_eur||0));
     currentResults = sorted;
-    renderResults(sorted, document.getElementById('query-input').value.trim());
+    renderResults(sorted, '');
   }
 });
 

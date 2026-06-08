@@ -235,6 +235,15 @@ header {
 
 /* FILTERS */
 .filter-section { padding: 32px 0; border-bottom: 1px solid var(--black); }
+.filter-beta-notice {
+  background: #FFF59E;
+  border: 1px solid #1A1A1A;
+  padding: 10px 20px;
+  font-size: 13px;
+  color: #1A1A1A;
+  margin-top: 24px;
+  line-height: 1.45;
+}
 .filter-grid {
   display: grid; grid-template-columns: repeat(3, 1fr);
   gap: 0; border: 1px solid var(--black);
@@ -1777,7 +1786,7 @@ footer .footer-inner {
     <div class="header-right">
 <div class="view-toggle" id="view-toggle" role="tablist">
   <button type="button" class="vt-segment vt-active" data-view="produkte" role="tab" aria-selected="true">Produkte</button>
-  <button type="button" class="vt-segment"          data-view="filter"   role="tab" aria-selected="false">Filter</button>
+  <button type="button" class="vt-segment"          data-view="filter"   role="tab" aria-selected="false">Filter (Beta)</button>
 </div>
 <button class="btn-merkliste" id="merkliste-btn">MERKLISTE <span class="ml-badge empty" id="ml-badge">0</span></button>
     </div>
@@ -1888,6 +1897,10 @@ footer .footer-inner {
 
   <div id="tab-filter" class="tab-panel">
   <div class="container">
+
+    <div class="filter-beta-notice">
+      &#9888; Dieser Bereich befindet sich noch in der Entwicklung. Filterergebnisse k&ouml;nnen unvollst&auml;ndig sein und sind mit Vorsicht zu genie&szlig;en.
+    </div>
 
     <section class="filter-section">
 

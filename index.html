@@ -234,16 +234,72 @@ header {
 .checkbox-item.disabled input { cursor: not-allowed; }
 .chip-note { font-size: 11px; color: #888; margin-top: 4px; font-style: italic; }
 
-/* Budget slider */
-.budget-row { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
-.budget-row input[type="range"] {
-  flex: 1; height: 2px; appearance: none; background: var(--black); cursor: pointer;
+/* Budget slider - Dual Handle (Von-Bis Range) */
+.dual-slider-wrap {
+  position: relative;
+  height: 28px;
+  margin-top: 6px;
 }
-.budget-row input[type="range"]::-webkit-slider-thumb {
-  appearance: none; width: 14px; height: 14px; border-radius: 50%;
-  background: var(--black); cursor: pointer;
+.slider-track-bg {
+  position: absolute;
+  top: 13px;
+  left: 0; right: 0;
+  height: 2px;
+  background: var(--black);
+  z-index: 0;
 }
-.budget-value { font-size: 14px; font-weight: 700; min-width: 70px; text-align: right; white-space: nowrap; }
+.slider-track-fill {
+  position: absolute;
+  top: 13px;
+  height: 2px;
+  background: #FFE000;
+  z-index: 1;
+  pointer-events: none;
+}
+.dual-slider-wrap input[type="range"] {
+  position: absolute;
+  top: 6px;
+  left: 0;
+  width: 100%;
+  height: 16px;
+  appearance: none;
+  background: transparent;
+  pointer-events: none;
+  margin: 0;
+  z-index: 2;
+}
+.dual-slider-wrap input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--black);
+  cursor: pointer;
+  pointer-events: auto;
+  border: 2px solid var(--zeit-white);
+  box-shadow: 0 0 0 1px var(--black);
+}
+.dual-slider-wrap input[type="range"]::-moz-range-thumb {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--black);
+  cursor: pointer;
+  pointer-events: auto;
+  border: 2px solid var(--zeit-white);
+  box-shadow: 0 0 0 1px var(--black);
+}
+.dual-slider-wrap input[type="range"]::-webkit-slider-runnable-track {
+  background: transparent;
+}
+.dual-slider-wrap input[type="range"]::-moz-range-track {
+  background: transparent;
+}
+.budget-display-line {
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1A1A1A;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* Format checkboxes */
 .format-chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -1683,12 +1739,14 @@ footer .footer-inner {
         </div>
 
         <div class="filter-group">
-          <span class="filter-group-label">Budget (max., netto)</span>
-          <div class="budget-row">
-            <input type="range" id="f-budget" min="0" max="100000" step="5000" value="100000">
-            <span class="budget-value" id="budget-display">Alle</span>
+          <span class="filter-group-label">Budget (netto)</span>
+          <div class="dual-slider-wrap">
+            <div class="slider-track-bg"></div>
+            <div class="slider-track-fill" id="slider-track-fill"></div>
+            <input type="range" id="budget-min" min="0" max="200000" step="500" value="0">
+            <input type="range" id="budget-max" min="0" max="200000" step="500" value="200000">
           </div>
-          <div class="chip-note">0 = kein Limit</div>
+          <div class="budget-display-line" id="budget-display">kein Limit</div>
         </div>
 
         <div class="filter-group">
@@ -2213,7 +2271,9 @@ const PREISSTUFE_LABEL = {
 
 function formatPriceNet(n) {
   if (n == null) return "auf Anfrage";
-  return new Intl.NumberFormat('de-DE').format(n) + " EUR " + PREIS_SUFFIX_NETTO;
+  return new Intl.NumberFormat('de-DE', {
+    minimumFractionDigits: 0, maximumFractionDigits: 0
+  }).format(n) + " EUR " + PREIS_SUFFIX_NETTO;
 }
 
 function eur(n) {
@@ -2267,6 +2327,89 @@ async function checkServer() {
 }
 
 // ============================================================
+// BUDGET DUAL-SLIDER
+// ============================================================
+
+const BUDGET_LIMIT = 200000;
+const BUDGET_STEP  = 500;
+let budgetMin = 0;
+let budgetMax = BUDGET_LIMIT;
+
+function _fmtEUR(n) {
+  return new Intl.NumberFormat('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
+}
+
+function updateBudgetSlider() {
+  const fill = document.getElementById('slider-track-fill');
+  const display = document.getElementById('budget-display');
+  if (fill) {
+    const lo = (budgetMin / BUDGET_LIMIT) * 100;
+    const hi = (budgetMax / BUDGET_LIMIT) * 100;
+    fill.style.left = lo + '%';
+    fill.style.width = (hi - lo) + '%';
+  }
+  if (display) {
+    if (budgetMin === 0 && budgetMax >= BUDGET_LIMIT) {
+      display.textContent = 'kein Limit';
+    } else if (budgetMin === 0) {
+      display.textContent = 'bis ' + _fmtEUR(budgetMax) + ' EUR netto';
+    } else if (budgetMax >= BUDGET_LIMIT) {
+      display.textContent = 'ab ' + _fmtEUR(budgetMin) + ' EUR netto';
+    } else {
+      display.textContent = _fmtEUR(budgetMin) + ' EUR – ' + _fmtEUR(budgetMax) + ' EUR netto';
+    }
+  }
+}
+
+function applyClientMinFilter() {
+  document.querySelectorAll('#result-list .result-card').forEach(card => {
+    const mp = parseFloat(card.dataset.minPrice || '');
+    if (budgetMin > 0 && !isNaN(mp) && mp > 0 && mp < budgetMin) {
+      card.style.display = 'none';
+    } else {
+      card.style.display = '';
+    }
+  });
+}
+
+(function initDualSlider() {
+  const minEl = document.getElementById('budget-min');
+  const maxEl = document.getElementById('budget-max');
+  if (!minEl || !maxEl) return;
+  minEl.addEventListener('input', () => {
+    let v = parseInt(minEl.value, 10) || 0;
+    if (v >= budgetMax) { v = Math.max(0, budgetMax - BUDGET_STEP); minEl.value = v; }
+    budgetMin = v;
+    updateBudgetSlider();
+    applyClientMinFilter();
+    // Bei vorhandenen Ergebnissen direkt neu rendern (Preisanzeige passt sich an)
+    if (currentResults && currentResults.length) {
+      renderResults(currentResults, '');
+    }
+  });
+  maxEl.addEventListener('input', () => {
+    let v = parseInt(maxEl.value, 10) || BUDGET_LIMIT;
+    if (v <= budgetMin) { v = Math.min(BUDGET_LIMIT, budgetMin + BUDGET_STEP); maxEl.value = v; }
+    budgetMax = v;
+    updateBudgetSlider();
+    applyClientMinFilter();
+    if (currentResults && currentResults.length) {
+      renderResults(currentResults, '');
+    }
+  });
+  updateBudgetSlider();
+})();
+
+function resetBudgetSlider() {
+  const minEl = document.getElementById('budget-min');
+  const maxEl = document.getElementById('budget-max');
+  budgetMin = 0; budgetMax = BUDGET_LIMIT;
+  if (minEl) minEl.value = 0;
+  if (maxEl) maxEl.value = BUDGET_LIMIT;
+  updateBudgetSlider();
+}
+
+// ============================================================
 // BRIEF BAUEN AUS FILTERN
 // ============================================================
 
@@ -2286,7 +2429,6 @@ function buildBrief() {
     .map(el => el.dataset.theme).join(" ");
   const formats    = [...document.querySelectorAll('.format-chip.active')]
     .map(el => el.dataset.fmt);
-  const budget     = parseInt(document.getElementById('f-budget').value) || 0;
 
   const parts = [];
   if (channelKw)                     parts.push(channelKw);
@@ -2299,7 +2441,16 @@ function buildBrief() {
   if (audienceKw)                    parts.push(audienceKw);
   if (themeKw)                       parts.push(themeKw);
   if (formats.length)                parts.push(formats.join(" "));
-  if (budget > 0 && budget < 100000) parts.push("Budget " + budget + " EUR");
+  // Budget-Range:
+  //   beides offen (0 .. LIMIT)    -> kein Budget-Keyword
+  //   nur Bis (Min = 0)            -> "Budget {bis} EUR"
+  //   beide gesetzt                -> "Budget {bis} EUR von {von} EUR"
+  //   nur Von (Bis = LIMIT)        -> kein Server-seitiges Max, client-Filter greift
+  if (budgetMin === 0 && budgetMax < BUDGET_LIMIT) {
+    parts.push("Budget " + budgetMax + " EUR");
+  } else if (budgetMin > 0 && budgetMax < BUDGET_LIMIT) {
+    parts.push("Budget " + budgetMax + " EUR von " + budgetMin + " EUR");
+  }
   if (kwFrom !== null && kwTo !== null) {
     const lo = Math.min(kwFrom, kwTo);
     const hi = Math.max(kwFrom, kwTo);
@@ -2563,8 +2714,6 @@ async function runSearch() {
 
   const brief = buildBrief();
   const sortVal = document.getElementById('sort-select').value;
-  const budgetMax = parseInt(document.getElementById('f-budget').value) || 0;
-  const formats = [...document.querySelectorAll('.format-chip.active')].map(el => el.dataset.fmt);
 
   document.getElementById('result-list').innerHTML = '<div class="results-loading">Suche läuft …</div>';
   document.getElementById('results-count').innerHTML = '';
@@ -2614,6 +2763,55 @@ async function runSearch() {
 // ERGEBNISSE RENDERN
 // ============================================================
 
+// Parst die textuelle pricing_summary aus dem Legacy-Endpoint in eine Liste
+// strukturierter Format-Kandidaten. Erkennt Zeilen wie
+//   "1/1 Seite | 138.547 EUR (Listenpreis, netto zzgl. MwSt.)"
+function parseFormatCandidates(summary) {
+  if (!summary || typeof summary !== 'string') return [];
+  const out = [];
+  for (const raw of summary.split('\n')) {
+    const m = raw.match(/^([^|]+?)\s*\|\s*([\d.]+)\s*EUR\b/);
+    if (!m) continue;
+    const name  = m[1].trim();
+    const price = parseFloat(m[2].replace(/\./g, ''));
+    if (!isFinite(price) || price <= 0) continue;
+    out.push({ format: name, price: price });
+  }
+  return out;
+}
+
+// Liefert die fuer die Karte anzuzeigende Preisinfo:
+//   { label: 'ab' | '', price: number | null, minPrice: number | null }
+// - Ohne Budget: "ab [minimum]" ueber alle format_candidates (bzw. best_format)
+// - Mit Budget: Preis des Formats das der Range-Mitte am naechsten liegt
+// - Podcast ohne konkreten Preis: null -> formatPriceNet liefert "auf Anfrage"
+function pickDisplayPrice(r) {
+  const bestPrice = (r.pricing && typeof r.pricing.price_net_eur === 'number')
+    ? r.pricing.price_net_eur
+    : null;
+  const cands = parseFormatCandidates(r.pricing_summary);
+  const allPrices = cands.map(c => c.price);
+  if (bestPrice !== null && !allPrices.includes(bestPrice)) allPrices.push(bestPrice);
+  const minPrice = allPrices.length ? Math.min(...allPrices) : null;
+
+  const noBudget = (budgetMin === 0 && budgetMax >= BUDGET_LIMIT);
+  if (noBudget) {
+    return { label: 'ab', price: minPrice, minPrice };
+  }
+  // Budget gesetzt: Format-Kandidat naechst zur Range-Mitte waehlen
+  const mid = (budgetMin + budgetMax) / 2;
+  if (cands.length) {
+    let pick = cands[0];
+    let bestDist = Math.abs(pick.price - mid);
+    for (const c of cands) {
+      const d = Math.abs(c.price - mid);
+      if (d < bestDist) { pick = c; bestDist = d; }
+    }
+    return { label: '', price: pick.price, minPrice };
+  }
+  return { label: '', price: bestPrice, minPrice };
+}
+
 function renderResults(results, query) {
   const list = document.getElementById('result-list');
   const countEl = document.getElementById('results-count');
@@ -2632,9 +2830,12 @@ function renderResults(results, query) {
     const mc = matchClass(score);
     const ml = matchLabel(score);
 
-    // Preis
-    const priceNet = r.pricing?.price_net_eur ?? null;
-    const formatName = r.pricing?.format || '';
+    // Preis (Budget-abhaengig)
+    const priceInfo = pickDisplayPrice(r);
+    const priceTxt  = (priceInfo.price === null)
+      ? formatPriceNet(null)
+      : (priceInfo.label ? priceInfo.label + ' ' : '') + formatPriceNet(priceInfo.price);
+    const dataMinPrice = priceInfo.minPrice !== null ? priceInfo.minPrice : '';
 
     // Reichweite
     const reach = r.reach || {};
@@ -2644,19 +2845,18 @@ function renderResults(results, query) {
       : reach.subscribers ? 'Abonnenten' : '';
     const reachSource = reach.source ? ` (Quelle: ${reach.source})` : '';
 
-    return `<div class="result-card" data-idx="${idx}" onclick="openSearchResultModal(${idx})">
+    return `<div class="result-card" data-idx="${idx}" data-min-price="${dataMinPrice}" onclick="openSearchResultModal(${idx})">
       <div class="result-card-bar ${mc}"></div>
       <div class="result-card-inner">
         <div class="rc-main">
           <div class="rc-name">${name}</div>
-          ${formatName ? `<div class="rc-format">Empfehlung: ${formatName}</div>` : ''}
         </div>
         <div class="rc-reach">
           ${reachVal ? `<strong>${num(reachVal)} ${reachLabel}</strong>${reachSource}` : '<strong>—</strong>'}
         </div>
         <div class="rc-price">
           <div class="rc-price-label">Listenpreis netto</div>
-          <div class="rc-price-value">${formatPriceNet(priceNet)}</div>
+          <div class="rc-price-value">${priceTxt}</div>
         </div>
         <div class="rc-badge">
           <div class="match-badge ${mc}">${ml}</div>
@@ -2665,6 +2865,9 @@ function renderResults(results, query) {
       </div>
     </div>`;
   }).join('');
+
+  // Client-seitiger Min-Filter direkt nach Render anwenden
+  applyClientMinFilter();
 }
 
 // ============================================================
@@ -5062,8 +5265,7 @@ document.getElementById('filter-btn').addEventListener('click', runSearch);
 document.getElementById('reset-btn').addEventListener('click', () => {
   document.querySelectorAll('[data-channel],[data-branche],[data-audience],[data-theme]').forEach(el => el.checked = false);
   document.querySelectorAll('.format-chip').forEach(el => el.classList.remove('active'));
-  document.getElementById('f-budget').value = 100000;
-  document.getElementById('budget-display').textContent = 'Alle';
+  resetBudgetSlider();
   resetKwSelection();
   document.getElementById('result-list').innerHTML = '<div class="results-empty">Filter waehlen und auf "Filter anwenden" klicken, um Produkte zu finden.</div>';
   document.getElementById('results-count').innerHTML = '';
@@ -5079,12 +5281,6 @@ document.getElementById('sort-select').addEventListener('change', () => {
     currentResults = sorted;
     renderResults(sorted, '');
   }
-});
-
-document.getElementById('f-budget').addEventListener('input', function() {
-  const v = parseInt(this.value);
-  document.getElementById('budget-display').textContent =
-    (v === 0 || v >= 100000) ? 'Alle' : eur(v);
 });
 
 document.querySelectorAll('.format-chip').forEach(chip => {

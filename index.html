@@ -364,8 +364,9 @@ header {
 .rc-reach { text-align: right; font-size: 13px; color: #444; white-space: nowrap; }
 .rc-reach strong { display: block; font-size: 16px; color: var(--black); }
 .rc-price { text-align: right; white-space: nowrap; }
-.rc-price-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #888; margin-bottom: 2px; }
-.rc-price-value { font-size: 28px; font-weight: 500; letter-spacing: -0.02em; line-height: 1; }
+.rc-price-label  { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #888; margin-bottom: 4px; }
+.rc-price-value  { font-size: 28px; font-weight: 500; letter-spacing: -0.02em; line-height: 1; }
+.rc-price-format { font-size: 12px; color: rgba(26,26,26,0.55); margin-top: 4px; white-space: nowrap; }
 .rc-badge { text-align: right; white-space: nowrap; }
 .match-badge {
   display: inline-block; padding: 5px 10px; font-size: 11px; text-transform: uppercase;
@@ -2781,14 +2782,42 @@ function parseFormatCandidates(summary) {
 }
 
 // Liefert die fuer die Karte anzuzeigende Preisinfo:
-//   { label: 'ab' | '', price: number | null, minPrice: number | null }
-// - Ohne Budget: "ab [minimum]" ueber alle format_candidates (bzw. best_format)
-// - Mit Budget: Preis des Formats das der Range-Mitte am naechsten liegt
-// - Podcast ohne konkreten Preis: null -> formatPriceNet liefert "auf Anfrage"
+//   { label: 'ab' | '', price: number | null, minPrice: number | null, format: string }
+// - Print ohne Budget: "ab [minimum]" + Name des guenstigsten Formats
+// - Print mit Budget : Preis des Formats das (von+bis)/2 am naechsten ist
+// - Newsletter       : immer "ab [price]" + Format-Display-Name
+// - Podcast TKP      : "ab [mbv]" wenn mbv_eur_net im Response, sonst "ab [price_net_eur]"
+//   Ohne Preis-Daten : null -> formatPriceNet liefert "auf Anfrage", keine Formatzeile
 function pickDisplayPrice(r) {
-  const bestPrice = (r.pricing && typeof r.pricing.price_net_eur === 'number')
-    ? r.pricing.price_net_eur
-    : null;
+  const p = r.pricing || {};
+  const bestPrice = (typeof p.price_net_eur === 'number') ? p.price_net_eur : null;
+  const fmtFromPricing = p.format || '';
+
+  // Channel-Erkennung anhand strukturierter Pricing-Felder
+  const isPodcast    = p.pricing_model === 'tkp_based';
+  const isNewsletter = !!p.applied_pricing_model;
+
+  if (isPodcast) {
+    // mbv_eur_net wird vom Legacy-Endpoint nicht ausgeliefert; falls doch vorhanden, nutze ihn.
+    const mbv = (typeof p.mbv_eur_net === 'number') ? p.mbv_eur_net : null;
+    if (mbv !== null) {
+      return { label: 'ab', price: mbv, minPrice: mbv, format: 'Mindestbuchungsvolumen' };
+    }
+    if (bestPrice !== null) {
+      return { label: 'ab', price: bestPrice, minPrice: bestPrice, format: fmtFromPricing };
+    }
+    // Kein konkreter Preis -> auf Anfrage, keine Formatzeile
+    return { label: '', price: null, minPrice: null, format: '' };
+  }
+
+  if (isNewsletter) {
+    if (bestPrice === null) {
+      return { label: '', price: null, minPrice: null, format: '' };
+    }
+    return { label: 'ab', price: bestPrice, minPrice: bestPrice, format: fmtFromPricing };
+  }
+
+  // PRINT
   const cands = parseFormatCandidates(r.pricing_summary);
   const allPrices = cands.map(c => c.price);
   if (bestPrice !== null && !allPrices.includes(bestPrice)) allPrices.push(bestPrice);
@@ -2796,9 +2825,14 @@ function pickDisplayPrice(r) {
 
   const noBudget = (budgetMin === 0 && budgetMax >= BUDGET_LIMIT);
   if (noBudget) {
-    return { label: 'ab', price: minPrice, minPrice };
+    if (cands.length) {
+      let cheapest = cands[0];
+      for (const c of cands) if (c.price < cheapest.price) cheapest = c;
+      return { label: 'ab', price: cheapest.price, minPrice, format: cheapest.format };
+    }
+    return { label: 'ab', price: bestPrice, minPrice, format: fmtFromPricing };
   }
-  // Budget gesetzt: Format-Kandidat naechst zur Range-Mitte waehlen
+  // Budget gesetzt: Format-Kandidat naechst zur Range-Mitte
   const mid = (budgetMin + budgetMax) / 2;
   if (cands.length) {
     let pick = cands[0];
@@ -2807,9 +2841,9 @@ function pickDisplayPrice(r) {
       const d = Math.abs(c.price - mid);
       if (d < bestDist) { pick = c; bestDist = d; }
     }
-    return { label: '', price: pick.price, minPrice };
+    return { label: '', price: pick.price, minPrice, format: pick.format };
   }
-  return { label: '', price: bestPrice, minPrice };
+  return { label: '', price: bestPrice, minPrice, format: fmtFromPricing };
 }
 
 function renderResults(results, query) {
@@ -2830,12 +2864,15 @@ function renderResults(results, query) {
     const mc = matchClass(score);
     const ml = matchLabel(score);
 
-    // Preis (Budget-abhaengig)
+    // Preis (Budget- und Channel-abhaengig)
     const priceInfo = pickDisplayPrice(r);
     const priceTxt  = (priceInfo.price === null)
       ? formatPriceNet(null)
       : (priceInfo.label ? priceInfo.label + ' ' : '') + formatPriceNet(priceInfo.price);
     const dataMinPrice = priceInfo.minPrice !== null ? priceInfo.minPrice : '';
+    const fmtLine = (priceInfo.price !== null && priceInfo.format)
+      ? `<div class="rc-price-format">${priceInfo.format}</div>`
+      : '';
 
     // Reichweite
     const reach = r.reach || {};
@@ -2855,8 +2892,9 @@ function renderResults(results, query) {
           ${reachVal ? `<strong>${num(reachVal)} ${reachLabel}</strong>${reachSource}` : '<strong>—</strong>'}
         </div>
         <div class="rc-price">
-          <div class="rc-price-label">Listenpreis netto</div>
+          <div class="rc-price-label">LISTENPREIS NETTO</div>
           <div class="rc-price-value">${priceTxt}</div>
+          ${fmtLine}
         </div>
         <div class="rc-badge">
           <div class="match-badge ${mc}">${ml}</div>

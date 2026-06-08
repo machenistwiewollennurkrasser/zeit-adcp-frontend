@@ -992,10 +992,101 @@ footer .footer-inner {
 /* ============================================================
    PRINT-ANSICHT
    ============================================================ */
-.ml-print-hdr    { display: none; }
-.ml-print-sum    { display: none; }
-.ml-print-footer { display: none; }
-.ml-print-body   { display: none; }
+.ml-print-hdr     { display: none; }
+.ml-print-sum     { display: none; }
+.ml-print-footer  { display: none; }
+.ml-print-body    { display: none; }
+.ml-print-contact { display: none; }
+.ml-print-agb     { display: none; }
+
+/* PDF-Overlay (Screen) */
+.pdf-overlay {
+  position: fixed; inset: 0;
+  z-index: 720;
+  display: flex; align-items: center; justify-content: center;
+}
+.pdf-overlay-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.45);
+}
+.pdf-overlay-panel {
+  position: relative; z-index: 1;
+  background: var(--zeit-white);
+  width: 560px; max-width: 92vw; max-height: 92vh;
+  border-radius: 12px;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+}
+.pdf-overlay-hdr {
+  background: #F5F500;
+  border-bottom: 2px solid #1A1A1A;
+  padding: 18px 28px;
+}
+.pdf-overlay-title { font-size: 18px; font-weight: 700; color: #1A1A1A; }
+.pdf-overlay-sub   { font-size: 12px; color: rgba(26,26,26,0.7); margin-top: 4px; }
+.pdf-overlay-body {
+  padding: 22px 28px;
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: 22px;
+}
+.pdf-section { display: flex; flex-direction: column; gap: 10px; }
+.pdf-section-label {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em;
+  font-weight: 700; color: rgba(26,26,26,0.6);
+  padding-bottom: 8px; border-bottom: 0.5px solid rgba(26,26,26,0.2);
+  margin-bottom: 4px;
+}
+.pdf-field { display: flex; flex-direction: column; gap: 4px; }
+.pdf-field-label { font-size: 12px; color: #1A1A1A; font-weight: 500; }
+.pdf-optional    { color: rgba(26,26,26,0.5); font-weight: 400; }
+.pdf-field input {
+  border: 0.5px solid rgba(26,26,26,0.4);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #1A1A1A;
+  background: var(--zeit-white);
+  outline: none;
+  transition: border-color 0.12s;
+}
+.pdf-field input:focus { border-color: var(--zeit-black); }
+.pdf-overlay-footer {
+  border-top: 0.5px solid rgba(26,26,26,0.2);
+  background: var(--zeit-grey-bg);
+  padding: 16px 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+}
+.pdf-footer-right { display: flex; gap: 10px; }
+.pdf-btn-ghost,
+.pdf-btn-primary {
+  font-family: inherit;
+  font-size: 13px; font-weight: 500;
+  padding: 9px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s;
+  line-height: 1;
+}
+.pdf-btn-ghost {
+  background: transparent;
+  color: var(--zeit-black);
+  border: 1px solid var(--zeit-black);
+}
+.pdf-btn-ghost:hover { background: var(--zeit-yellow-soft); }
+.pdf-btn-primary {
+  background: var(--zeit-black);
+  color: var(--zeit-white);
+  border: 1px solid var(--zeit-black);
+}
+.pdf-btn-primary:hover { background: var(--zeit-yellow); color: var(--zeit-black); }
+@media (max-width: 600px) {
+  .pdf-overlay-footer { flex-direction: column; align-items: stretch; }
+  .pdf-footer-right { justify-content: flex-end; }
+}
 
 @media print {
   @page { margin: 15mm 18mm; }
@@ -1012,13 +1103,39 @@ footer .footer-inner {
 
   /* Druckkopf */
   .ml-print-hdr {
-    display: flex !important; justify-content: space-between; align-items: flex-start;
+    display: block !important;
     padding: 0 0 14px; border-bottom: 2px solid #000; margin-bottom: 20px;
   }
+  .ml-print-hdr-top {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 12px;
+  }
   .ml-print-hdr-left  { flex: 1; }
-  .ml-print-hdr-right { text-align: right; font-size: 12px; color: #555; white-space: nowrap; padding-left: 24px; }
-  .ml-print-hdr-title { font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
-  .ml-print-hdr-sub   { font-size: 12px; color: #555; margin-top: 4px; }
+  .ml-print-hdr-right { text-align: right; font-size: 11px; color: #555; white-space: nowrap; padding-left: 24px; line-height: 1.5; }
+  .ml-print-zv        { font-size: 10px; line-height: 1.45; color: #000; }
+  .ml-print-logo      { font-size: 32px; font-weight: 700; letter-spacing: -.02em; margin: 6px 0 0; color: #000; }
+  .ml-print-angebot   { text-align: center; font-size: 26px; font-weight: 700; margin: 14px 0 4px; color: #000; }
+  .ml-print-hdr-sub   { text-align: center; font-size: 11px; color: #555; margin-top: 2px; }
+
+  /* Kontakt-Block (Kunde + Media Consultant) */
+  .ml-print-contact {
+    display: block !important;
+    background: #000 !important; color: #fff !important;
+    padding: 16px 20px; margin: 0 0 22px;
+    font-size: 11px; line-height: 1.55;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .ml-print-contact-row { display: flex; gap: 10px; padding: 1px 0; }
+  .ml-print-contact-lbl { min-width: 140px; opacity: 0.7; flex-shrink: 0; }
+
+  /* AGB-Text vor dem Footer */
+  .ml-print-agb {
+    display: block !important;
+    margin-top: 24px; padding-top: 14px;
+    border-top: 1px solid #ccc;
+    font-size: 10px; line-height: 1.55; color: #444;
+  }
 
   /* Gruppen */
   .ml-print-group { page-break-inside: avoid; margin-bottom: 20px; }
@@ -1857,11 +1974,33 @@ footer .footer-inner {
 <div id="ml-backdrop" class="ml-backdrop"></div>
 <aside id="ml-panel" class="ml-panel" aria-label="Merkliste" role="complementary">
   <div class="ml-print-hdr">
-    <div class="ml-print-hdr-left">
-      <div class="ml-print-hdr-title">ZEIT Werbeangebot</div>
-      <div class="ml-print-hdr-sub" id="ml-print-tier-line"></div>
+    <div class="ml-print-hdr-top">
+      <div class="ml-print-hdr-left">
+        <div class="ml-print-zv">
+          <div>ZEITVERLAG GERD BUCERIUS GMBH &amp; CO.KG</div>
+          <div>Helmut-Schmidt-Haus</div>
+          <div>20095 Hamburg Deutschland</div>
+          <div>DE189342458</div>
+        </div>
+      </div>
+      <div class="ml-print-hdr-right">
+        <div id="ml-print-date"></div>
+        <div id="ml-print-valid"></div>
+      </div>
     </div>
-    <div class="ml-print-hdr-right" id="ml-print-date"></div>
+    <div class="ml-print-logo">ZEIT Advise</div>
+    <div class="ml-print-angebot">Angebot</div>
+    <div class="ml-print-hdr-sub" id="ml-print-tier-line"></div>
+  </div>
+  <div class="ml-print-contact" id="ml-print-contact">
+    <div class="ml-print-contact-row"><span class="ml-print-contact-lbl">Angebotsname:</span><span id="ml-print-contact-name"></span></div>
+    <div class="ml-print-contact-row"><span class="ml-print-contact-lbl">Kunde:</span><span id="ml-print-contact-kunde"></span></div>
+    <div class="ml-print-contact-row"><span class="ml-print-contact-lbl">Ansprechpartner:</span><span id="ml-print-contact-ansprechpartner"></span></div>
+    <div class="ml-print-contact-row" id="ml-print-contact-adresse-row"><span class="ml-print-contact-lbl">Adresse:</span><span id="ml-print-contact-adresse"></span></div>
+    <div class="ml-print-contact-row" id="ml-print-contact-agentur-row"><span class="ml-print-contact-lbl">Mediaagentur:</span><span id="ml-print-contact-agentur"></span></div>
+    <div class="ml-print-contact-row"><span class="ml-print-contact-lbl">Media Consultant:</span><span id="ml-print-contact-berater"></span></div>
+    <div class="ml-print-contact-row"><span class="ml-print-contact-lbl">E-Mail:</span><span id="ml-print-contact-email"></span></div>
+    <div class="ml-print-contact-row"><span class="ml-print-contact-lbl">Telefon:</span><span id="ml-print-contact-tel"></span></div>
   </div>
   <div class="ml-panel-hdr">
     <div>
@@ -1893,9 +2032,15 @@ footer .footer-inner {
       <button class="ml-reset-btn" id="ml-reset-btn">Alle entfernen</button>
     </div>
   </div>
+  <div class="ml-print-agb">
+    Das Angebot ist unverbindlich. Ein Vertrag kommt erst nach Best&auml;tigung Ihres Auftrags
+    durch die ZEIT zustande. Der gew&auml;hlte Ver&ouml;ffentlichungstermin ist abh&auml;ngig von der
+    Verf&uuml;gbarkeit. Ausgewiesene Rabatte gelten nur f&uuml;r Buchungen in voller Angebotsh&ouml;he.
+    Alle Preise verstehen sich in Euro zuz&uuml;glich der g&uuml;ltigen Mehrwertsteuer. Es gilt die
+    jeweils aktuelle Preisliste. Es gelten unsere AGB (https://advise.zeit.de/agb.pdf).
+  </div>
   <div class="ml-print-footer">
-    Dieses Angebot ist unverbindlich. Stand: <span id="ml-print-footer-date"></span><br>
-    Erstellt mit ZEIT AdCP, ZEIT Advise.
+    Stand: <span id="ml-print-footer-date"></span> &middot; Erstellt mit ZEIT AdCP, ZEIT Advise.
   </div>
 </aside>
 
@@ -5851,8 +5996,10 @@ document.getElementById('ml-reset-btn').addEventListener('click', () => {
   });
 });
 
-// PDF-Export
-document.getElementById('ml-pdf-btn').addEventListener('click', () => {
+// PDF-Export ueber Overlay (Kundendaten + Berater-Daten personalisieren)
+const PDF_BERATER_STORAGE_KEY = 'zeit_adcp_berater_v1';
+
+function _mlBuildPrintBody() {
   const today     = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const tierLabel = document.querySelector('#ml-tier-pills .pill.active')?.textContent?.trim() || 'Listenpreis';
   const items     = Merkliste.getItems();
@@ -5939,14 +6086,114 @@ document.getElementById('ml-pdf-btn').addEventListener('click', () => {
   </table>`;
 
   // Druckkopf + Footer befuellen
-  document.getElementById('ml-print-date').textContent      = `Stand: ${today}`;
-  document.getElementById('ml-print-tier-line').textContent = `Preisstufe: ${tierLabel} · alle Preise netto zzgl. MwSt.`;
+  document.getElementById('ml-print-date').textContent      = 'Angebot erstellt: ' + today;
+  document.getElementById('ml-print-tier-line').textContent = 'Preisstufe: ' + tierLabel + ' · alle Preise netto zzgl. MwSt.';
   document.getElementById('ml-print-footer-date').textContent = today;
 
   // Print-Body injizieren
   document.getElementById('ml-print-body').innerHTML = groupsHtml + totalsHtml;
+}
 
-  window.print();
+function _mlFillValidBis(dateIso) {
+  const el = document.getElementById('ml-print-valid');
+  if (!el) return;
+  if (dateIso) {
+    const m = dateIso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const formatted = m ? (m[3] + '.' + m[2] + '.' + m[1]) : dateIso;
+    el.textContent = 'Angebot gültig bis: ' + formatted;
+  } else {
+    el.textContent = '';
+  }
+}
+
+function _mlFillContactBlock(data, skipCustomer) {
+  const contactEl = document.getElementById('ml-print-contact');
+  if (skipCustomer) {
+    contactEl.style.display = 'none';
+    return;
+  }
+  contactEl.style.display = '';  // CSS @media print zeigt es per !important
+  document.getElementById('ml-print-contact-name').textContent           = data.kundeName || '';
+  document.getElementById('ml-print-contact-kunde').textContent          = data.kundeName || '';
+  document.getElementById('ml-print-contact-ansprechpartner').textContent = data.kundeKontakt || '';
+  const adresseRow = document.getElementById('ml-print-contact-adresse-row');
+  const agenturRow = document.getElementById('ml-print-contact-agentur-row');
+  if (data.kundeAdresse) {
+    document.getElementById('ml-print-contact-adresse').textContent = data.kundeAdresse;
+    adresseRow.style.display = '';
+  } else {
+    adresseRow.style.display = 'none';
+  }
+  if (data.kundeAgentur) {
+    document.getElementById('ml-print-contact-agentur').textContent = data.kundeAgentur;
+    agenturRow.style.display = '';
+  } else {
+    agenturRow.style.display = 'none';
+  }
+  document.getElementById('ml-print-contact-berater').textContent = data.beraterName  || '';
+  document.getElementById('ml-print-contact-email').textContent   = data.beraterEmail || '';
+  document.getElementById('ml-print-contact-tel').textContent     = data.beraterTel   || '';
+}
+
+function openPdfOverlay() {
+  // Berater-Daten aus localStorage vorbefuellen
+  try {
+    const saved = JSON.parse(localStorage.getItem(PDF_BERATER_STORAGE_KEY) || '{}');
+    if (saved.name)  document.getElementById('pdf-berater-name').value  = saved.name;
+    if (saved.email) document.getElementById('pdf-berater-email').value = saved.email;
+    if (saved.tel)   document.getElementById('pdf-berater-tel').value   = saved.tel;
+  } catch (e) {}
+  // Anzahl Positionen anzeigen
+  const n = Merkliste.getItems().length;
+  document.getElementById('pdf-overlay-sub').textContent =
+    n + ' Position' + (n === 1 ? '' : 'en') + ' in der Merkliste';
+  document.getElementById('pdf-overlay').style.display = '';
+  setTimeout(() => {
+    const fld = document.getElementById('pdf-kunde-name');
+    if (fld) fld.focus();
+  }, 50);
+}
+
+function closePdfOverlay() {
+  document.getElementById('pdf-overlay').style.display = 'none';
+}
+
+function _mlExecutePrintFlow(skipCustomer) {
+  const data = {
+    kundeName:    document.getElementById('pdf-kunde-name').value.trim(),
+    kundeKontakt: document.getElementById('pdf-kunde-kontakt').value.trim(),
+    kundeAdresse: document.getElementById('pdf-kunde-adresse').value.trim(),
+    kundeAgentur: document.getElementById('pdf-kunde-agentur').value.trim(),
+    beraterName:  document.getElementById('pdf-berater-name').value.trim(),
+    beraterEmail: document.getElementById('pdf-berater-email').value.trim(),
+    beraterTel:   document.getElementById('pdf-berater-tel').value.trim(),
+    gueltigBis:   document.getElementById('pdf-gueltig-bis').value,
+  };
+  if (!skipCustomer) {
+    try {
+      localStorage.setItem(PDF_BERATER_STORAGE_KEY, JSON.stringify({
+        name: data.beraterName, email: data.beraterEmail, tel: data.beraterTel
+      }));
+    } catch (e) {}
+  }
+  _mlBuildPrintBody();
+  _mlFillContactBlock(data, skipCustomer);
+  _mlFillValidBis(skipCustomer ? '' : data.gueltigBis);
+  closePdfOverlay();
+  // Kurze Verzoegerung, damit DOM-Updates settle bevor Print-Dialog oeffnet
+  setTimeout(() => window.print(), 80);
+}
+
+document.getElementById('ml-pdf-btn').addEventListener('click', openPdfOverlay);
+document.getElementById('pdf-btn-cancel').addEventListener('click', closePdfOverlay);
+document.getElementById('pdf-overlay-backdrop').addEventListener('click', closePdfOverlay);
+document.getElementById('pdf-btn-skip').addEventListener('click', () => _mlExecutePrintFlow(true));
+document.getElementById('pdf-btn-create').addEventListener('click', () => _mlExecutePrintFlow(false));
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    const ov = document.getElementById('pdf-overlay');
+    if (ov && ov.style.display !== 'none') closePdfOverlay();
+  }
 });
 
 // ---- Render ----
@@ -6116,5 +6363,51 @@ document.getElementById('header-logo-katalog').addEventListener('click', () => s
 
 checkServer();
 </script>
+
+<!-- PDF-Personalisierungs-Overlay -->
+<div id="pdf-overlay" class="pdf-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="pdf-overlay-title">
+  <div class="pdf-overlay-backdrop" id="pdf-overlay-backdrop"></div>
+  <div class="pdf-overlay-panel">
+    <div class="pdf-overlay-hdr">
+      <div class="pdf-overlay-title" id="pdf-overlay-title">Angebot personalisieren</div>
+      <div class="pdf-overlay-sub" id="pdf-overlay-sub"></div>
+    </div>
+    <div class="pdf-overlay-body">
+      <div class="pdf-section">
+        <div class="pdf-section-label">Kunde</div>
+        <label class="pdf-field"><span class="pdf-field-label">Kundenname</span>
+          <input type="text" id="pdf-kunde-name" autocomplete="off"></label>
+        <label class="pdf-field"><span class="pdf-field-label">Ansprechpartner</span>
+          <input type="text" id="pdf-kunde-kontakt" autocomplete="off"></label>
+        <label class="pdf-field"><span class="pdf-field-label">Adresse <span class="pdf-optional">(optional)</span></span>
+          <input type="text" id="pdf-kunde-adresse" autocomplete="off"></label>
+        <label class="pdf-field"><span class="pdf-field-label">Mediaagentur <span class="pdf-optional">(optional)</span></span>
+          <input type="text" id="pdf-kunde-agentur" autocomplete="off"></label>
+      </div>
+      <div class="pdf-section">
+        <div class="pdf-section-label">Media Consultant</div>
+        <label class="pdf-field"><span class="pdf-field-label">Name</span>
+          <input type="text" id="pdf-berater-name" autocomplete="name"></label>
+        <label class="pdf-field"><span class="pdf-field-label">E-Mail</span>
+          <input type="email" id="pdf-berater-email" autocomplete="email"></label>
+        <label class="pdf-field"><span class="pdf-field-label">Telefon</span>
+          <input type="tel" id="pdf-berater-tel" autocomplete="tel"></label>
+      </div>
+      <div class="pdf-section">
+        <div class="pdf-section-label">Angebot</div>
+        <label class="pdf-field"><span class="pdf-field-label">G&uuml;ltig bis <span class="pdf-optional">(optional)</span></span>
+          <input type="date" id="pdf-gueltig-bis" autocomplete="off"></label>
+      </div>
+    </div>
+    <div class="pdf-overlay-footer">
+      <button type="button" class="pdf-btn-ghost pdf-btn-left" id="pdf-btn-skip">Ohne Kundendaten erstellen</button>
+      <div class="pdf-footer-right">
+        <button type="button" class="pdf-btn-ghost"   id="pdf-btn-cancel">Abbrechen</button>
+        <button type="button" class="pdf-btn-primary" id="pdf-btn-create">PDF erstellen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

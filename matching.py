@@ -1,5 +1,5 @@
 """
-ZEIT AdCP Matching Engine v3.8
+ZEIT AdCP Matching Engine v3.9
 ==============================
 
 Konsolidierte Match- und Pricing-Engine fuer den ZEIT AdCP Pilot.
@@ -18,6 +18,20 @@ Schema:
     Liest aus Schema v3.4 Hybrid-Block-Modell (Print/Newsletter/Podcast).
 
 Changelog:
+    v3.9: Harte Filter im Router (match_products):
+          1) Budget-Filter pro Channel - Print (guenstigster Formatpreis),
+             Newsletter (price_eur_net), Podcast (total_price_eur_net oder
+             price_eur_net). Produkte ueber Budget fallen raus, nicht nur
+             abgewertet. Greift nur wenn parsed.budget_eur explizit gesetzt.
+          2) Kampagnenzeitraum (Kalenderwochen) als neue ParsedBrief-Felder
+             campaign_kw_from / campaign_kw_to. parse_brief() erkennt
+             "KW 28 bis KW 32", "KW28-32", "Kalenderwoche 28 bis 32".
+             match_products() Signatur um campaign_kw_from/_to erweitert
+             (UI ueberschreibt Brief-Erkennung). Harter KW-Filter nur fuer
+             Print-Produkte, basierend auf publication_date je Issue. Print
+             ohne Issues und Newsletter/Podcast bleiben ungefiltert.
+             Hilfsfunktion get_kw(date_str) via ISO-Kalender.
+
     v3.8: Multi-Channel-Erkennung erweitert (Fix A).
           Explizite Channel-Kombinationen im Brief ("aus Print und Newsletter",
           "Print, Newsletter und Podcast") werden jetzt erkannt und setzen
@@ -43,6 +57,7 @@ Changelog:
 import re
 import json
 from pathlib import Path
+from datetime import date
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any, List, Tuple
 
@@ -339,6 +354,10 @@ class ParsedBrief:
     # Topical (fuer Newsletter)
     topical_tags: List[str] = field(default_factory=list)
 
+    # Kampagnenzeitraum (Kalenderwochen, harter Filter fuer Print)
+    campaign_kw_from: Optional[int] = None
+    campaign_kw_to: Optional[int] = None
+
     # Volltext
     raw_text: str = ""
     raw_lower: str = ""
@@ -612,6 +631,20 @@ def parse_brief(brief: str) -> ParsedBrief:
             pb.wants_issue_dates = True
             break
 
+    # Kampagnenzeitraum als Kalenderwochen-Range erkennen.
+    # Erfasst Varianten wie "KW 28 bis KW 32", "KW 28 - 32", "KW28-32",
+    # "Kalenderwoche 28 bis 32".
+    kw_match = re.search(
+        r"(?:kw|kalenderwoche)\s*(\d{1,2})\s*(?:bis|-|–|–)\s*(?:(?:kw|kalenderwoche)\s*)?(\d{1,2})",
+        text,
+    )
+    if kw_match:
+        kw_from = int(kw_match.group(1))
+        kw_to   = int(kw_match.group(2))
+        if 1 <= kw_from <= 53 and 1 <= kw_to <= 53 and kw_from <= kw_to:
+            pb.campaign_kw_from = kw_from
+            pb.campaign_kw_to   = kw_to
+
     return pb
 
 
@@ -648,6 +681,20 @@ def get_issues(product: dict) -> List[dict]:
     if not issues:
         issues = get_print_specifics(product).get("issues") or []
     return issues
+
+
+def get_kw(date_str: Optional[str]) -> Optional[int]:
+    """
+    Konvertiert einen ISO-Datumsstring (YYYY-MM-DD) in die ISO-Kalenderwoche.
+    Liefert None bei leerem oder ungueltigem Wert.
+    """
+    if not date_str or not isinstance(date_str, str):
+        return None
+    try:
+        d = date.fromisoformat(date_str[:10])
+        return d.isocalendar()[1]
+    except (ValueError, TypeError):
+        return None
 
 def get_print_ad_formats(product: dict) -> List[dict]:
     ps = get_print_specifics(product)
@@ -1781,12 +1828,22 @@ def match_products(
     products: List[dict],
     definitions: Optional[Dict[str, dict]] = None,
     max_results: int = 10,
+    campaign_kw_from: Optional[int] = None,
+    campaign_kw_to: Optional[int] = None,
 ) -> List[dict]:
     """
     Router: parst Brief, dispatcht nach product_type, sortiert nach Score,
     gibt top-N Matches zurueck.
+
+    Optional koennen campaign_kw_from / campaign_kw_to als explizite
+    Kalenderwochen-Range uebergeben werden (UI-Kalender). Sie ueberschreiben
+    das, was parse_brief() ggf. aus dem Brief erkannt hat.
     """
     parsed = parse_brief(brief)
+    if campaign_kw_from is not None:
+        parsed.campaign_kw_from = campaign_kw_from
+    if campaign_kw_to is not None:
+        parsed.campaign_kw_to = campaign_kw_to
     matches = []
 
     nl_defs = (definitions or {}).get("newsletter") if definitions else None
@@ -1804,10 +1861,51 @@ def match_products(
 
         if pt in PRINT_TYPES:
             score, reasoning, assumptions, best_format, discount, format_candidates = score_print(parsed, product)
+
+            # Harter Budget-Filter (Print): guenstigster Formatpreis ueber Budget?
+            if parsed.budget_eur is not None:
+                all_fmts = resolve_all_print_formats(product)
+                prices = [
+                    f.get("price_net_eur") for f in all_fmts
+                    if isinstance(f.get("price_net_eur"), (int, float))
+                ]
+                if prices and min(prices) > parsed.budget_eur:
+                    continue
+
+            # Harter KW-Filter (Print): mind. eine Issue im Kampagnenzeitraum?
+            if parsed.campaign_kw_from is not None and parsed.campaign_kw_to is not None:
+                issues = get_issues(product)
+                if issues:  # nur filtern, wenn ueberhaupt Issues vorhanden
+                    kw_lo = parsed.campaign_kw_from
+                    kw_hi = parsed.campaign_kw_to
+                    in_range = False
+                    for iss in issues:
+                        kw = get_kw(iss.get("publication_date"))
+                        if kw is not None and kw_lo <= kw <= kw_hi:
+                            in_range = True
+                            break
+                    if not in_range:
+                        continue
+
         elif pt in NEWSLETTER_TYPES:
             score, reasoning, assumptions, pricing = score_newsletter(parsed, product, nl_defs)
+
+            # Harter Budget-Filter (Newsletter)
+            if parsed.budget_eur is not None and pricing:
+                p = pricing.get("price_eur_net")
+                if isinstance(p, (int, float)) and p > parsed.budget_eur:
+                    continue
+
         elif pt in PODCAST_TYPES:
             score, reasoning, assumptions, pricing = score_podcast(parsed, product, pod_defs)
+
+            # Harter Budget-Filter (Podcast): TKP-Gesamtpreis oder Fixpreis
+            if parsed.budget_eur is not None and pricing:
+                p = pricing.get("total_price_eur_net")
+                if not isinstance(p, (int, float)):
+                    p = pricing.get("price_eur_net")
+                if isinstance(p, (int, float)) and p > parsed.budget_eur:
+                    continue
         else:
             continue
 

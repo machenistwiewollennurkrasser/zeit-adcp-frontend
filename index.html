@@ -1596,8 +1596,8 @@ footer .footer-inner {
     </div>
     <div class="header-right">
 <div class="view-toggle" id="view-toggle" role="tablist">
-  <button type="button" class="vt-segment vt-active" data-view="filter" role="tab" aria-selected="true">Filter</button>
-  <button type="button" class="vt-segment"          data-view="produkte" role="tab" aria-selected="false">Produkte</button>
+  <button type="button" class="vt-segment vt-active" data-view="produkte" role="tab" aria-selected="true">Produkte</button>
+  <button type="button" class="vt-segment"          data-view="filter"   role="tab" aria-selected="false">Filter</button>
 </div>
 <button class="btn-merkliste" id="merkliste-btn">MERKLISTE <span class="ml-badge empty" id="ml-badge">0</span></button>
     </div>
@@ -1698,7 +1698,7 @@ footer .footer-inner {
 
 <main id="view-katalog" style="display:none">
 
-  <div id="tab-produkte" class="tab-panel">
+  <div id="tab-produkte" class="tab-panel active">
     <div class="container">
       <div id="accordion-root">
         <div class="products-loading">Produkte werden geladen …</div>
@@ -1706,7 +1706,7 @@ footer .footer-inner {
     </div>
   </div>
 
-  <div id="tab-filter" class="tab-panel active">
+  <div id="tab-filter" class="tab-panel">
   <div class="container">
 
     <section class="filter-section">
@@ -5779,50 +5779,24 @@ async function loadRadar() {
 // TAB-LOGIK
 // ============================================================
 
-// View-Toggle [Filter | Produkte] in der Katalog-Topbar
-// 'Filter'   -> .filter-section sichtbar, Ergebnisliste sichtbar
-// 'Produkte' -> .filter-section hidden, Ergebnisliste sichtbar.
-//               Bei leerer Trefferliste automatisch alle Produkte laden.
+// View-Toggle [Produkte | Filter] in der Katalog-Topbar
+// 'Produkte' -> Akkordeon-Startseite sichtbar, Filter+Ergebnisliste ausgeblendet (Default)
+// 'Filter'   -> Filter-Bereich + Ergebnisliste sichtbar, Akkordeon ausgeblendet
+// Filter-Stand und Ergebnisliste bleiben beim Hin- und Her-Wechseln erhalten.
 function setMfView(name) {
-  const tabFilter     = document.getElementById('tab-filter');
-  const filterSection = document.querySelector('#tab-filter .filter-section');
-  // tab-filter ist der einzige aktive Panel im Media Finder
+  const tabProdukte = document.getElementById('tab-produkte');
+  const tabFilter   = document.getElementById('tab-filter');
   document.querySelectorAll('#view-katalog .tab-panel').forEach(p => p.classList.remove('active'));
-  if (tabFilter) tabFilter.classList.add('active');
-  if (filterSection) filterSection.style.display = (name === 'filter') ? '' : 'none';
+  if (name === 'filter') {
+    if (tabFilter) tabFilter.classList.add('active');
+  } else {
+    if (tabProdukte) tabProdukte.classList.add('active');
+  }
   document.querySelectorAll('#view-toggle .vt-segment').forEach(b => {
     const isActive = b.dataset.view === name;
     b.classList.toggle('vt-active', isActive);
     b.setAttribute('aria-selected', isActive ? 'true' : 'false');
   });
-  if (name === 'produkte' && (!currentResults || currentResults.length === 0)) {
-    loadAllProducts();
-  }
-}
-
-async function loadAllProducts() {
-  if (!serverOk) { await checkServer(); if (!serverOk) return; }
-  // Brief mit allen 4 Kanal-Hints + 'alle produkte', damit matching.py
-  // jedes Produkt mit Channel-Match-Bonus durchlaesst (siehe v3.10 Logic).
-  const brief = "wochenzeitung magazin newsletter podcast alle produkte";
-  document.getElementById('result-list').innerHTML = '<div class="results-loading">Alle Produkte werden geladen …</div>';
-  document.getElementById('results-count').innerHTML = '';
-  try {
-    const res = await fetch(`${API_BASE}/mcp/get_products`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ brief, max_results: 100 })
-    });
-    if (!res.ok) throw new Error('Server-Fehler: ' + res.status);
-    const data = await res.json();
-    let results = data.products || data.result?.matches || data.matches || [];
-    if (!Array.isArray(results)) results = [];
-    currentResults = results;
-    renderResults(results, '');
-  } catch (e) {
-    document.getElementById('result-list').innerHTML =
-      `<div class="results-error">Fehler: ${e.message}</div>`;
-  }
 }
 
 document.querySelectorAll('#view-toggle .vt-segment').forEach(b => {

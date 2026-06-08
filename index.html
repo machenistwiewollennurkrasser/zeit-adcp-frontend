@@ -96,6 +96,33 @@ header {
 
 /* HEADER RECHTS */
 .header-right { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.view-toggle {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 0.5px solid rgba(26, 26, 26, 0.3);
+  background: transparent;
+  padding: 0;
+  overflow: hidden;
+}
+.vt-segment {
+  background: transparent;
+  border: none;
+  padding: 8px 20px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  color: rgba(26, 26, 26, 0.55);
+  border-radius: 999px;
+  transition: background 0.12s, color 0.12s;
+  line-height: 1;
+}
+.vt-segment:hover:not(.vt-active) { color: var(--zeit-black); }
+.vt-segment.vt-active {
+  background: var(--zeit-black);
+  color: var(--zeit-white);
+}
 .btn-filter {
   display: inline-flex; align-items: center; gap: 4px;
   background: var(--zeit-white); color: var(--zeit-black);
@@ -1568,7 +1595,10 @@ footer .footer-inner {
     </div>
     </div>
     <div class="header-right">
-<button class="btn-filter" id="filter-toggle-btn">FILTER</button>
+<div class="view-toggle" id="view-toggle" role="tablist">
+  <button type="button" class="vt-segment vt-active" data-view="filter" role="tab" aria-selected="true">Filter</button>
+  <button type="button" class="vt-segment"          data-view="produkte" role="tab" aria-selected="false">Produkte</button>
+</div>
 <button class="btn-merkliste" id="merkliste-btn">MERKLISTE <span class="ml-badge empty" id="ml-badge">0</span></button>
     </div>
   </div>
@@ -1668,7 +1698,7 @@ footer .footer-inner {
 
 <main id="view-katalog" style="display:none">
 
-  <div id="tab-produkte" class="tab-panel active">
+  <div id="tab-produkte" class="tab-panel">
     <div class="container">
       <div id="accordion-root">
         <div class="products-loading">Produkte werden geladen …</div>
@@ -1676,7 +1706,7 @@ footer .footer-inner {
     </div>
   </div>
 
-  <div id="tab-filter" class="tab-panel">
+  <div id="tab-filter" class="tab-panel active">
   <div class="container">
 
     <section class="filter-section">
@@ -5749,15 +5779,54 @@ async function loadRadar() {
 // TAB-LOGIK
 // ============================================================
 
-document.getElementById('filter-toggle-btn').addEventListener('click', () => {
-  const tabProdukte = document.getElementById('tab-produkte');
-  const tabFilter   = document.getElementById('tab-filter');
-  const filterBtn   = document.getElementById('filter-toggle-btn');
-  const showFilter  = !tabFilter.classList.contains('active');
-  tabFilter.classList.toggle('active',   showFilter);
-  tabProdukte.classList.toggle('active', !showFilter);
-  filterBtn.classList.toggle('active',   showFilter);
-  if (!showFilter) loadProductList();
+// View-Toggle [Filter | Produkte] in der Katalog-Topbar
+// 'Filter'   -> .filter-section sichtbar, Ergebnisliste sichtbar
+// 'Produkte' -> .filter-section hidden, Ergebnisliste sichtbar.
+//               Bei leerer Trefferliste automatisch alle Produkte laden.
+function setMfView(name) {
+  const tabFilter     = document.getElementById('tab-filter');
+  const filterSection = document.querySelector('#tab-filter .filter-section');
+  // tab-filter ist der einzige aktive Panel im Media Finder
+  document.querySelectorAll('#view-katalog .tab-panel').forEach(p => p.classList.remove('active'));
+  if (tabFilter) tabFilter.classList.add('active');
+  if (filterSection) filterSection.style.display = (name === 'filter') ? '' : 'none';
+  document.querySelectorAll('#view-toggle .vt-segment').forEach(b => {
+    const isActive = b.dataset.view === name;
+    b.classList.toggle('vt-active', isActive);
+    b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+  if (name === 'produkte' && (!currentResults || currentResults.length === 0)) {
+    loadAllProducts();
+  }
+}
+
+async function loadAllProducts() {
+  if (!serverOk) { await checkServer(); if (!serverOk) return; }
+  // Brief mit allen 4 Kanal-Hints + 'alle produkte', damit matching.py
+  // jedes Produkt mit Channel-Match-Bonus durchlaesst (siehe v3.10 Logic).
+  const brief = "wochenzeitung magazin newsletter podcast alle produkte";
+  document.getElementById('result-list').innerHTML = '<div class="results-loading">Alle Produkte werden geladen …</div>';
+  document.getElementById('results-count').innerHTML = '';
+  try {
+    const res = await fetch(`${API_BASE}/mcp/get_products`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ brief, max_results: 100 })
+    });
+    if (!res.ok) throw new Error('Server-Fehler: ' + res.status);
+    const data = await res.json();
+    let results = data.products || data.result?.matches || data.matches || [];
+    if (!Array.isArray(results)) results = [];
+    currentResults = results;
+    renderResults(results, '');
+  } catch (e) {
+    document.getElementById('result-list').innerHTML =
+      `<div class="results-error">Fehler: ${e.message}</div>`;
+  }
+}
+
+document.querySelectorAll('#view-toggle .vt-segment').forEach(b => {
+  b.addEventListener('click', () => setMfView(b.dataset.view));
 });
 
 // Produkte beim Seitenladen direkt anzeigen

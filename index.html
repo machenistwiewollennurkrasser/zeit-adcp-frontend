@@ -1198,15 +1198,13 @@ footer .footer-inner {
   color: rgba(26,26,26,0.55);
   white-space: nowrap;
 }
-.kw-btn.kw-btn-in-range {
-  background: #FFF8C7;
+/* Einheitliches gelbes Highlight fuer alle aktiven KWs (Einzel + Range) */
+.kw-btn.kw-btn-active {
+  background: #FFE000;
+  border-color: #FFE000;
 }
-.kw-btn.kw-btn-endpoint {
-  background: var(--zeit-black);
-  border-color: var(--zeit-black);
-}
-.kw-btn.kw-btn-endpoint .kw-btn-num { color: var(--zeit-white); }
-.kw-btn.kw-btn-endpoint .kw-btn-date { color: rgba(255,255,255,0.7); }
+.kw-btn.kw-btn-active .kw-btn-num  { color: #000000; }
+.kw-btn.kw-btn-active .kw-btn-date { color: #000000; }
 .kw-selection-display {
   margin-top: 12px;
   font-size: 12px;
@@ -2360,12 +2358,13 @@ function kwsInMonth(monthDate) {
 function updateKwHighlight() {
   document.querySelectorAll('#kw-month-buttons .kw-btn').forEach(b => {
     const kw = parseInt(b.dataset.kw, 10);
-    b.classList.remove('kw-btn-in-range', 'kw-btn-endpoint');
-    if (kwFrom === null || kwTo === null) return;
-    const lo = Math.min(kwFrom, kwTo);
-    const hi = Math.max(kwFrom, kwTo);
-    if (kw === lo || kw === hi) b.classList.add('kw-btn-endpoint');
-    else if (kw > lo && kw < hi) b.classList.add('kw-btn-in-range');
+    b.classList.remove('kw-btn-active');
+    if (kwFrom === null) return;
+    // kwTo darf null sein (Einzelklick) - dann nur kwFrom markieren.
+    const effTo = (kwTo === null) ? kwFrom : kwTo;
+    const lo = Math.min(kwFrom, effTo);
+    const hi = Math.max(kwFrom, effTo);
+    if (kw >= lo && kw <= hi) b.classList.add('kw-btn-active');
   });
   syncMonthAllCheckbox();
 }

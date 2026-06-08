@@ -1101,6 +1101,86 @@ footer .footer-inner {
 .home-app-card-placeholder .home-app-name,
 .home-app-card-placeholder .home-app-sub { opacity: 0.3; }
 
+/* KW-Kalender (Kampagnenzeitraum) */
+.filter-kw-block {
+  border: 1px solid var(--black);
+  border-bottom: none;
+  padding: 20px;
+}
+.kw-calendar { display: flex; flex-direction: column; gap: 6px; }
+.kw-quarter-row {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+.kw-quarter-label {
+  width: 130px;
+  flex-shrink: 0;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(26,26,26,0.55);
+  font-weight: 700;
+  display: flex; align-items: center;
+}
+.kw-buttons-row {
+  display: flex;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+.kw-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  background: white;
+  border: 1px solid var(--black);
+  padding: 5px 2px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
+  line-height: 1.15;
+  border-radius: 4px;
+  user-select: none;
+  transition: background 0.08s;
+}
+.kw-btn:hover { background: var(--zeit-yellow-soft); }
+.kw-btn .kw-btn-num {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1A1A1A;
+}
+.kw-btn .kw-btn-date {
+  display: block;
+  font-size: 10px;
+  color: rgba(26,26,26,0.55);
+  margin-top: 1px;
+  white-space: nowrap;
+}
+.kw-btn.kw-btn-in-range {
+  background: #FFF8C7;
+}
+.kw-btn.kw-btn-endpoint {
+  background: var(--zeit-black);
+  border-color: var(--zeit-black);
+}
+.kw-btn.kw-btn-endpoint .kw-btn-num { color: var(--zeit-white); }
+.kw-btn.kw-btn-endpoint .kw-btn-date { color: rgba(255,255,255,0.7); }
+.kw-selection-display {
+  margin-top: 14px;
+  font-size: 12px;
+  color: #1A1A1A;
+  min-height: 18px;
+}
+.kw-selection-display.kw-empty {
+  opacity: 0.5;
+  font-style: italic;
+}
+@media (max-width: 720px) {
+  .kw-quarter-row { flex-direction: column; gap: 4px; }
+  .kw-quarter-label { width: auto; }
+}
+
 /* Anzeigenschluss-Radar */
 .section-box {
   background: #F8F8F8;
@@ -1506,6 +1586,13 @@ footer .footer-inner {
     </section>
 
     <section class="filter-section">
+
+      <div class="filter-kw-block">
+        <span class="filter-group-label">Kampagnenzeitraum</span>
+        <div class="kw-calendar" id="kw-calendar"></div>
+        <div class="kw-selection-display kw-empty" id="kw-selection-display">Kein Zeitraum gew&auml;hlt</div>
+      </div>
+
       <div class="filter-grid">
 
         <div class="filter-group">
@@ -2181,6 +2268,177 @@ function buildBrief() {
 }
 
 // ============================================================
+// KW-KALENDER (Kampagnenzeitraum)
+// ============================================================
+
+let kwFrom = null;
+let kwTo   = null;
+let kwSelectingMode = false;     // true nach 1. Klick, wartet auf 2. Klick
+let kwMouseDownKw   = null;      // gesetzt zwischen mousedown und mouseup
+
+const KW_QUARTERS = [
+  { label: 'Q1 — Jan bis Mär',  from: 1,  to: 13 },
+  { label: 'Q2 — Apr bis Jun',  from: 14, to: 26 },
+  { label: 'Q3 — Jul bis Sep',  from: 27, to: 39 },
+  { label: 'Q4 — Okt bis Dez',  from: 40, to: 52 },
+];
+
+// KW 1 2026 beginnt am 29.12.2025 (ISO 8601). Jede KW = 7 Tage spaeter.
+function kwMonday2026(week) {
+  const base = new Date(2025, 11, 29);  // 29.12.2025
+  const d = new Date(base);
+  d.setDate(base.getDate() + (week - 1) * 7);
+  return d;
+}
+function kwFmtDDMM(d) {
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  return dd + '.' + mm;
+}
+function kwFmtFull(d) {
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yy = d.getFullYear();
+  return dd + '.' + mm + '.' + yy;
+}
+function kwDateRange(week) {
+  const mon = kwMonday2026(week);
+  const sun = new Date(mon);
+  sun.setDate(mon.getDate() + 6);
+  return kwFmtDDMM(mon) + '–' + kwFmtDDMM(sun);
+}
+
+function buildKwCalendar() {
+  const container = document.getElementById('kw-calendar');
+  if (!container) return;
+  container.innerHTML = '';
+  KW_QUARTERS.forEach(q => {
+    const row = document.createElement('div');
+    row.className = 'kw-quarter-row';
+    const lbl = document.createElement('div');
+    lbl.className = 'kw-quarter-label';
+    lbl.textContent = q.label;
+    row.appendChild(lbl);
+    const btnRow = document.createElement('div');
+    btnRow.className = 'kw-buttons-row';
+    for (let kw = q.from; kw <= q.to; kw++) {
+      const b = document.createElement('button');
+      b.className = 'kw-btn';
+      b.type = 'button';
+      b.dataset.kw = String(kw);
+      b.innerHTML =
+        '<span class="kw-btn-num">KW ' + kw + '</span>' +
+        '<span class="kw-btn-date">' + kwDateRange(kw) + '</span>';
+      btnRow.appendChild(b);
+    }
+    row.appendChild(btnRow);
+    container.appendChild(row);
+  });
+  attachKwEvents();
+  updateKwHighlight();
+  updateKwDisplay();
+}
+
+function updateKwHighlight() {
+  const buttons = document.querySelectorAll('#kw-calendar .kw-btn');
+  buttons.forEach(b => {
+    const kw = parseInt(b.dataset.kw, 10);
+    b.classList.remove('kw-btn-in-range', 'kw-btn-endpoint');
+    if (kwFrom === null || kwTo === null) return;
+    const lo = Math.min(kwFrom, kwTo);
+    const hi = Math.max(kwFrom, kwTo);
+    if (kw === lo || kw === hi) b.classList.add('kw-btn-endpoint');
+    else if (kw > lo && kw < hi) b.classList.add('kw-btn-in-range');
+  });
+}
+
+function updateKwDisplay() {
+  const el = document.getElementById('kw-selection-display');
+  if (!el) return;
+  if (kwFrom === null || kwTo === null) {
+    el.classList.add('kw-empty');
+    el.textContent = 'Kein Zeitraum gewählt';
+    return;
+  }
+  const lo = Math.min(kwFrom, kwTo);
+  const hi = Math.max(kwFrom, kwTo);
+  const nWeeks = hi - lo + 1;
+  const start = kwMonday2026(lo);
+  const endSun = new Date(kwMonday2026(hi));
+  endSun.setDate(endSun.getDate() + 6);
+  el.classList.remove('kw-empty');
+  if (lo === hi) {
+    el.textContent = 'KW ' + lo + ' (' + nWeeks + ' Woche, ' +
+      kwFmtFull(start) + ' – ' + kwFmtFull(endSun) + ')';
+  } else {
+    el.textContent = 'KW ' + lo + ' – KW ' + hi + ' (' + nWeeks + ' Wochen, ' +
+      kwFmtFull(start) + ' – ' + kwFmtFull(endSun) + ')';
+  }
+}
+
+function kwHandleClick(kw) {
+  // Bereits aktiver Range UND nicht im Selecting-Mode: Klick auf Endpunkt = reset
+  if (kwFrom !== null && kwTo !== null && !kwSelectingMode) {
+    const lo = Math.min(kwFrom, kwTo);
+    const hi = Math.max(kwFrom, kwTo);
+    if (kw === lo || kw === hi) {
+      kwFrom = null; kwTo = null; kwSelectingMode = false;
+      return;
+    }
+    // Neue Selektion starten
+    kwFrom = kw; kwTo = kw; kwSelectingMode = true;
+    return;
+  }
+  if (kwFrom === null) {
+    // Erster Klick
+    kwFrom = kw; kwTo = kw; kwSelectingMode = true;
+    return;
+  }
+  // Selecting-Mode: zweiter Klick legt Endpunkt fest
+  const lo = Math.min(kwFrom, kw);
+  const hi = Math.max(kwFrom, kw);
+  kwFrom = lo; kwTo = hi; kwSelectingMode = false;
+}
+
+function attachKwEvents() {
+  const buttons = document.querySelectorAll('#kw-calendar .kw-btn');
+  buttons.forEach(b => {
+    b.addEventListener('mousedown', e => {
+      e.preventDefault();
+      kwMouseDownKw = parseInt(b.dataset.kw, 10);
+      kwHandleClick(kwMouseDownKw);
+      updateKwHighlight();
+      updateKwDisplay();
+    });
+    b.addEventListener('mouseenter', () => {
+      if (kwMouseDownKw === null || !kwSelectingMode) return;
+      const kw = parseInt(b.dataset.kw, 10);
+      kwFrom = Math.min(kwMouseDownKw, kw);
+      kwTo   = Math.max(kwMouseDownKw, kw);
+      updateKwHighlight();
+      updateKwDisplay();
+    });
+  });
+  document.addEventListener('mouseup', () => {
+    if (kwMouseDownKw === null) return;
+    // Wenn beim Drag ueber mehrere KWs gegangen wurde, Auswahl finalisieren
+    if (kwFrom !== null && kwTo !== null && kwFrom !== kwTo) {
+      kwSelectingMode = false;
+    }
+    kwMouseDownKw = null;
+  });
+}
+
+function resetKwSelection() {
+  kwFrom = null; kwTo = null;
+  kwSelectingMode = false; kwMouseDownKw = null;
+  updateKwHighlight();
+  updateKwDisplay();
+}
+
+buildKwCalendar();
+
+// ============================================================
 // SEARCH
 // ============================================================
 
@@ -2189,7 +2447,11 @@ let currentResults = [];
 async function runSearch() {
   if (!serverOk) { await checkServer(); if (!serverOk) return; }
 
-  const brief = buildBrief();
+  let brief = buildBrief();
+  // Kampagnenzeitraum als KW-Range im Brief (matching.py erkennt das Muster)
+  if (kwFrom !== null && kwTo !== null) {
+    brief += " KW " + kwFrom + " bis KW " + kwTo;
+  }
   const sortVal = document.getElementById('sort-select').value;
   const budgetMax = parseInt(document.getElementById('f-budget').value) || 0;
   const formats = [...document.querySelectorAll('.format-chip.active')].map(el => el.dataset.fmt);
@@ -4626,6 +4888,7 @@ document.getElementById('reset-btn').addEventListener('click', () => {
   document.querySelectorAll('.format-chip').forEach(el => el.classList.remove('active'));
   document.getElementById('f-budget').value = 100000;
   document.getElementById('budget-display').textContent = 'Alle';
+  resetKwSelection();
   document.getElementById('result-list').innerHTML = '<div class="results-empty">Suche eingeben oder Filter anwenden, um Produkte zu finden.</div>';
   document.getElementById('results-count').innerHTML = '';
   currentResults = [];

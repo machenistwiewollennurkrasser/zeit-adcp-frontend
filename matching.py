@@ -1,6 +1,6 @@
 """
-ZEIT AdCP Matching Engine v3.9
-==============================
+ZEIT AdCP Matching Engine v3.10
+===============================
 
 Konsolidierte Match- und Pricing-Engine fuer den ZEIT AdCP Pilot.
 Loest die ursprungs-Architektur Option C aus Zwischenbericht Nr. 5 ein:
@@ -18,6 +18,17 @@ Schema:
     Liest aus Schema v3.4 Hybrid-Block-Modell (Print/Newsletter/Podcast).
 
 Changelog:
+    v3.10: Channel-Trennung Wochenzeitung vs. Magazin:
+           CHANNEL_HINTS bekommt neue Werte "wochenzeitung" (fuer
+           "wochenzeitung", "die zeit") und "magazin" (fuer "magazin",
+           "magazine", "heft"). Diese sind feiner als das alte "print".
+           match_products() filtert hart:
+             - "wochenzeitung" in Hints + Produkt ist nicht Wochenzeitung -> skip
+             - "magazin" in Hints + Produkt ist Wochenzeitung -> skip
+           Multi-Channel-Detection in parse_brief erkennt wochenzeitung/magazin
+           als Print-Variante (kein Pseudo-Print-Hint mehr noetig).
+           Debug-Log fuer score_audience im Podcast-Pfad.
+
     v3.9: Harte Filter im Router (match_products):
           1) Budget-Filter pro Channel - Print (guenstigster Formatpreis),
              Newsletter (price_eur_net), Podcast (total_price_eur_net oder
@@ -230,22 +241,26 @@ PREMIUM_INDICATORS = {
 }
 
 CHANNEL_HINTS = {
-    "magazin": "print",
-    "magazine": "print",
-    "heft": "print",
-    "print": "print",
-    "anzeige": "print",
-    "wochenzeitung": "print",
-    "zeitung": "print",
-    "beilage": "print",
-    "newsletter": "newsletter",
+    # v3.10: feinere Trennung Wochenzeitung vs. Magazin
+    "wochenzeitung":   "wochenzeitung",
+    "die zeit":        "wochenzeitung",
+    "magazin":         "magazin",
+    "magazine":        "magazin",
+    "heft":            "magazin",
+    # generische Print-Hints. "zeitung" bewusst NICHT mappen, weil
+    # es als Substring in "wochenzeitung" steckt und sonst ungewollt
+    # zusaetzlich "print" auslosen wuerde.
+    "print":           "print",
+    "anzeige":         "print",
+    "beilage":         "print",
+    "newsletter":      "newsletter",
     "newsletter-werbung": "newsletter",
-    "podcast": "podcast",
-    "podcasts": "podcast",
-    "audio-ad": "podcast",
-    "preroll": "podcast",
-    "midroll": "podcast",
-    "postroll": "podcast",
+    "podcast":         "podcast",
+    "podcasts":        "podcast",
+    "audio-ad":        "podcast",
+    "preroll":         "podcast",
+    "midroll":         "podcast",
+    "postroll":        "podcast",
 }
 
 KULTURKUNDE_HINTS = {
@@ -589,7 +604,8 @@ def parse_brief(brief: str) -> ParsedBrief:
     # Erkennt wenn User zwei oder drei Channels explizit benennt -> alle genannten Channels setzen
     # ohne Malus auf nicht-genannte Channels (da kein Single-Channel-Filter greift)
     _detected = set(pb.channel_hints)
-    _has_print = "print" in _detected
+    # v3.10: wochenzeitung und magazin zaehlen ebenfalls als Print-Variante
+    _has_print = bool({"print", "wochenzeitung", "magazin"} & _detected)
     _has_newsletter = "newsletter" in _detected
     _has_podcast = "podcast" in _detected
     _multi = sum([_has_print, _has_newsletter, _has_podcast])
@@ -598,7 +614,7 @@ def parse_brief(brief: str) -> ParsedBrief:
         pass
     else:
         # Pruefe ob Brief zwei oder mehr Channels explizit kombiniert
-        _combo_print = any(kw in text for kw in ("print", "magazin", "magazine", "heft", "zeitung", "beilage", "anzeige"))
+        _combo_print = any(kw in text for kw in ("print", "magazin", "magazine", "heft", "zeitung", "beilage", "anzeige", "wochenzeitung", "die zeit"))
         _combo_nl = any(kw in text for kw in ("newsletter",))
         _combo_pod = any(kw in text for kw in ("podcast", "podcasts", "audio-ad"))
         _combo_count = sum([_combo_print, _combo_nl, _combo_pod])
@@ -867,6 +883,20 @@ def score_audience(parsed: ParsedBrief, product: dict) -> Tuple[float, List[str]
     tags_lower = {t.lower() if isinstance(t, str) else "" for t in tags}
     brief_lower = {t.lower() for t in parsed.audience_tags}
     overlap = brief_lower & tags_lower
+
+    # v3.10: Debug-Log fuer Podcasts, damit man sieht welche Tags gezogen
+    # werden und ob ein Match zustande kommt.
+    if pt == "podcast":
+        import sys
+        print(
+            "[score_audience.podcast] {}: brief={}, product_tags={}, overlap={}".format(
+                product.get("product_id", "?"),
+                sorted(brief_lower),
+                sorted(tags_lower)[:25],
+                sorted(overlap),
+            ),
+            file=sys.stderr, flush=True,
+        )
 
     if overlap:
         s = min(30, len(overlap) * 12)
@@ -1912,30 +1942,29 @@ def match_products(
         if score <= 0:
             continue
 
-        # A4 (v3.6): Channel-Hint-Filter haerter
-        # Bei expliziter Print-Praeferenz Newsletter/Podcasts komplett ausfiltern
+        # A4 (v3.6) / v3.10: Channel-Hint-Filter
+        # Bei expliziter Channel-Praeferenz nicht-passende Produkte ausfiltern.
+        # v3.10 unterscheidet zusaetzlich "wochenzeitung" und "magazin" als
+        # eigene Hints (feiner als das alte pauschale "print").
         if parsed.channel_hints:
+            ch_set = set(parsed.channel_hints)
+            is_print = pt in PRINT_TYPES
+            is_wz    = pt == "wochenzeitung"
             channel_match = (
-                (pt in PRINT_TYPES and "print" in parsed.channel_hints) or
-                (pt in NEWSLETTER_TYPES and "newsletter" in parsed.channel_hints) or
-                (pt in PODCAST_TYPES and "podcast" in parsed.channel_hints)
+                ("wochenzeitung" in ch_set and is_wz) or
+                ("magazin"       in ch_set and is_print and not is_wz) or
+                ("print"         in ch_set and is_print) or
+                ("newsletter"    in ch_set and pt in NEWSLETTER_TYPES) or
+                ("podcast"       in ch_set and pt in PODCAST_TYPES)
             )
             if channel_match:
                 score += 10
                 reasoning.append("Channel-Hint im Brief passt (+10 Pkt)")
             else:
-                # Bei expliziter Single-Channel-Praeferenz andere komplett ausfiltern
-                # ABER: Multi-Channel-Briefs ("kanaluebergreifend") setzen alle drei
-                # Hints, dann sollte der else-Pfad nie greifen.
-                if len(parsed.channel_hints) == 1:
-                    only_channel = parsed.channel_hints[0]
-                    product_channel_match = (
-                        (only_channel == "print" and pt in PRINT_TYPES) or
-                        (only_channel == "newsletter" and pt in NEWSLETTER_TYPES) or
-                        (only_channel == "podcast" and pt in PODCAST_TYPES)
-                    )
-                    if not product_channel_match:
-                        continue  # Produkt komplett ueberspringen
+                # Single-Channel-Praeferenz -> hartes Skip
+                if len(ch_set) == 1:
+                    continue
+                # Mehrere Channels gesetzt, aber dieser passt nicht -> Malus
                 score -= 15
                 reasoning.append("Channel-Hint im Brief weicht ab (-15 Pkt)")
 

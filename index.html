@@ -355,6 +355,17 @@ header {
 .modal-close:hover { background: var(--zeit-yellow-soft); }
 .modal-header { padding: 32px 40px 24px; border-bottom: 1px solid var(--black); }
 .modal-badge { margin-bottom: 16px; }
+.modal-match-score {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--zeit-black);
+  color: var(--zeit-white);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
 .modal-name { font-size: 40px; font-weight: 500; letter-spacing: -0.02em; line-height: 1; margin-bottom: 8px; }
 .modal-sub { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: #555; }
 .modal-section { padding: 24px 40px; border-bottom: 1px solid var(--black); }
@@ -1619,7 +1630,7 @@ footer .footer-inner {
           <span class="filter-group-label">Kanal</span>
           <div class="checkbox-list">
             <label class="checkbox-item">
-              <input type="checkbox" data-channel="wochenzeitung"> DIE ZEIT
+              <input type="checkbox" data-channel="wochenzeitung DIE ZEIT"> DIE ZEIT
             </label>
             <label class="checkbox-item">
               <input type="checkbox" data-channel="magazin"> Alle Magazine
@@ -1638,7 +1649,8 @@ footer .footer-inner {
           <div class="filter-sub-label">Branche</div>
           <div class="checkbox-list">
             <label class="checkbox-item"><input type="checkbox" data-branche="reise"> Reise / Tourismus</label>
-            <label class="checkbox-item"><input type="checkbox" data-branche="kultur stiftung"> Kultur / NPO</label>
+            <label class="checkbox-item"><input type="checkbox" data-branche="kultur kulturinstitutionen museum theater"> Kultur / Kulturinstitutionen</label>
+            <label class="checkbox-item"><input type="checkbox" data-branche="stiftung npo gemeinnuetzig"> NPO / Stiftungen</label>
             <label class="checkbox-item"><input type="checkbox" data-branche="buchverlag"> Buchverlag / Medien</label>
             <label class="checkbox-item"><input type="checkbox" data-branche="b2b"> B2B / Consulting</label>
             <label class="checkbox-item"><input type="checkbox" data-branche="finanz"> Finanzdienstleister</label>
@@ -2278,6 +2290,11 @@ function buildBrief() {
 
   const parts = [];
   if (channelKw)                     parts.push(channelKw);
+  // FIX 1: Nur Kanal gesetzt, sonst kein Content-Signal -> Basis-Kontext mitgeben,
+  // damit die Engine nicht alle Scores auf 0 schickt und der Spread-Filter alles ausblendet.
+  if (channelKw && !brancheKw && !audienceKw && !themeKw) {
+    parts.push("alle produkte");
+  }
   if (brancheKw)                     parts.push(brancheKw);
   if (audienceKw)                    parts.push(audienceKw);
   if (themeKw)                       parts.push(themeKw);
@@ -2627,7 +2644,7 @@ function renderResults(results, query) {
       : reach.subscribers ? 'Abonnenten' : '';
     const reachSource = reach.source ? ` (Quelle: ${reach.source})` : '';
 
-    return `<div class="result-card" data-idx="${idx}" onclick="openModal(${idx})">
+    return `<div class="result-card" data-idx="${idx}" onclick="openSearchResultModal(${idx})">
       <div class="result-card-bar ${mc}"></div>
       <div class="result-card-inner">
         <div class="rc-main">
@@ -2651,7 +2668,65 @@ function renderResults(results, query) {
 }
 
 // ============================================================
-// MODAL
+// SEARCH-RESULT -> STYLED PRODUCT MODAL (FIX 5 + 6)
+// ============================================================
+// Verdrahtet das Ergebniskarten-onclick an die bestehenden gestalteten
+// Produkt-Modals (openProductModal -> openMagazinModal / openDieZeitModal /
+// openPodcastModal / openNewsletterModal) und blendet den Match-Score als
+// Badge im Modal-Header ein.
+
+let _searchResultMatchScore = null;
+
+function openSearchResultModal(idx) {
+  const r = currentResults[idx];
+  if (!r) return;
+  const p = r.product || {};
+  // Match-Score aus API-Response (Feld heisst match_score, nicht score)
+  _searchResultMatchScore = (r.match_score !== undefined && r.match_score !== null)
+    ? r.match_score
+    : (r.score !== undefined && r.score !== null ? r.score : null);
+
+  const item = {
+    product_id:   p.product_id,
+    name:         p.product_name || p.name || '—',
+    subtitle:     p.subtitle || p.description_short || '',
+    product_type: p.product_type,
+  };
+
+  // Score-Badge nachtraeglich in den modal-header haengen,
+  // sobald dieser im DOM erscheint (typed Modals fetchen async).
+  _attachMatchScoreBadgeOnce();
+  openProductModal(item);
+}
+
+function _attachMatchScoreBadgeOnce() {
+  if (_searchResultMatchScore === null) return;
+  const target = document.getElementById('modal-body');
+  if (!target) return;
+  const observer = new MutationObserver(() => {
+    const header = target.querySelector('.modal-header');
+    if (!header) return;
+    if (header.querySelector('.modal-match-score')) return;  // schon dran
+    const badge = document.createElement('div');
+    badge.className = 'modal-match-score';
+    badge.textContent = 'Match-Score ' + _searchResultMatchScore;
+    header.appendChild(badge);
+  });
+  observer.observe(target, { childList: true, subtree: true });
+  // Erstversuch sofort (falls modal-header bereits gerendert)
+  const headerNow = target.querySelector('.modal-header');
+  if (headerNow && !headerNow.querySelector('.modal-match-score')) {
+    const badge = document.createElement('div');
+    badge.className = 'modal-match-score';
+    badge.textContent = 'Match-Score ' + _searchResultMatchScore;
+    headerNow.appendChild(badge);
+  }
+  // Observer nach 10s aufraeumen (Modal sollte bis dahin fertig sein)
+  setTimeout(() => observer.disconnect(), 10000);
+}
+
+// ============================================================
+// MODAL (rohes Daten-Popup, deprecated - bleibt als Fallback drin)
 // ============================================================
 
 async function openModal(idx) {

@@ -1066,9 +1066,15 @@ footer .footer-inner {
 .pdf-overlay-footer {
   border-top: 0.5px solid rgba(26,26,26,0.2);
   background: var(--zeit-grey-bg);
-  padding: 16px 28px;
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px;
+  padding: 14px 28px 16px;
+  display: flex; flex-direction: column;
+  gap: 10px;
+}
+.pdf-overlay-hint {
+  font-size: 11px; color: #888; line-height: 1.45;
+}
+.pdf-overlay-actions {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
 }
 .pdf-footer-right { display: flex; gap: 10px; }
 .pdf-btn-ghost,
@@ -1095,7 +1101,7 @@ footer .footer-inner {
 }
 .pdf-btn-primary:hover { background: var(--zeit-yellow); color: var(--zeit-black); }
 @media (max-width: 600px) {
-  .pdf-overlay-footer { flex-direction: column; align-items: stretch; }
+  .pdf-overlay-actions { flex-direction: column; align-items: stretch; }
   .pdf-footer-right { justify-content: flex-end; }
 }
 
@@ -1136,7 +1142,7 @@ footer .footer-inner {
   /* KONTAKTBLOCK: schwarzer Hintergrund, 2-Spalten-Tabelle */
   .ml-print-contact {
     display: block !important;
-    background: #000 !important; color: #fff !important;
+    background: #E5E5E5 !important; color: #1A1A1A !important;
     padding: 18px 22px; margin: 18px 0 22px;
     font-size: 10.5px;
     -webkit-print-color-adjust: exact;
@@ -1147,11 +1153,11 @@ footer .footer-inner {
     text-transform: uppercase; letter-spacing: .06em;
     margin-bottom: 12px;
     padding-bottom: 6px;
-    border-bottom: 1px solid rgba(255,255,255,0.25);
+    border-bottom: 1px solid rgba(26,26,26,0.2);
   }
   .ml-print-contact-tbl { width: 100%; border-collapse: collapse; }
   .ml-print-contact-tbl td {
-    padding: 3px 0; vertical-align: top; color: #fff;
+    padding: 3px 0; vertical-align: top; color: #1A1A1A;
   }
   .ml-print-contact-tbl td.lbl {
     font-weight: 700;
@@ -1169,13 +1175,13 @@ footer .footer-inner {
   /* PRODUKTBLOCK: schwarzer Header + Tabelle */
   .ml-print-product { page-break-inside: avoid; margin-bottom: 18px; }
   .ml-pp-hdr {
-    background: #000 !important; color: #fff !important;
+    background: #E5E5E5 !important; color: #1A1A1A !important;
     padding: 10px 14px; margin-bottom: 0;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  .ml-pp-name { font-size: 13px; font-weight: 700; line-height: 1.2; }
-  .ml-pp-type { font-size: 10px; color: rgba(255,255,255,0.75); margin-top: 2px; text-transform: uppercase; letter-spacing: .04em; }
+  .ml-pp-name { font-size: 13px; font-weight: 700; line-height: 1.2; color: #1A1A1A; }
+  .ml-pp-type { font-size: 10px; color: rgba(26,26,26,0.6); margin-top: 2px; text-transform: uppercase; letter-spacing: .04em; }
   .ml-pp-tbl {
     width: 100%; border-collapse: collapse; font-size: 11.5px;
     border-bottom: 1px solid #000;
@@ -1193,12 +1199,14 @@ footer .footer-inner {
   .ml-pp-tbl td.pos strong { font-size: 12px; font-weight: 700; }
   .ml-pp-tbl td.pos .meta { font-size: 10px; color: #777; margin-top: 3px; }
   .ml-pp-tbl td.price { text-align: right; white-space: nowrap; }
-  .ml-pp-tbl td.price .brdg {
-    display: inline-block; margin-top: 4px;
-    font-size: 9px; font-weight: 700; color: #fff;
-    background: #000 !important;
-    padding: 2px 6px; border-radius: 2px;
-    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  .ml-pp-tbl td.price .pb-list {
+    display: block; color: #1A1A1A; font-weight: 400;
+  }
+  .ml-pp-tbl td.price .pb-rabatt {
+    display: block; color: #666; font-weight: 400; font-size: 10.5px; margin-top: 2px;
+  }
+  .ml-pp-tbl td.price .pb-end {
+    display: block; font-weight: 700; margin-top: 3px;
   }
 
   /* SUMMENZEILE: rechtsbuendig */
@@ -1225,7 +1233,7 @@ footer .footer-inner {
     margin-top: 28px; page-break-inside: avoid;
   }
   .ml-print-agb-title {
-    background: #000 !important; color: #fff !important;
+    background: #E5E5E5 !important; color: #1A1A1A !important;
     padding: 10px 14px;
     font-size: 12px; font-weight: 700;
     text-transform: uppercase; letter-spacing: .06em;
@@ -6148,7 +6156,7 @@ function _mlBuildPrintBody() {
   groupMap.forEach(group => {
     const rows = group.items.map(item => {
       const p = item.pricing;
-      let listFull, endpreis, brSuffix = '';
+      let listFull, endpreis, hasDiscount = false;
 
       if (p.price_locked) {
         listFull = endpreis = p.locked_price;
@@ -6156,8 +6164,7 @@ function _mlBuildPrintBody() {
         listFull = p.list_price_full ?? p.list_price;
         endpreis = p.list_price;
         if (listFull != null && endpreis != null && listFull !== endpreis) {
-          const m = (p.list_price_label || '').match(/\(([^)]+)\)$/);
-          if (m) brSuffix = m[1];
+          hasDiscount = true;
         }
       }
 
@@ -6172,7 +6179,21 @@ function _mlBuildPrintBody() {
       const asLabel    = item.schedule?.ad_close_label ? `AS: ${item.schedule.ad_close_label}` : '';
       const metaStr    = [schedLabel, asLabel].filter(Boolean).join(' · ');
       const listCell   = listFull != null ? `${num(Math.round(listFull))} EUR` : 'auf Anfrage';
-      const endCell    = endpreis  != null ? `${num(Math.round(endpreis))} EUR` : 'auf Anfrage';
+
+      // Endpreis-Zelle: bei Rabatt drei-zeiliger Breakdown,
+      // sonst nur Endpreis (oder 'auf Anfrage').
+      let endHtml;
+      if (endpreis == null) {
+        endHtml = 'auf Anfrage';
+      } else if (hasDiscount) {
+        const rabatt = Math.round(listFull - endpreis);
+        endHtml =
+          `<span class="pb-list">${num(Math.round(listFull))} EUR</span>` +
+          `<span class="pb-rabatt">&minus; Rabatt: ${num(rabatt)} EUR</span>` +
+          `<span class="pb-end">Endpreis: ${num(Math.round(endpreis))} EUR</span>`;
+      } else {
+        endHtml = `${num(Math.round(endpreis))} EUR`;
+      }
 
       return `<tr>
         <td class="pos">
@@ -6180,7 +6201,7 @@ function _mlBuildPrintBody() {
           ${metaStr ? `<div class="meta">${metaStr}</div>` : ''}
         </td>
         <td class="price">${listCell}</td>
-        <td class="price">${endCell}${brSuffix ? `<div class="brdg">${brSuffix}</div>` : ''}</td>
+        <td class="price">${endHtml}</td>
       </tr>`;
     }).join('');
 
@@ -6552,10 +6573,13 @@ checkServer();
       </div>
     </div>
     <div class="pdf-overlay-footer">
-      <button type="button" class="pdf-btn-ghost pdf-btn-left" id="pdf-btn-skip">Ohne Kundendaten erstellen</button>
-      <div class="pdf-footer-right">
-        <button type="button" class="pdf-btn-ghost"   id="pdf-btn-cancel">Abbrechen</button>
-        <button type="button" class="pdf-btn-primary" id="pdf-btn-create">PDF erstellen</button>
+      <div class="pdf-overlay-hint">Tipp: Im Druckdialog &bdquo;Kopf- und Fu&szlig;zeilen&rdquo; deaktivieren f&uuml;r ein sauberes PDF ohne Browser-URL und Datum.</div>
+      <div class="pdf-overlay-actions">
+        <button type="button" class="pdf-btn-ghost pdf-btn-left" id="pdf-btn-skip">Ohne Kundendaten erstellen</button>
+        <div class="pdf-footer-right">
+          <button type="button" class="pdf-btn-ghost"   id="pdf-btn-cancel">Abbrechen</button>
+          <button type="button" class="pdf-btn-primary" id="pdf-btn-create">PDF erstellen</button>
+        </div>
       </div>
     </div>
   </div>

@@ -6184,11 +6184,30 @@ function _mlExecutePrintFlow(skipCustomer) {
   setTimeout(() => window.print(), 80);
 }
 
+// ml-pdf-btn ist hier im merkliste-Aside oberhalb des Scripts gerendert
+// und sofort verfuegbar. Das Overlay-HTML liegt aber unterhalb des Scripts
+// (direkt vor </body>) und ist beim ersten Lauf noch nicht im DOM.
+// Wir deferieren die Overlay-Listener auf DOMContentLoaded, damit
+// getElementById(...) sicher Elemente liefert. Sonst wuerde der erste
+// null.addEventListener-Aufruf das gesamte Script bei dieser Zeile abbrechen
+// und z.B. die showView-Listener weiter unten nie registrieren.
 document.getElementById('ml-pdf-btn').addEventListener('click', openPdfOverlay);
-document.getElementById('pdf-btn-cancel').addEventListener('click', closePdfOverlay);
-document.getElementById('pdf-overlay-backdrop').addEventListener('click', closePdfOverlay);
-document.getElementById('pdf-btn-skip').addEventListener('click', () => _mlExecutePrintFlow(true));
-document.getElementById('pdf-btn-create').addEventListener('click', () => _mlExecutePrintFlow(false));
+
+function _wirePdfOverlayListeners() {
+  const cancelBtn = document.getElementById('pdf-btn-cancel');
+  const backdrop  = document.getElementById('pdf-overlay-backdrop');
+  const skipBtn   = document.getElementById('pdf-btn-skip');
+  const createBtn = document.getElementById('pdf-btn-create');
+  if (cancelBtn) cancelBtn.addEventListener('click', closePdfOverlay);
+  if (backdrop)  backdrop.addEventListener('click', closePdfOverlay);
+  if (skipBtn)   skipBtn.addEventListener('click', () => _mlExecutePrintFlow(true));
+  if (createBtn) createBtn.addEventListener('click', () => _mlExecutePrintFlow(false));
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _wirePdfOverlayListeners);
+} else {
+  _wirePdfOverlayListeners();
+}
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     const ov = document.getElementById('pdf-overlay');

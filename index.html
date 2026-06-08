@@ -62,7 +62,7 @@ header {
 }
 .header-inner {
   display: grid;
-  grid-template-columns: 200px 1fr 300px;
+  grid-template-columns: 200px 1fr 360px;
   align-items: center;
   height: 72px;
   padding: 0 40px;
@@ -120,6 +120,7 @@ header {
   white-space: nowrap;
 }
 .vt-segment:hover:not(.vt-active) { color: var(--zeit-black); }
+.vt-beta { font-size: 9px; font-weight: 400; opacity: 0.7; margin-left: 2px; letter-spacing: 0.02em; }
 .vt-segment.vt-active {
   background: var(--zeit-black);
   color: var(--zeit-white);
@@ -1787,7 +1788,7 @@ footer .footer-inner {
     <div class="header-right">
 <div class="view-toggle" id="view-toggle" role="tablist">
   <button type="button" class="vt-segment vt-active" data-view="produkte" role="tab" aria-selected="true">Produkte</button>
-  <button type="button" class="vt-segment"          data-view="filter"   role="tab" aria-selected="false">Filter (Beta)</button>
+  <button type="button" class="vt-segment"          data-view="filter"   role="tab" aria-selected="false">Filter <span class="vt-beta">(Beta)</span></button>
 </div>
 <button class="btn-merkliste" id="merkliste-btn">MERKLISTE <span class="ml-badge empty" id="ml-badge">0</span></button>
     </div>
